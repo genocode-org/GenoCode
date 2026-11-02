@@ -55,12 +55,13 @@ function blocklyMedia(): Plugin {
 }
 
 /**
- * The day a file or folder of the repo last changed, from git, as in `2026-10-29`; nothing when
- * git doesn't know (outside a repo, or a file not yet committed).
+ * The day any of some files or folders of the repo last changed, from git, as in `2026-10-29`;
+ * nothing when git doesn't know (outside a repo, or files not yet committed). Tests don't count.
  */
-function modified(source: string): string | undefined {
+function modified(...sources: string[]): string | undefined {
   try {
-    const day = execFileSync("git", ["log", "-1", "--format=%cs", "--", source], {
+    const paths = [...sources, ":(exclude,glob)**/*.test.ts"];
+    const day = execFileSync("git", ["log", "-1", "--format=%cs", "--", ...paths], {
       cwd: repo,
       encoding: "utf8",
     }).trim();
@@ -70,14 +71,28 @@ function modified(source: string): string | undefined {
   }
 }
 
+/** What the app page is built from, for its day in the sitemap. */
+const APP_SOURCES = [
+  "packages/app/app",
+  "packages/app/src",
+  ...["blocks", "controls", "core", "dance", "music", "render"].map((p) => `packages/${p}/src`),
+  "creatures",
+  "dances",
+  "patterns",
+];
+
 /** The website's own pages around the app (see site.ts): every one, and the sitemap. */
 function siteFiles(): SiteFile[] {
   const files = [...docs(), ...creatureFiles()];
   const pages = [
     { path: "index.html", source: "packages/app/index.html" },
-    { path: "app/index.html", source: "packages/app/app/index.html" },
+    // The app changes with its code and the packages and starter files it's built from.
+    { path: "app/index.html", source: APP_SOURCES },
     ...files.filter((f) => f.path.endsWith(".html")),
-  ].map((p) => ({ path: p.path, modified: p.source && modified(p.source) }));
+  ].map((p) => ({
+    path: p.path,
+    modified: p.source && modified(...(typeof p.source === "string" ? [p.source] : p.source)),
+  }));
   return [...files, { path: "sitemap.xml", type: "application/xml", make: () => sitemap(pages) }];
 }
 
