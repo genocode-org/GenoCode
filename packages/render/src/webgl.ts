@@ -6,7 +6,14 @@
 // projected along each axis of the shape and blended by which way the surface faces, so there are
 // no seams or pinched poles, and every shape wears its texture the same way.
 
-import { toRgb, type LaidShape, type Pattern, type ShapeName, type Value } from "@genocode/core";
+import {
+  toRgb,
+  type LaidShape,
+  type PathStep,
+  type Pattern,
+  type ShapeName,
+  type Value,
+} from "@genocode/core";
 import {
   AmbientLight,
   CanvasTexture,
@@ -21,12 +28,14 @@ import {
   MeshPhongMaterial,
   PerspectiveCamera,
   Quaternion,
+  Raycaster,
   RepeatWrapping,
   RGBAFormat,
   Scene,
   SRGBColorSpace,
   type Texture,
   Vector3,
+  Vector2,
   WebGLRenderer,
   type WebGLProgramParametersWithUniforms,
 } from "three";
@@ -40,6 +49,7 @@ import {
   type CameraPlacement,
   type Side,
 } from "./look.js";
+import { PathOverlay } from "./path.js";
 import {
   fieldKey,
   onFieldReady,
@@ -221,6 +231,9 @@ interface Textured {
   previous?: { texture: DataTexture; since: number } | undefined;
 }
 
+/** How see-through the shapes are while the turtle's path is drawn over them: their alpha's share. */
+const FADED = 0.25;
+
 /** How much of the way to the camera a dance's zoom can bring the creature. */
 const NEAREST = 0.75;
 
@@ -252,9 +265,14 @@ class CreatureScene {
   /** The creature's focus point, if it has one: where the camera looks. */
   focus: readonly [number, number, number] | undefined;
   private readonly lights: { light: DirectionalLight; direction: Vector3 }[] = [];
+  /** The turtle's path, drawn over the creature when asked for. */
+  readonly path = new PathOverlay();
+  /** The shapes are drawn faded, so the path shows through them. */
+  faded = false;
 
   constructor() {
     this.scene.add(this.creature);
+    this.scene.add(this.path.group);
     this.scene.add(new AmbientLight(0xffffff, LIGHTS.ambient * LIGHT_SCALE));
     for (const l of [LIGHTS.key, LIGHTS.fill]) {
       const light = new DirectionalLight(0xffffff, l.strength * LIGHT_SCALE);
@@ -269,6 +287,8 @@ class CreatureScene {
   pose(turn: Quaternion, offset: Vector3): void {
     this.creature.quaternion.copy(turn);
     this.creature.position.copy(offset);
+    this.path.group.quaternion.copy(turn);
+    this.path.group.position.copy(offset);
   }
 
   /** Turns the lights with the camera, by `turn`, so every side is lit as the front is. */
@@ -295,7 +315,8 @@ class CreatureScene {
     for (const s of shapes) {
       if (s.colour.a <= 0) continue;
       const t = wornTexture(s);
-      const key = `${s.shape}|${s.mirrored}|${s.colour.a < 0.999}|${t ? textureKey(t) : ""}`;
+      const seeThrough = this.faded || s.colour.a < 0.999;
+      const key = `${s.shape}|${s.mirrored}|${seeThrough}|${t ? textureKey(t) : ""}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(s);
     }
@@ -335,7 +356,7 @@ class CreatureScene {
         mesh.setColorAt(i, colour.setRGB(r, g, b, SRGBColorSpace));
         look[i * 4] = s.shine;
         look[i * 4 + 1] = s.sharpness;
-        look[i * 4 + 2] = s.colour.a;
+        look[i * 4 + 2] = s.colour.a * (this.faded ? FADED : 1);
         // The finish's sheen comes and goes with the texture.
         look[i * 4 + 3] = sheen * s.wear;
       });
@@ -520,6 +541,7 @@ class CreatureScene {
 
   dispose(): void {
     this.setCreature([], "low");
+    this.path.dispose();
     const background = this.scene.background;
     if (background && "dispose" in background) background.dispose();
     this.opaque.dispose();
@@ -537,6 +559,14 @@ export class CreatureView {
   /** The camera's turn in the front view, which the lights are set for. */
   private readonly frontTurn = new Quaternion();
   private readonly stopListening: () => void;
+  private readonly ray = new Raycaster();
+  private hovered: PathStep | undefined;
+  /** Where the pointer went down, to tell a click from a drag of the camera. */
+  private downAt: { x: number; y: number } | undefined;
+  /** Called when the pointer moves onto a step of the path, or off the path (undefined). */
+  onPathHover: ((step: PathStep | undefined) => void) | undefined;
+  /** Called when a step of the path is clicked. */
+  onPathClick: ((step: PathStep) => void) | undefined;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -547,6 +577,10 @@ export class CreatureView {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     this.resize();
+    canvas.addEventListener("pointermove", this.pointerMove);
+    canvas.addEventListener("pointerdown", this.pointerDown);
+    canvas.addEventListener("pointerup", this.pointerUp);
+    canvas.addEventListener("pointerleave", this.pointerLeave);
     // A texture's picture drawn elsewhere is ready: show it.
     this.stopListening = onFieldReady(() => {
       this.look.setCreature(this.look.shapes, "high", this.look.focus);
@@ -573,6 +607,70 @@ export class CreatureView {
       keepView === "unless-inside" && !wasInside && this.cameraInside(shapes, focus);
     if (!keepView || swallowed) this.resetView();
     this.requestFrame();
+  }
+
+  /**
+   * Draws the turtle's path over the creature, with the shapes faded so it shows through; without
+   * one, shows the creature as usual. Call it after `setCreature`, with the path of the same build.
+   */
+  setPath(path: readonly PathStep[] | undefined): void {
+    const faded = path !== undefined;
+    if (faded !== this.look.faded) {
+      this.look.faded = faded;
+      this.look.setCreature(this.look.shapes, "high", this.look.focus);
+    }
+    const { radius } = creatureBounds(this.look.shapes, this.look.focus);
+    this.look.path.set(path, radius > 0 ? radius : 1);
+    if (!faded) this.hover(undefined);
+    this.requestFrame();
+  }
+
+  /** Lights up the steps of the path for which `which` is true; undefined lights none up. */
+  highlightPath(which: ((step: PathStep) => boolean) | undefined): void {
+    this.look.path.highlight(which);
+    this.requestFrame();
+  }
+
+  private readonly pointerMove = (e: PointerEvent): void => {
+    // While a button is down the camera is being moved, not the path looked at.
+    if (e.buttons !== 0 || !this.look.faded) return;
+    this.hover(this.stepAt(e));
+  };
+
+  private readonly pointerDown = (e: PointerEvent): void => {
+    this.downAt = { x: e.clientX, y: e.clientY };
+  };
+
+  private readonly pointerUp = (e: PointerEvent): void => {
+    const d = this.downAt;
+    this.downAt = undefined;
+    if (!d || !this.look.faded || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) return;
+    const step = this.stepAt(e);
+    if (step) this.onPathClick?.(step);
+  };
+
+  private readonly pointerLeave = (): void => this.hover(undefined);
+
+  private hover(step: PathStep | undefined): void {
+    if (step === this.hovered) return;
+    this.hovered = step;
+    this.canvas.style.cursor = step ? "pointer" : "";
+    this.onPathHover?.(step);
+  }
+
+  /** The step of the path under the pointer, if any. */
+  private stepAt(e: PointerEvent): PathStep | undefined {
+    const box = this.canvas.getBoundingClientRect();
+    const at = new Vector2(
+      ((e.clientX - box.left) / box.width) * 2 - 1,
+      -((e.clientY - box.top) / box.height) * 2 + 1,
+    );
+    this.ray.setFromCamera(at, this.camera);
+    // About 6 pixels either side, at the distance the camera looks at.
+    const distance = this.camera.position.distanceTo(this.controls.target);
+    const across = 2 * distance * Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
+    this.ray.params.Line = { threshold: (across / Math.max(1, box.height)) * 6 };
+    return this.look.path.pick(this.ray);
   }
 
   /** Whether the camera is within these shapes' bounds. */
@@ -694,6 +792,10 @@ export class CreatureView {
 
   dispose(): void {
     this.stopListening();
+    this.canvas.removeEventListener("pointermove", this.pointerMove);
+    this.canvas.removeEventListener("pointerdown", this.pointerDown);
+    this.canvas.removeEventListener("pointerup", this.pointerUp);
+    this.canvas.removeEventListener("pointerleave", this.pointerLeave);
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.look.dispose();

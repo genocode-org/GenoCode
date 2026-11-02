@@ -108,6 +108,8 @@ const fileInput = $<HTMLInputElement>("file-input");
 const watching = $("watching");
 
 let mode: Mode = "view";
+/** The turtle's path is drawn over the creature in the View. */
+let showingPath = false;
 
 /** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
 type Source = { kind: "example" | "mine"; name: string } | { kind: "other" };
@@ -516,6 +518,7 @@ $("add-variant").addEventListener("click", async () => {
  * Anywhere else, what's on show stays, so the drawing code can be changed while a variant is shown.
  */
 function cursorMoved(at: number): void {
+  lightPath();
   if (!current) return;
   const p = checkText(editor.text);
   const inside = (span: { start: number; end: number }) => span.start <= at && at <= span.end;
@@ -553,8 +556,10 @@ function showCurrent(keepView: boolean, panel = true): void {
     inputs.show(live);
   }
   const frame = (keep: boolean | "unless-inside") => {
-    const { built, background } = buildCreature(c, inputs.now());
+    const { built, background } = buildCreature(c, inputs.now(), showingPath);
     view.setCreature(built.shapes, keep, built.focus);
+    view.setPath(showingPath ? (built.path ?? []) : undefined);
+    lightPath();
     view.setBackground(background);
     blocks.setBackground(background);
     report(built.diagnostics, built.shapes.length, live);
@@ -768,6 +773,8 @@ function setMode(next: Mode): void {
   morpher.stop();
   floor.stop();
   inputs.show(false);
+  $("path-toggle").hidden = mode !== "view";
+  if (mode !== "view") view.setPath(undefined);
   if (mode === "view") showCurrent(false);
   if (mode === "breed" && current) {
     if (!breeder.holds(current)) breeder.start(familyOf(current), strength());
@@ -1725,6 +1732,49 @@ app.addEventListener("pointerdown", (e) => {
 });
 
 $("fullscreen").addEventListener("click", toggleFullscreen);
+
+// ---------- the turtle's path ----------
+
+/** Whether the creature on show was built from the code in the editor, so its path points into it. */
+function pathMatchesCode(): boolean {
+  return shown?.program === program && program?.file.kind === "creature";
+}
+
+/** Where in the code the step under the pointer was made, while one is pointed at. */
+let pointedAt: number | undefined;
+
+/**
+ * Lights up the steps of the path made by one line of the code: the line of the step pointed at,
+ * or else the line the cursor is on. A live creature calls this every frame.
+ */
+function lightPath(): void {
+  if (!showingPath || !pathMatchesCode()) return view.highlightPath(undefined);
+  const doc = editor.view.state.doc;
+  const line = doc.lineAt(Math.min(pointedAt ?? editor.cursor, doc.length));
+  view.highlightPath((s) => s.span.start >= line.from && s.span.start <= line.to);
+}
+
+$("path-toggle").addEventListener("click", () => {
+  showingPath = !showingPath;
+  $("path-toggle").setAttribute("aria-pressed", String(showingPath));
+  if (!showingPath) {
+    pointedAt = undefined;
+    editor.markLine(undefined);
+  }
+  showCurrent(true, false);
+});
+// Pointing at a step lights up its line of code, and every step that line made.
+view.onPathHover = (step) => {
+  pointedAt = step && pathMatchesCode() ? step.span.start : undefined;
+  editor.markLine(pointedAt);
+  lightPath();
+};
+view.onPathClick = (step) => {
+  if (!pathMatchesCode()) return;
+  editor.moveTo(step.span.start);
+  editor.view.focus();
+  lightPath();
+};
 document.addEventListener("fullscreenchange", () => setFull(document.fullscreenElement === app));
 window.addEventListener("keydown", (e) => {
   const typing =

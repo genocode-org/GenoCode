@@ -137,6 +137,51 @@ describe("turtle", () => {
   });
 });
 
+describe("turtle path", () => {
+  const steps = (body: string) =>
+    run(body, { trace: true }).path!.map((p) => [p.kind, near(p.from), near(p.to)]);
+
+  it("is only recorded when asked for", () => {
+    expect(run("forward 1").path).toBeUndefined();
+  });
+
+  it("records forward, back and move, but not turns or standing still", () => {
+    expect(steps("forward 2\nyaw 90\nforward 0\nback 1\nmove (0, 3, 0)")).toEqual([
+      ["move", [0, 0, 0], [0, 0, 2]],
+      ["move", [0, 0, 2], [-1, 0, 2]],
+      ["move", [-1, 0, 2], [-1, 3, 2]],
+    ]);
+  });
+
+  it("jumps back when a branch or a symmetric side ends somewhere else", () => {
+    expect(steps("branch {\n  forward 1\n}\nbranch {\n  yaw 30\n}")).toEqual([
+      ["move", [0, 0, 0], [0, 0, 1]],
+      ["return", [0, 0, 1], [0, 0, 0]],
+    ]);
+    expect(steps("symmetric x {\n  move (1, 0, 0)\n}").map((s) => s[0])).toEqual([
+      "move",
+      "return",
+      "move",
+      "return",
+    ]);
+  });
+
+  it("leaves out moves of a shape inside lay", () => {
+    expect(steps("lay {\n  forward 1\n}")).toEqual([]);
+  });
+
+  it("points each step at the statement that made it", () => {
+    const source = "forward 1\nbranch {\n  back 1\n}";
+    const path = run(source, { trace: true }).path!;
+    const text = `creature Test\n${source}\n`;
+    expect(path.map((p) => text.slice(p.span.start, p.span.end).split("\n")[0])).toEqual([
+      "forward 1",
+      "back 1",
+      "branch {",
+    ]);
+  });
+});
+
 describe("control flow, parts and functions", () => {
   it("repeats and loops", () => {
     expect(run("repeat 2.5 as i {\n  print(i)\n}").printed).toEqual(["0", "1", "2"]);
