@@ -625,6 +625,96 @@ focuspoint // the last one counts: the camera looks at the middle of the body
   middle of its shapes: the centre of the smallest box, lined up with the axes, that holds them
   all. That middle moves when shapes come and go on one side, which a focus point doesn't.
 
+### 11.9 Common surprises
+
+Each of these follows from the rules above, but each catches people out at first.
+
+**Shapes point along the heading, not up.** A cone's tip and a tube's length lie along the
+turtle's heading ([section 12](#12-shapes)), so a shape points wherever the turtle faces and never
+needs turning to match it. At the start the heading is the world's z, towards the viewer, so a
+cone laid straight away points at you. In the example, the `pitch -90` turns the heading up first,
+so the cone stands upright like a party hat:
+
+```
+shape cone
+branch {
+  pitch -90 // heading now up
+  lay // tip at the top
+}
+lay // tip towards the viewer
+```
+
+**Growing makes later moves longer.** `forward d` moves `d` times the turtle's size along the
+heading ([11.2](#112-moving)), so after a `grow` the turtle steps further as well as laying bigger
+shapes. In the example, both `forward 1` lines are the same, but the second moves 3 units, because
+of the `grow 3` before it. To make one shape bigger without changing the steps after it, grow the
+shape alone with `lay { grow 3 }`:
+
+```
+forward 1 // moves 1
+grow 3
+forward 1 // moves 3
+lay
+```
+
+**The turtle and the shape transform are different things.** Commands at the top level move, turn
+and grow the turtle, and everything after them is affected. The same commands inside `lay { }` or
+`reshape { }` change only the shapes ([11.7](#117-the-shape-transform)). In the example, the first
+`lay` squashes one ball flat and leaves the turtle alone, so the `forward 2` steps 2 and the last
+ball is round. Had `grow (1, 0.2, 1)` been written outside the braces, every later ball would be
+flat too:
+
+```
+lay { grow (1, 0.2, 1) } // a flat ball
+forward 2
+lay // a round ball
+```
+
+**Positive pitch tips the nose down.** `pitch 30` turns the heading towards the turtle's down, and
+`pitch -30` towards its up ([11.3](#113-turning)). In the example, the neck leans up and forward
+from the body because its pitch is negative.
+
+**Turns are mirrored on the mirrored side.** Inside `symmetric x { }`, the second run is mirrored,
+so each `yaw` and `roll` there turns the other way ([11.3](#113-turning)). That's what makes the two
+halves match: write one side, and the other side is its reflection. In the example, the one
+`yaw 40` turns both ears outwards, each to its own side. Use `side` only when the two runs really
+should differ, not to undo the mirror.
+
+```
+pitch -40 // the neck leans up
+forward 2
+symmetric x {
+  branch {
+    yaw 40 // each ear turns outwards
+    forward 1
+    lay
+  }
+}
+```
+
+**A part leaves the turtle where it ended.** A part call doesn't restore the turtle
+([section 10](#10-parts-and-functions)), so everything after it starts where the part finished.
+Put the call inside a `branch` when it should start from the same place as what comes next. In
+the example, the `branch` keeps the turtle where it was, so `tail` starts from the body:
+
+```
+part leg {
+  pitch 60
+  forward 2
+  lay
+}
+
+part tail {
+  back 2
+  lay
+}
+
+branch {
+  leg
+}
+tail
+```
+
 ## 12. Shapes
 
 | Command     | Effect                                                                                                                                                                       |
