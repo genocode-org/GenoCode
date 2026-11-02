@@ -50,6 +50,7 @@ let lastChecked: CheckResult | undefined;
 export function buildCreature(
   c: Creature,
   inputs: BuildOptions["inputs"] = {},
+  trace = false,
 ): { built: BuildResult; background: Value | undefined } {
   const options = { genes: c.values, inputs };
   if (c.program.file.kind === "pattern") {
@@ -59,7 +60,7 @@ export function buildCreature(
   }
   const built =
     c.program.file.kind === "creature"
-      ? build(c.program, options)
+      ? build(c.program, { ...options, trace })
       : { shapes: [], diagnostics: [], printed: [], ok: true };
   return { built, background: buildBackground(c.program, options).fill };
 }

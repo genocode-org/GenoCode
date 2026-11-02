@@ -6,7 +6,13 @@ import { autocompletion, type Completion, type CompletionContext } from "@codemi
 import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import { linter, type Diagnostic as LintDiagnostic } from "@codemirror/lint";
-import { Annotation, EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
+import {
+  Annotation,
+  EditorState,
+  RangeSetBuilder,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import {
   Decoration,
   EditorView,
@@ -180,6 +186,24 @@ const usesField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+/** Lights up the line holding a position, or none: the code that made the path step pointed at. */
+const markLine = StateEffect.define<number | undefined>();
+
+const markedLine = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, tr) {
+    value = value.map(tr.changes);
+    for (const e of tr.effects) {
+      if (!e.is(markLine)) continue;
+      if (e.value === undefined || e.value > tr.state.doc.length) return Decoration.none;
+      const line = tr.state.doc.lineAt(e.value);
+      value = Decoration.set(Decoration.line({ class: "g-path-line" }).range(line.from));
+    }
+    return value;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 /** Moves the cursor to where the name at `at` is defined, selecting it. False if there's no name. */
 function goToDefinition(view: EditorView, at = view.state.selection.main.head): boolean {
   const found = symbolAt(checkText(view.state.doc.toString()), at);
@@ -339,6 +363,7 @@ const theme = EditorView.theme(
     ".cm-scroller": { fontFamily: "ui-monospace, monospace", lineHeight: "1.5" },
     ".cm-gutters": { backgroundColor: "var(--bg)", color: "#4b5570", border: "none" },
     ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "#ffffff08" },
+    ".g-path-line": { backgroundColor: "#ffc23d26", boxShadow: "inset 3px 0 #ffc23d" },
     "&.cm-focused .cm-cursor": { borderLeftColor: "var(--accent)" },
     ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": {
       backgroundColor: "#2e3a5c !important",
@@ -406,6 +431,7 @@ export class CodeEditor {
           autocompletion({ override: [complete] }),
           colours,
           usesField,
+          markedLine,
           swatchesField,
           problems,
           help,
@@ -443,6 +469,21 @@ export class CodeEditor {
       scrollIntoView: true,
       annotations: fromApp.of(true),
     });
+  }
+
+  /** Lights up the line holding `at`, scrolling to it; undefined clears it. */
+  markLine(at: number | undefined): void {
+    this.view.dispatch({
+      effects: [
+        markLine.of(at),
+        ...(at === undefined ? [] : [EditorView.scrollIntoView(at, { y: "nearest" })]),
+      ],
+    });
+  }
+
+  /** Where the cursor is. */
+  get cursor(): number {
+    return this.view.state.selection.main.head;
   }
 
   /** Changes parts of the text, keeping the cursor and the undo history. Calls `onEdit`. */

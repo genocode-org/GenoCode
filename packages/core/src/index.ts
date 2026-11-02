@@ -39,6 +39,7 @@ export {
   type BuildResult,
   type Inputs,
   type LaidShape,
+  type PathStep,
   type Limits,
   type MusicInputs,
 } from "./interpreter.js";

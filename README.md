@@ -89,6 +89,12 @@ the genes, the code and the blocks:
 In View, Morph and Dance, the buttons at the top right of the creature turn the picture to look from
 each side and (or the F key) show it full screen. **File › Keyboard shortcuts** lists the keys.
 
+In View, the path button draws the turtle's path over the creature: an arrow for each `forward`,
+`back` and `move`, and a dashed line where a `branch` jumps back to where it started. The
+creature fades so the path shows through. Pointing at an arrow lights up the line of code that made
+it, along with every other step from that line; clicking it puts the cursor there. With the cursor
+on a line of code, that line's steps light up too.
+
 **Help** in the app opens the documentation: the getting-started guide and the language reference,
 made from `docs/` when the app is built. `npm run build` puts the whole website in
 `packages/app/dist`; on every push to main, the Site workflow publishes it on GitHub Pages.

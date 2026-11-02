@@ -103,6 +103,20 @@ export interface BuildOptions {
   limits?: Partial<Limits>;
   /** How pictures' per-pixel code is run (pixels.ts): for tests that compare the two ways. */
   pixels?: PixelEngine;
+  /** Record the turtle's path in the result's `path`, for the app's path view. */
+  trace?: boolean;
+}
+
+/**
+ * One straight piece of the turtle's path, in world space. A `"move"` is a `forward`, `back` or
+ * `move`; a `"return"` is the jump back to where a `branch` (or one side of a `symmetric`)
+ * started, when it ends somewhere else. `span` is the statement that made it.
+ */
+export interface PathStep {
+  kind: "move" | "return";
+  from: [number, number, number];
+  to: [number, number, number];
+  span: Span;
 }
 
 export interface LaidShape {
@@ -132,6 +146,8 @@ export interface BuildResult {
   printed: string[];
   /** The build ran to the end without errors (it may still have warnings). */
   ok: boolean;
+  /** The turtle's path, in the order it was walked: only when built with `trace`. */
+  path?: PathStep[];
 }
 
 export interface BackgroundResult {
@@ -167,6 +183,7 @@ export function build(program: CheckResult, options: BuildOptions = {}): BuildRe
     diagnostics: run.finish(),
     printed: run.printed,
     ok: !run.failed,
+    ...(options.trace ? { path: run.path } : {}),
   };
 }
 
@@ -414,6 +431,8 @@ const WHITE: Colour = { type: "colour", h: 0, s: 0, v: 1, a: 1 };
 
 class Run {
   shapes: LaidShape[] = [];
+  /** The turtle's path, when the build traces it. */
+  path: PathStep[] = [];
   focus: [number, number, number] | undefined;
   printed: string[] = [];
   failed = false;
@@ -695,18 +714,18 @@ class Run {
         }
         return;
       case "Branch":
-        this.branch(() => this.execBlock(s.block, env));
+        this.branch(s.span, () => this.execBlock(s.block, env));
         return;
       case "Symmetric": {
         const axis = { x: 0, y: 1, z: 2 }[s.axis];
         const flip: V3 = [1, 1, 1];
         flip[axis] = -1;
-        this.branch(() =>
+        this.branch(s.span, () =>
           this.execBlock(s.block, env, (inner) =>
             inner.vars.set("side", { value: 1, mutable: false }),
           ),
         );
-        this.branch(() => {
+        this.branch(s.span, () => {
           grow(this.state.turtle, flip);
           this.execBlock(s.block, env, (inner) =>
             inner.vars.set("side", { value: -1, mutable: false }),
@@ -748,13 +767,13 @@ class Run {
         const f = this.frame();
         switch (s.command) {
           case "forward":
-            move(f, [0, 0, this.num(s.value, env, "`forward`")]);
+            this.walk(f, [0, 0, this.num(s.value, env, "`forward`")], s.span);
             return;
           case "back":
-            move(f, [0, 0, -this.num(s.value, env, "`back`")]);
+            this.walk(f, [0, 0, -this.num(s.value, env, "`back`")], s.span);
             return;
           case "move":
-            move(f, this.vector(s.value, env, "`move`"));
+            this.walk(f, this.vector(s.value, env, "`move`"), s.span);
             return;
           case "pitch":
             turn(f, 0, this.num(s.value, env, "`pitch`"));
@@ -848,13 +867,28 @@ class Run {
     }
   }
 
-  private branch(f: () => void): void {
+  private branch(span: Span, f: () => void): void {
     const saved = cloneState(this.state);
     try {
       f();
     } finally {
+      this.record("return", this.state.turtle.pos, saved.turtle.pos, span);
       this.state = saved;
     }
+  }
+
+  /** Moves the frame; a move of the turtle (not of a shape in `lay`) is part of its path. */
+  private walk(f: Frame, local: V3, span: Span): void {
+    const from: V3 = [...f.pos];
+    move(f, local);
+    if (f === this.state.turtle) this.record("move", from, f.pos, span);
+  }
+
+  private record(kind: PathStep["kind"], from: V3, to: V3, span: Span): void {
+    if (!this.options.trace || this.path.length >= this.limits.shapes) return;
+    if (from[0] === to[0] && from[1] === to[1] && from[2] === to[2]) return;
+    if (![...from, ...to].every(Number.isFinite)) return;
+    this.path.push({ kind, from: [...from], to: [...to], span });
   }
 
   private lay(span: Span): void {
