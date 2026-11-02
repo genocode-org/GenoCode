@@ -220,9 +220,15 @@ function shrunk(
     }
     middle = [(lo[0]! + hi[0]!) / 2, (lo[1]! + hi[1]!) / 2, (lo[2]! + hi[2]!) / 2];
   }
-  return shapes.map((s) => {
-    const m = s.matrix.map((v, i) => (i < 12 && i % 4 !== 3 ? v * k : v));
-    for (let i = 0; i < 3; i++) m[12 + i] = middle[i]! + (s.matrix[12 + i]! - middle[i]!) * k;
-    return { ...s, matrix: m };
-  });
+  const scaled = (matrix: readonly number[]) => {
+    const m = matrix.map((v, i) => (i < 12 && i % 4 !== 3 ? v * k : v));
+    for (let i = 0; i < 3; i++) m[12 + i] = middle[i]! + (matrix[12 + i]! - middle[i]!) * k;
+    return m;
+  };
+  return shapes.map((s) => ({
+    ...s,
+    matrix: scaled(s.matrix),
+    // A stroke's points shrink with it.
+    ...(s.points ? { points: s.points.map((p) => ({ ...p, matrix: scaled(p.matrix) })) } : {}),
+  }));
 }

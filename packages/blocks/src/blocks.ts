@@ -577,6 +577,19 @@ export function defineBlocks(): void {
     },
   });
 
+  define("g_stroke", {
+    init(this: GBlock) {
+      this.extra = {};
+      this.appendDummyInput().appendField("one smooth stroke through");
+      this.appendStatementInput("DO");
+      statement(
+        this,
+        HUES.look,
+        "Draws one smooth tube instead of separate shapes: every shape laid inside becomes a point the tube passes through.",
+      );
+    },
+  });
+
   define("g_command", {
     init(this: GBlock) {
       this.extra = {};

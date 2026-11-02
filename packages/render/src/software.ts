@@ -3,6 +3,7 @@
 
 import { toRgb, type LaidShape, type Pattern, type Value } from "@genocode/core";
 import { creatureBounds, shapeGeometry } from "./geometry.js";
+import { strokeMesh } from "./stroke.js";
 import {
   backgroundRamp,
   FIELD_OF_VIEW,
@@ -192,29 +193,36 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     front ? { ...l, direction: turnWith(l.direction, front, axes) } : l,
   );
 
-  const opaque = shapes.filter((s) => s.colour.a >= 0.999);
+  // A stroke is see-through if any of it is.
+  const alphaOf = (s: LaidShape) =>
+    s.points ? Math.min(...s.points.map((p) => p.colour.a)) : s.colour.a;
+  const opaque = shapes.filter((s) => alphaOf(s) >= 0.999);
   const seeThrough = shapes
-    .filter((s) => s.colour.a < 0.999 && s.colour.a > 0)
+    .filter((s) => alphaOf(s) < 0.999 && (s.points ?? [s]).some((p) => p.colour.a > 0))
     .map((s) => ({ s, d: dot(sub([s.matrix[12]!, s.matrix[13]!, s.matrix[14]!], eye), forward) }))
     .sort((p, q) => q.d - p.d)
     .map((p) => p.s);
 
+  const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   for (const shape of [...opaque, ...seeThrough]) {
-    const m = shape.matrix;
+    // A stroke's tube is already in world space, with a colour and look at each corner.
+    const stroke = shape.points ? strokeMesh(shape.points, "high") : undefined;
+    if (shape.shape === "stroke" && !stroke) continue;
+    const m = stroke ? IDENTITY : shape.matrix;
     const nm = normalMatrix(m);
     if (!nm) continue;
-    const geometry = shapeGeometry(shape.shape, false, "low");
-    const pos = geometry.getAttribute("position").array;
-    const nor = geometry.getAttribute("normal").array;
+    const geometry =
+      shape.shape === "stroke" ? undefined : shapeGeometry(shape.shape, false, "low");
+    const pos = stroke ? stroke.position : geometry!.getAttribute("position").array;
+    const nor = stroke ? stroke.normal : geometry!.getAttribute("normal").array;
     // A shape that wears none of its texture is drawn as if it had none.
     const pattern = shape.wear > 0 ? shape.texture : null;
     const texture = pattern ? texturePixels(pattern) : undefined;
     const sheen = pattern ? patternSheen(pattern) * shape.wear : 0;
-    const index = geometry.getIndex()?.array;
+    const index = stroke ? stroke.index : geometry!.getIndex()?.array;
     const count = pos.length / 3;
     const base: Rgb = toRgb(shape.colour);
-    const alpha = shape.colour.a;
-    const exponent = shininess(shape.sharpness);
+    const alpha = alphaOf(shape);
 
     // Per corner: screen x, screen y, 1/distance, how much light falls on it (which the colour
     // and texture multiply), and the light it gives off whatever its colour (highlights and sheen).
@@ -248,15 +256,17 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
       const toEye = normalise(sub(eye, world));
       let diffuse = LIGHTS.ambient;
       let specular = 0;
+      const shine = stroke ? stroke.look[v * 4]! : shape.shine;
+      const exponent = shininess(stroke ? stroke.look[v * 4 + 1]! : shape.sharpness);
       for (const l of lights) {
         diffuse += l.strength * Math.max(0, dot(n, l.direction));
-        if (shape.shine > 0) {
+        if (shine > 0) {
           const half = normalise([
             l.direction[0] + toEye[0],
             l.direction[1] + toEye[1],
             l.direction[2] + toEye[2],
           ]);
-          specular += l.strength * shape.shine * Math.pow(Math.max(0, dot(n, half)), exponent);
+          specular += l.strength * shine * Math.pow(Math.max(0, dot(n, half)), exponent);
         }
       }
       if (sheen > 0) specular += sheen * 0.5 * Math.pow(1 - Math.abs(dot(n, toEye)), 3);
@@ -293,6 +303,15 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
           const light = ka * shade[a]! + kb * shade[b]! + kc * shade[c]!;
           const extra = ka * glint[a]! + kb * glint[b]! + kc * glint[c]!;
           let surface = base;
+          let see = alpha;
+          if (stroke) {
+            // A stroke's colour and see-through are blended from its corners.
+            const col = stroke.colour;
+            const blend = (arr: ArrayLike<number>, n: number, k: number) =>
+              ka * arr[a * n + k]! + kb * arr[b * n + k]! + kc * arr[c * n + k]!;
+            surface = [blend(col, 3, 0), blend(col, 3, 1), blend(col, 3, 2)];
+            see = blend(stroke.look, 4, 2);
+          }
           if (texture) {
             // Where on the shape this is, and which way it faces there, in the shape's own box.
             const at3 = (arr: ArrayLike<number>, k: number) =>
@@ -307,9 +326,9 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
           for (let k = 0; k < 3; k++) {
             const value = surface[k]! * light + extra;
             colour[at * 3 + k] =
-              alpha >= 0.999 ? value : colour[at * 3 + k]! * (1 - alpha) + value * alpha;
+              see >= 0.999 ? value : colour[at * 3 + k]! * (1 - see) + value * see;
           }
-          if (alpha >= 0.999) depth[at] = z;
+          if (see >= 0.999) depth[at] = z;
         }
       }
     }

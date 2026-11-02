@@ -227,6 +227,7 @@ export type Stmt =
   | Lay
   | FocusPoint
   | Reshape
+  | Stroke
   | Command
   | Rotate
   | Mirror
@@ -407,6 +408,12 @@ export interface FocusPoint extends StmtBase {
 
 export interface Reshape extends StmtBase {
   kind: "Reshape";
+  block: Block;
+}
+
+/** `stroke { … }`: each `lay` inside adds a point to one smooth tube instead of laying a shape. */
+export interface Stroke extends StmtBase {
+  kind: "Stroke";
   block: Block;
 }
 

@@ -16,6 +16,8 @@ import {
 } from "@genocode/core";
 import {
   AmbientLight,
+  BufferAttribute,
+  BufferGeometry,
   CanvasTexture,
   Color,
   DataTexture,
@@ -25,6 +27,7 @@ import {
   InstancedMesh,
   LinearMipmapLinearFilter,
   Matrix4,
+  Mesh,
   MeshPhongMaterial,
   PerspectiveCamera,
   Quaternion,
@@ -50,6 +53,7 @@ import {
   type Side,
 } from "./look.js";
 import { PathOverlay } from "./path.js";
+import { strokeMesh, type StrokeMesh } from "./stroke.js";
 import {
   fieldKey,
   onFieldReady,
@@ -178,12 +182,21 @@ interface Fade {
   fade: { value: number };
 }
 
-function makeMaterial(transparent: boolean, map?: Texture): MeshPhongMaterial {
+/**
+ * A material for shapes, or with `vertexColors` for strokes, whose colour and look are carried by
+ * each corner rather than by each shape.
+ */
+function makeMaterial(
+  transparent: boolean,
+  map?: Texture,
+  vertexColors = false,
+): MeshPhongMaterial {
   const material = new MeshPhongMaterial({
     color: 0xffffff,
     transparent,
     depthWrite: !transparent,
     map: map ?? null,
+    vertexColors,
   });
   const fade: Fade = {
     previousMap: { value: NOTHING },
@@ -231,6 +244,51 @@ interface Textured {
   previous?: { texture: DataTexture; since: number } | undefined;
 }
 
+/** An sRGB colour channel (0 to 1) as the linear light three blends colours in. */
+function linear(c: number): number {
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+/**
+ * Strokes' tubes as one geometry, in world space, with each corner's colour and look; `fade`
+ * multiplies their see-through.
+ */
+function strokeGeometry(meshes: readonly StrokeMesh[], fade: number): BufferGeometry {
+  let corners = 0;
+  let triangles = 0;
+  for (const m of meshes) {
+    corners += m.position.length / 3;
+    triangles += m.index.length;
+  }
+  const position = new Float32Array(corners * 3);
+  const normal = new Float32Array(corners * 3);
+  const colour = new Float32Array(corners * 3);
+  const look = new Float32Array(corners * 4);
+  const index = new Uint32Array(triangles);
+  let c = 0;
+  let t = 0;
+  for (const m of meshes) {
+    position.set(m.position, c * 3);
+    normal.set(m.normal, c * 3);
+    for (let i = 0; i < m.colour.length; i++) colour[c * 3 + i] = linear(m.colour[i]!);
+    look.set(m.look, c * 4);
+    for (let i = 0; i < m.look.length; i += 4) look[c * 4 + i + 2]! *= fade;
+    for (let i = 0; i < m.index.length; i++) index[t + i] = m.index[i]! + c;
+    c += m.position.length / 3;
+    t += m.index.length;
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(position, 3));
+  g.setAttribute("normal", new BufferAttribute(normal, 3));
+  g.setAttribute("color", new BufferAttribute(colour, 3));
+  // The same names the shapes' per-instance look has, here given per corner.
+  g.setAttribute("instanceLook", new BufferAttribute(look, 4));
+  g.setAttribute("instanceWear", new BufferAttribute(new Float32Array(corners), 1));
+  g.setIndex(new BufferAttribute(index, 1));
+  g.computeBoundingSphere();
+  return g;
+}
+
 /** How see-through the shapes are while the turtle's path is drawn over them: their alpha's share. */
 const FADED = 0.25;
 
@@ -248,6 +306,8 @@ class CreatureScene {
   private readonly creature = new Group();
   private readonly opaque = makeMaterial(false);
   private readonly seeThrough = makeMaterial(true);
+  private readonly opaqueStrokes = makeMaterial(false, undefined, true);
+  private readonly seeThroughStrokes = makeMaterial(true, undefined, true);
   /** The textured materials in use, by texture and whether they're see-through. */
   private textured = new Map<string, Textured>();
   /**
@@ -305,14 +365,23 @@ class CreatureScene {
   ): void {
     for (const child of [...this.creature.children]) {
       this.creature.remove(child);
-      const mesh = child as InstancedMesh;
+      const mesh = child as Mesh;
       mesh.geometry.dispose(); // each mesh has its own copy, carrying its instance attributes
-      mesh.dispose();
+      if (mesh instanceof InstancedMesh) mesh.dispose();
     }
     this.shapes = shapes;
     this.focus = focus;
     const groups = new Map<string, LaidShape[]>();
+    const strokes: { mesh: StrokeMesh; seeThrough: boolean }[] = [];
     for (const s of shapes) {
+      if (s.shape === "stroke") {
+        const mesh = s.points && strokeMesh(s.points, detail);
+        const alphas = s.points?.map((p) => p.colour.a) ?? [];
+        if (mesh && alphas.some((a) => a > 0)) {
+          strokes.push({ mesh, seeThrough: this.faded || alphas.some((a) => a < 0.999) });
+        }
+        continue;
+      }
       if (s.colour.a <= 0) continue;
       const t = wornTexture(s);
       const seeThrough = this.faded || s.colour.a < 0.999;
@@ -365,6 +434,16 @@ class CreatureScene {
       mesh.geometry.setAttribute("instanceWear", new InstancedBufferAttribute(wear, 1));
       mesh.computeBoundingSphere();
       this.creature.add(mesh);
+    }
+    for (const seeThrough of [false, true]) {
+      const these = strokes.filter((s) => s.seeThrough === seeThrough).map((s) => s.mesh);
+      if (these.length === 0) continue;
+      this.creature.add(
+        new Mesh(
+          strokeGeometry(these, this.faded ? FADED : 1),
+          seeThrough ? this.seeThroughStrokes : this.opaqueStrokes,
+        ),
+      );
     }
     const kept = new Set(this.textured.values());
     for (const t of old.values()) {
@@ -546,6 +625,8 @@ class CreatureScene {
     if (background && "dispose" in background) background.dispose();
     this.opaque.dispose();
     this.seeThrough.dispose();
+    this.opaqueStrokes.dispose();
+    this.seeThroughStrokes.dispose();
   }
 }
 

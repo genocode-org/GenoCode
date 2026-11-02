@@ -40,6 +40,7 @@ export {
   type Inputs,
   type LaidShape,
   type PathStep,
+  type StrokePoint,
   type Limits,
   type MusicInputs,
 } from "./interpreter.js";

@@ -28,6 +28,11 @@ describe("code to blocks and back", () => {
     }
   }
 
+  it("keeps a stroke", () => {
+    const text = "creature Hair\n\nstroke {\n  repeat 4 {\n    lay\n    forward 1\n  }\n}\n";
+    expect(roundTrip(text)).toBe(text);
+  });
+
   it("keeps a focus point", () => {
     const text = "creature Focus\n\nlay\nbranch {\n  forward 3\n  focuspoint\n}\n";
     expect(roundTrip(text)).toBe(text);

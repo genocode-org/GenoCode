@@ -109,10 +109,13 @@ export function creatureBounds(
   return { centre, radius };
 }
 
-/** Calls `f` with each corner of each shape's 1×1×1 box, in world space. */
+/**
+ * Calls `f` with each corner of each shape's 1×1×1 box, in world space; for a stroke, of the box
+ * at each of its points.
+ */
 function eachCorner(shapes: readonly LaidShape[], f: (v: [number, number, number]) => void): void {
-  for (const s of shapes) {
-    const m = s.matrix;
+  const boxes = shapes.flatMap((s) => (s.points ? s.points.map((p) => p.matrix) : [s.matrix]));
+  for (const m of boxes) {
     for (const x of [-0.5, 0.5]) {
       for (const y of [-0.5, 0.5]) {
         for (const z of [-0.5, 0.5]) {

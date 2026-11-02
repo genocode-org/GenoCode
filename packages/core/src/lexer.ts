@@ -23,6 +23,7 @@ export const KEYWORDS: ReadonlySet<string> = new Set([
   "lay",
   "focuspoint",
   "reshape",
+  "stroke",
   "symmetric",
   "shape",
   "colour",

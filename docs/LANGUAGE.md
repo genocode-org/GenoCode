@@ -172,7 +172,7 @@ allowed as arguments to `print`.
 
 ```
 creature gene part function return let if else repeat as for from to by while
-branch lay reshape symmetric shape colour color shine sharpness texture wear
+branch lay reshape stroke symmetric shape colour color shine sharpness texture wear
 background fill dance forward back move pitch yaw roll rotate around grow mirror in step log
 at and or not true false print turtle time beat music variant breed
 ```
@@ -737,6 +737,52 @@ one, is the heading.
 | `cone`  | a cone 1 long along the heading, with a base 1 across at the back and its tip at the front |
 | `ring`  | a thin torus around the heading, 1 across and 0.2 thick                                    |
 | `donut` | a fat torus around the heading, 1 across and 1/3 thick                                     |
+
+### 12.1 Strokes
+
+A **stroke** is one smooth tube instead of separate shapes, for tentacles, hair, vines and the
+like. Inside `stroke { … }`, each `lay` adds a point that the tube passes through instead of laying
+a shape:
+
+```
+stroke {
+  repeat 12 as i {
+    colour hsv(200 + i * 10, 0.8, 1)
+    lay { grow 0.3 * (1 - i / 14) }
+    forward 0.5
+    pitch 12
+  }
+}
+```
+
+- The block runs as usual. The turtle isn't put back at its end (wrap it in `branch` for that).
+- Each `lay` inside, directly or in a part it calls, adds a point to the innermost stroke. A
+  `stroke` inside another is a tube of its own.
+- A point records where the shape would have been placed (the turtle and the shape transform,
+  [11.7](#117-the-shape-transform)), and the colour, shine and sharpness. The shape, texture and
+  wear aren't used: a stroke shows its plain colour.
+- The tube passes through each point's middle, in the order they were laid, like a thread pulled
+  through beads. At each point it runs the way from the point before to the point after (at the
+  first and last points, towards their one neighbour). Between two points, its middle follows a
+  cubic Hermite curve that starts and ends in those directions, each pulling as far as the two
+  points are apart. Only where the points are matters, not which way the turtle faced: turning
+  before or after `forward` gives the same curve. In the example, each `pitch` curves it a little
+  further down.
+- At each point, the tube's cross-section is the middle of the shape's box: an ellipse with the
+  shape's side and up axes, 1 across at size 1. In the example, `grow 0.3 * (1 - i / 14)` makes it
+  narrow towards the end. `grow (w, h, 1)` makes it `w` wide and `h` high, so a stroke can be a flat
+  ribbon, and a `roll` between points twists it. How long the shape would have been along the
+  heading doesn't matter.
+- Between two points, the cross-section's width and height change in a straight line, and its
+  axes turn smoothly from one point's to the next, staying square to the tube. Colours blend as
+  `mix` does ([13.1](#131-colours)), so in the example the hue moves smoothly along the tube.
+  Shine and sharpness change in a straight line.
+- Both ends are rounded: half an ellipsoid that reaches past the end point by half the
+  cross-section's smaller width.
+- A point in the same place as the one before it is left out. A stroke with fewer than two places
+  draws nothing.
+- Each point counts as a shape towards the 50,000 shapes a creature may lay
+  ([section 20](#20-building-a-creature)).
 
 ## 13. Colour and material
 
@@ -1423,7 +1469,7 @@ text by the standard formatter.
 | `background { }`                                                                                                                                   | a background block holding its genes and one fill block, with a live preview and an export button                                         |
 | `dance { }`                                                                                                                                        | a dance block holding its genes and one block per effect, with an export button                                                           |
 | `let`, assignment, turtle commands, `shape`, `colour`, `shine`, `sharpness`, `texture`, `wear`, `lay`, `focuspoint`, part calls, `return`, `print` | stacking blocks with slots for values. Labels can be friendlier than the keywords, such as "turn left/right" for `yaw`                    |
-| `if`, `repeat`, `for`, `while`, `branch`, `symmetric`, `lay { }`, `reshape { }`                                                                    | blocks that wrap around other blocks                                                                                                      |
+| `if`, `repeat`, `for`, `while`, `branch`, `symmetric`, `lay { }`, `reshape { }`, `stroke { }`                                                      | blocks that wrap around other blocks                                                                                                      |
 | expressions                                                                                                                                        | value blocks that plug into slots: round for numbers, pointed for bools, swatches for colours                                             |
 
 **Keeping the two in step:**
@@ -1484,7 +1530,8 @@ compound      = "if" expr block { "else" "if" expr block } [ "else" block ]
               | "branch" block
               | "symmetric" axis block
               | "lay" block
-              | "reshape" block ;
+              | "reshape" block
+              | "stroke" block ;
 assign_op     = "=" | "+=" | "-=" | "*=" | "/=" ;
 
 turtle_cmd    = ( "forward" | "back" | "move" | "pitch" | "yaw" | "roll" | "grow" ) expr
@@ -1539,7 +1586,8 @@ args          = expr { "," expr } ;
 
 Rules the grammar doesn't express are given in the sections above: where genes may go
 ([6.2](#62-where-genes-can-go)), what may appear inside `lay { }` and `reshape { }`
-([11.7](#117-the-shape-transform)), what functions may do ([section 10](#10-parts-and-functions)),
+([11.7](#117-the-shape-transform)), what a `stroke { }` does with the shapes laid inside it
+([12.1](#121-strokes)), what functions may do ([section 10](#10-parts-and-functions)),
 constant expressions ([6.1](#61-declaring-genes)), where strings are allowed
 ([section 4](#4-lexical-structure)), and what pattern code and `picture { }` may use
 ([section 14.1](#141-your-own-patterns)). `"picture"` and `"value"` are only words in pattern
