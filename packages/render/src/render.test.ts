@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { creatureBounds, shapeGeometry } from "./geometry.js";
 import { backgroundRamp, DEFAULT_BACKGROUND, frameCamera } from "./look.js";
 import { rasterize } from "./software.js";
+import { strokeMesh } from "./stroke.js";
 
 function shapes(body: string): LaidShape[] {
   const r = check(`creature T\n${body}\n`);
@@ -53,6 +54,85 @@ describe("shape geometry", () => {
     const mirrored = shapeGeometry("cube", true).getIndex()!.array;
     expect([mirrored[0], mirrored[1], mirrored[2]]).toEqual([plain[0], plain[2], plain[1]]);
     expect(shapeGeometry("cube", false).getIndex()!.array[1]).toBe(plain[1]); // the original is untouched
+  });
+});
+
+describe("strokes", () => {
+  const strokeOf = (body: string) => shapes(body).find((s) => s.shape === "stroke")!;
+  const corner = (a: Float32Array, i: number) => [a[i * 3]!, a[i * 3 + 1]!, a[i * 3 + 2]!];
+
+  it("runs a straight stroke through its points, as wide as its shapes, with rounded ends", () => {
+    const mesh = strokeMesh(strokeOf("stroke {\n  lay\n  forward 2\n  lay\n}").points!)!;
+    for (let i = 0; i < mesh.position.length / 3; i++) {
+      const [x, y, z] = corner(mesh.position, i);
+      expect(Math.hypot(x!, y!)).toBeLessThanOrEqual(0.5 + 1e-6);
+      expect(z!).toBeGreaterThanOrEqual(-0.5 - 1e-6);
+      expect(z!).toBeLessThanOrEqual(2.5 + 1e-6);
+    }
+    const zs = Array.from(
+      { length: mesh.position.length / 3 },
+      (_, i) => mesh.position[i * 3 + 2]!,
+    );
+    expect(Math.min(...zs)).toBeCloseTo(-0.5);
+    expect(Math.max(...zs)).toBeCloseTo(2.5);
+  });
+
+  it("faces every triangle outwards, also on curved, flattened and mirrored strokes", () => {
+    for (const body of [
+      "stroke {\n  repeat 6 {\n    lay { grow (0.6, 0.2, 1) }\n    forward 1\n    yaw 40\n    roll 30\n  }\n}",
+      "mirror x\nstroke {\n  repeat 6 {\n    lay\n    forward 1\n    pitch 35\n  }\n}",
+    ]) {
+      const mesh = strokeMesh(strokeOf(body).points!)!;
+      const { position: p, normal: n, index } = mesh;
+      for (let t = 0; t < index.length; t += 3) {
+        const [a, b, c] = [index[t]!, index[t + 1]!, index[t + 2]!];
+        const [pa, pb, pc] = [corner(p, a), corner(p, b), corner(p, c)];
+        const u = [pb[0]! - pa[0]!, pb[1]! - pa[1]!, pb[2]! - pa[2]!];
+        const v = [pc[0]! - pa[0]!, pc[1]! - pa[1]!, pc[2]! - pa[2]!];
+        const face = [
+          u[1]! * v[2]! - u[2]! * v[1]!,
+          u[2]! * v[0]! - u[0]! * v[2]!,
+          u[0]! * v[1]! - u[1]! * v[0]!,
+        ];
+        if (Math.hypot(face[0]!, face[1]!, face[2]!) < 1e-9) continue; // a tip's empty triangle
+        const normals = [corner(n, a), corner(n, b), corner(n, c)];
+        const out = normals.reduce(
+          (sum, m) => sum + m[0]! * face[0]! + m[1]! * face[1]! + m[2]! * face[2]!,
+          0,
+        );
+        expect(out).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("blends colours along the stroke as mix does", () => {
+    const mesh = strokeMesh(
+      strokeOf("stroke {\n  colour red\n  lay\n  forward 4\n  colour blue\n  lay\n}").points!,
+    )!;
+    // Halfway from red to blue the short way round is magenta, not a dull mix of the two.
+    const corners = mesh.position.length / 3;
+    let best = 0;
+    for (let i = 0; i < corners; i++) {
+      if (Math.abs(mesh.position[i * 3 + 2]! - 2) > 0.3) continue;
+      const [r, g, b] = corner(mesh.colour, i);
+      best = Math.max(best, Math.min(r!, b!) - g!);
+    }
+    expect(best).toBeGreaterThan(0.8);
+  });
+
+  it("draws nothing for points all in one place", () => {
+    expect(
+      strokeMesh(strokeOf("stroke {\n  lay\n  forward 1\n  lay\n}").points!.slice(0, 1)),
+    ).toBeUndefined();
+  });
+
+  it("is drawn by the software renderer and framed by the camera", () => {
+    const body = "colour red\nstroke {\n  repeat 5 {\n    lay\n    forward 1\n  }\n}";
+    expect(creatureBounds(shapes(body)).radius).toBeGreaterThan(2);
+    const img = rasterize(shapes(body), { width: 64, height: 64 });
+    const at = (img.width * 32 + 32) * 4;
+    expect(img.data[at]).toBeGreaterThan(150);
+    expect(img.data[at + 1]).toBeLessThan(40);
   });
 });
 

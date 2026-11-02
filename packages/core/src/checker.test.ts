@@ -186,6 +186,8 @@ describe("checker: statements and types", () => {
     rejects("dance {\n  lay\n}", "dance block can only hold");
     rejects("function f() {\n  focuspoint\n  return 1\n}", "can't set the focus point");
     rejects("lay { focuspoint }", "Inside `reshape` and `lay` blocks");
+    rejects("lay {\n  stroke {\n    forward 1\n  }\n}", "Inside `reshape` and `lay` blocks");
+    rejects("function f() {\n  stroke {\n    lay\n  }\n  return 1\n}", "can't change the turtle");
     rejects("background {\n  focuspoint\n  fill red\n}", "can only hold");
   });
 

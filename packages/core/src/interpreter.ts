@@ -119,8 +119,13 @@ export interface PathStep {
   span: Span;
 }
 
+/**
+ * Something laid: one of the six shapes, or a `"stroke"`, one smooth tube through `points`. A
+ * stroke's other fields are its first point's (its matrix places it, for anything that only needs
+ * to know roughly where it is); it wears no texture and isn't mirrored as a whole.
+ */
 export interface LaidShape {
-  shape: ShapeName;
+  shape: ShapeName | "stroke";
   /** 4×4 placement matrix, column-major, from the shape's own space to the world. */
   matrix: number[];
   colour: Colour;
@@ -132,6 +137,20 @@ export interface LaidShape {
   wear: number;
   /** The placement reverses handedness (the shape is drawn mirrored). */
   mirrored: boolean;
+  /** A stroke's points, in the order they were laid: at least two. */
+  points?: StrokePoint[];
+}
+
+/**
+ * A point a stroke passes through: where a shape would have been laid. The tube passes through the
+ * matrix's origin along its z axis, and its cross-section there is the shape's 1×1 middle: the x
+ * and y axes give its width and height.
+ */
+export interface StrokePoint {
+  matrix: number[];
+  colour: Colour;
+  shine: number;
+  sharpness: number;
 }
 
 export interface BuildResult {
@@ -433,6 +452,10 @@ class Run {
   shapes: LaidShape[] = [];
   /** The turtle's path, when the build traces it. */
   path: PathStep[] = [];
+  /** The points of the strokes being drawn, innermost last: a `lay` adds to the innermost. */
+  private strokes: StrokePoint[][] = [];
+  /** Stroke points laid so far, which count towards the shapes limit. */
+  private strokePoints = 0;
   focus: [number, number, number] | undefined;
   printed: string[] = [];
   failed = false;
@@ -763,6 +786,31 @@ class Run {
           this.shapeMode--;
         }
         return;
+      case "Stroke": {
+        const points: StrokePoint[] = [];
+        this.strokes.push(points);
+        try {
+          this.execBlock(s.block, env);
+        } finally {
+          this.strokes.pop();
+          // A stroke with fewer than two points has nothing to join, so it draws nothing.
+          const first = points[0];
+          if (first && points.length >= 2) {
+            this.shapes.push({
+              shape: "stroke",
+              matrix: first.matrix,
+              colour: first.colour,
+              shine: first.shine,
+              sharpness: first.sharpness,
+              texture: null,
+              wear: 0,
+              mirrored: false,
+              points,
+            });
+          }
+        }
+        return;
+      }
       case "Command": {
         const f = this.frame();
         switch (s.command) {
@@ -892,7 +940,7 @@ class Run {
   }
 
   private lay(span: Span): void {
-    if (this.shapes.length >= this.limits.shapes) {
+    if (this.shapes.length + this.strokePoints >= this.limits.shapes) {
       throw new LimitReached(
         span,
         `The build stopped at ${this.limits.shapes.toLocaleString("en")} shapes, the most a creature can have.`,
@@ -903,6 +951,12 @@ class Run {
     if (!matrix.every(Number.isFinite)) {
       this.skipped++;
       this.skippedSpan ??= span;
+      return;
+    }
+    const stroke = this.strokes[this.strokes.length - 1];
+    if (stroke) {
+      stroke.push({ matrix, colour: st.colour, shine: st.shine, sharpness: st.sharpness });
+      this.strokePoints++;
       return;
     }
     this.shapes.push({

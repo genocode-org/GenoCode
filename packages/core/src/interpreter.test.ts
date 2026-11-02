@@ -182,6 +182,60 @@ describe("turtle path", () => {
   });
 });
 
+describe("strokes", () => {
+  const strokes = (body: string) => run(body).shapes.filter((s) => s.shape === "stroke");
+
+  it("turns each lay inside into a point of one stroke", () => {
+    const r = run("stroke {\n  repeat 3 {\n    lay\n    forward 1\n  }\n}");
+    expect(r.shapes).toHaveLength(1);
+    const s = r.shapes[0]!;
+    expect(s.shape).toBe("stroke");
+    expect(s.points!.map((p) => near([p.matrix[12]!, p.matrix[13]!, p.matrix[14]!]))).toEqual([
+      [0, 0, 0],
+      [0, 0, 1],
+      [0, 0, 2],
+    ]);
+  });
+
+  it("keeps each point's placement and look", () => {
+    const [s] = strokes(
+      "stroke {\n  colour red\n  shine 0.4\n  lay { grow 0.5 }\n  forward 1\n  colour blue\n  lay\n}",
+    );
+    const [a, b] = s!.points!;
+    expect(a!.matrix[0]).toBeCloseTo(0.5);
+    expect(b!.matrix[0]).toBeCloseTo(1);
+    expect([a!.colour.h, a!.colour.s]).toEqual([0, 1]);
+    expect(a!.shine).toBe(0.4);
+    expect(b!.colour.h).toBeCloseTo(240);
+  });
+
+  it("draws nothing with fewer than two points", () => {
+    expect(run("stroke {\n  lay\n}").shapes).toEqual([]);
+    expect(run("stroke {\n  forward 1\n}").shapes).toEqual([]);
+  });
+
+  it("doesn't put the turtle back, and lays shapes again after it", () => {
+    const r = run("stroke {\n  lay\n  forward 2\n  lay\n}\nlay");
+    expect(r.shapes.map((s) => s.shape)).toEqual(["stroke", "ball"]);
+    expect(near(centre(r.shapes[1]!))).toEqual([0, 0, 2]);
+  });
+
+  it("adds to the innermost stroke, also from parts", () => {
+    const r = run(
+      "stroke {\n  lay\n  stroke {\n    tip\n    tip\n  }\n  tip\n}\npart tip {\n  forward 1\n  lay\n}",
+    );
+    expect(r.shapes.map((s) => s.points!.length)).toEqual([2, 2]);
+  });
+
+  it("counts points towards the shape limit", () => {
+    const r = run("stroke {\n  repeat 10 {\n    lay\n    forward 1\n  }\n}", {
+      limits: { shapes: 4 },
+    });
+    expect(r.shapes[0]!.points).toHaveLength(4);
+    expect(r.diagnostics[0]!.message).toContain("4 shapes");
+  });
+});
+
 describe("control flow, parts and functions", () => {
   it("repeats and loops", () => {
     expect(run("repeat 2.5 as i {\n  print(i)\n}").printed).toEqual(["0", "1", "2"]);

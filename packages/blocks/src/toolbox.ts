@@ -75,6 +75,7 @@ export const TOOLBOX = {
       block({ type: "g_lay" }),
       block({ type: "g_lay_with" }),
       block({ type: "g_reshape" }),
+      block({ type: "g_stroke" }),
       material("shape", name("ball")),
       material("colour", name("red")),
       material("colour", call("hsv", n("200"), n("0.8"), n("1"))),

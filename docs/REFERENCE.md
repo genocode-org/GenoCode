@@ -38,7 +38,7 @@ are always in degrees.
    [mirror](#mirror), [branch](#branch), [symmetric](#symmetric), [reshape](#reshape),
    [focuspoint](#focuspoint)
 5. [Shapes and material](#5-shapes-and-material): [shape](#shape), [lay](#lay),
-   [colour](#colour), [shine](#shine), [sharpness](#sharpness), [texture](#texture), [wear](#wear)
+   [stroke](#stroke), [colour](#colour), [shine](#shine), [sharpness](#sharpness), [texture](#texture), [wear](#wear)
 6. [Backgrounds](#6-backgrounds): [background](#background), [fill](#fill)
 7. [Dance styles](#7-dance-styles): [dance](#dance), [morph](#morph), [zoom](#zoom),
    [spin](#spin), [turn](#turn), [reverse](#reverse), [flat](#flat),
@@ -1067,7 +1067,44 @@ shape tube
 lay { grow (0.3, 0.3, 4) } // a long thin tube
 ```
 
-**See also:** [shape](#shape), [reshape](#reshape)
+**See also:** [shape](#shape), [reshape](#reshape), [stroke](#stroke)
+
+### stroke
+
+Draws one smooth tube instead of separate shapes: each `lay` inside adds a point the tube passes
+through.
+
+```text
+stroke { … }
+```
+
+**Used in:** creature code.
+
+**Remarks**
+
+- The tube goes through the points in the order they're laid, curving smoothly from one to the
+  next like a thread through beads. In the example, `yaw` curls it round.
+- Its width at each point is the width the shape would have had. In the example, `grow` makes it
+  thinner towards the end.
+- Colour, shine and sharpness blend smoothly from one point to the next. In the example, the
+  colour runs from orange to purple along the tube.
+- The ends are rounded. A stroke needs at least two points to draw anything.
+- More details are in the [language specification](LANGUAGE.md#121-strokes).
+
+**Example**
+
+```
+stroke {
+  repeat 16 as i {
+    colour mix(orange, purple, i / 15)
+    lay { grow 0.4 - i * 0.02 }
+    forward 0.6
+    yaw 20
+  }
+}
+```
+
+**See also:** [lay](#lay), [branch](#branch)
 
 ### colour
 

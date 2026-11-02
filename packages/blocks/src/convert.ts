@@ -204,6 +204,10 @@ function stmtBlock(s: Stmt): BlockState {
       type = "g_reshape";
       body("DO", s.block);
       break;
+    case "Stroke":
+      type = "g_stroke";
+      body("DO", s.block);
+      break;
     case "FocusPoint":
       type = "g_focuspoint";
       break;
@@ -653,6 +657,8 @@ class Reader {
         return { ...base, kind: "Lay", block: this.block(b, "DO") };
       case "g_reshape":
         return { ...base, kind: "Reshape", block: this.block(b, "DO") };
+      case "g_stroke":
+        return { ...base, kind: "Stroke", block: this.block(b, "DO") };
       case "g_focuspoint":
         return { ...base, kind: "FocusPoint" };
       case "g_command":

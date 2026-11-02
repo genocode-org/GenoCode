@@ -215,6 +215,7 @@ const TURTLE_STATEMENTS = new Set([
   "Lay",
   "FocusPoint",
   "Reshape",
+  "Stroke",
   "Command",
   "Rotate",
   "Mirror",
@@ -260,6 +261,7 @@ function nestedBlocks(s: Stmt): [Block, boolean][] {
     case "Repeat":
     case "For":
     case "While":
+    case "Stroke":
       return [[s.block, false]];
     case "If":
       return [
@@ -1398,6 +1400,9 @@ class Checker {
         return;
       case "Reshape":
         this.checkBlock(stmt.block, { ...ctx, inShape: true });
+        return;
+      case "Stroke":
+        this.checkBlock(stmt.block, ctx);
         return;
       case "FocusPoint":
         return;

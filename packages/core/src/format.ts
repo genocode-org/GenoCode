@@ -239,6 +239,9 @@ function printStmt(out: string[], s: Stmt, level: number): void {
     case "Branch":
       printBlock(out, "branch", s.block, level);
       return;
+    case "Stroke":
+      printBlock(out, "stroke", s.block, level);
+      return;
     case "Symmetric":
       printBlock(out, `symmetric ${s.axis}`, s.block, level);
       return;

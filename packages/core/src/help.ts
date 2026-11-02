@@ -328,6 +328,14 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
     h("reshape { … }", "Changes the shape transform for every shape laid afterwards.", "11.7"),
   ],
   [
+    "stroke",
+    h(
+      "stroke { … }",
+      "Draws one smooth tube instead of separate shapes: each `lay` inside adds a point the tube passes through, as wide as the shape would be.",
+      "12.1",
+    ),
+  ],
+  [
     "focuspoint",
     h(
       "focuspoint",
@@ -823,6 +831,7 @@ function symbolsAt(program: CheckResult, offset: number): InScope[] {
         case "While":
         case "Branch":
         case "Reshape":
+        case "Stroke":
         case "Lay":
           into(s.block);
           break;

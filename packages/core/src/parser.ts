@@ -561,6 +561,11 @@ class Parser {
         const block = this.parseBlock("reshape");
         return this.endCompound({ kind: "Reshape", ...this.base(start), block });
       }
+      case "stroke": {
+        this.next();
+        const block = this.parseBlock("stroke");
+        return this.endCompound({ kind: "Stroke", ...this.base(start), block });
+      }
       case "rotate": {
         this.next();
         const angle = this.parseExpr();
