@@ -1,0 +1,412 @@
+creature Medusa
+// A see-through jellyfish that pulses as it swims: a bell of jelly with tentacles round its rim,
+// frilly mouth arms trailing from its middle, and horseshoes of colour showing through its top.
+// The creature itself is a moon jelly, and its variants are other kinds built the same way, so it
+// morphs smoothly from one to the next: a sea nettle with long mouth arms, a great red lion's mane,
+// a box jelly with a square bell and its tentacles at the corners, and a comb jelly, a closed oval
+// with rows of shimmering combs. When music plays, it pulses on the beat. A young jellyfish is a tiny flat star of arms; as it grows, the
+// gaps between the arms fill in and the star curves into a bell.
+
+gene grown = 1 in 0..1 // how grown up it is: 0 a young flat star, 1 a full bell
+gene arms = 8 in 4..12 step 1 // how many arms the young star has; the bell is made of four times as many panels
+gene arm_width = 0.4 in 0.15..0.8 // how wide the young star's arms are, as a share of the room each has
+gene bell_size = 4 in 2..8 // how far the grown bell reaches from its middle to its rim
+gene dome = 85 in 40..175 // how far the grown bell curves round from its top to its rim, in degrees; past 90 it closes in underneath
+gene flatness = 0.7 in 0.3..1.8 // how tall the bell is for its width
+gene square = 0 in 0..1 // how square the bell is, seen from above: 0 round, 1 a box with a tentacle bunch at each corner
+gene jelly = 0.5 in 0.2..1 // how thick the jelly is at the top of the bell
+
+gene beat_time = 2.4 in 1..5 // how many seconds pass between pulses when no music is playing
+gene squeeze = 0.2 in 0..0.4 // how much narrower the bell gets as it pulses
+gene bob = 0.4 in 0..1.5 // how far it rises with each pulse
+
+gene tentacles = 32 in 8..64 step 1 // how many tentacles hang from the bell
+gene tentacle_length = 8 in 0..20 // how long the tentacles are when grown
+gene tentacle_width = 0.06 in 0.02..0.15
+gene inset = 0 in 0..0.6 // how far in from the rim the tentacles hang, under the bell
+gene corners = 0 in 0..1 // how much the tentacles gather into four bunches at the bell's corners
+gene drift = 25 in 0..60 // how far the tentacles wave as each pulse runs down them
+gene ripples = 1.2 in 0.3..3 // how many waves run along a tentacle at once
+
+gene mouth_arms = 4 in 2..8 step 1 // how many mouth arms trail from the middle, and how many horseshoes show through the top
+gene mouth_length = 5 in 0..14 // how long the mouth arms are when grown
+gene mouth_width = 1 in 0.3..2 // how wide the mouth arms are
+gene frills = 2.5 in 0..6 // how many times each mouth arm twists round along its length
+gene horseshoes = 1 in 0..1.5 // how big the horseshoes showing through the top are
+gene spots = 1 in 0..2 // how big the bright spots round the rim are
+gene combs = 0 in 0..1 // how big the rows of shimmering combs running down the bell are
+
+gene bell_colour = hsv(200, 0.3, 1, 0.3) in hsv(0, 0, 0.3, 0.1)..hsv(360, 1, 1, 0.8)
+gene rim_colour = hsv(185, 0.5, 1, 0.6) in hsv(0, 0, 0.3, 0.1)..hsv(360, 1, 1, 1) // the colour the bell turns towards its rim
+gene ring_colour = hsv(300, 0.45, 1, 0.45) in hsv(0, 0, 0.3, 0.1)..hsv(360, 1, 1, 1) // the horseshoes showing through the top
+gene tentacle_colour = hsv(190, 0.25, 1, 0.55) in hsv(0, 0, 0.3, 0.1)..hsv(360, 1, 1, 1)
+gene mouth_colour = hsv(320, 0.35, 1, 0.5) in hsv(0, 0, 0.3, 0.1)..hsv(360, 1, 1, 1)
+gene spot_colour = hsv(55, 0.6, 1) in hsv(0, 0, 0.3)..hsv(360, 1, 1) // the bright spots at the tips of the arms and on the rim
+gene young_colour = hsv(165, 0.5, 1, 0.45) in hsv(0, 0, 0.3, 0.1)..hsv(360, 1, 1, 1) // the tint of a young jellyfish, which fades as it grows
+
+let size = mix(0.45, 1, grown)
+// The gaps between the arms are filled in well before it is fully grown.
+let filled = smoothmix(0, 1, grown / 0.6)
+
+// Each pulse squeezes the bell quickly, then lets it open slowly. With music, it pulses on every
+// beat, harder the louder the bass; without, it keeps its own time. It slides from one to the other
+// as the music starts and stops.
+let playing = clamp(music.level * 5, 0, 1)
+let pull = mix(pulse(frac(time / beat_time)), pulse(beat) * mix(0.35, 1, clamp(music.bass * 1.5, 0, 1)), playing)
+
+// The bell is part of an ellipse turned round the middle: it curves from the top round sweep
+// degrees to the rim, which is reach from the middle (further at the corners of a square bell).
+let panels = 4 * round(arms)
+let sweep = min(178, mix(20, dome, grown) + 75 * squeeze * pull)
+let reach = bell_size * size * (1 - squeeze * pull)
+let across = reach / sin(min(sweep, 90))
+let tall = across * flatness
+let rim = (across * sin(sweep), tall * cos(sweep) - tall, 0) // how far out and how far up the rim is
+
+shine 0.8
+sharpness 0.8
+pitch 30 // tipped towards the viewer, to show the top of the bell
+// The camera looks a little below the rim, between the bell and the tentacles.
+branch {
+  move (0, rim.y - 0.25 * tentacle_length * size * grown, 0)
+  focuspoint
+}
+move (0, bob * size * pull, 0)
+
+repeat round(mouth_arms) as i {
+  branch {
+    yaw 360 * i / round(mouth_arms)
+    gonad
+  }
+  branch {
+    yaw 360 * (i + 0.5) / round(mouth_arms)
+    mouth_arm(i)
+  }
+}
+repeat round(tentacles) as i {
+  branch {
+    let round_it = 360 * (i + 0.5) / round(tentacles)
+    // The nearest corner of a square bell, and a place in that corner's bunch.
+    let corner = 45 + 90 * round((round_it - 45) / 90)
+    let bunched = mix(round_it, corner + (round_it - corner) * 0.25, corners)
+    yaw bunched
+    tentacle(i, bunched)
+  }
+}
+repeat panels as i {
+  branch {
+    yaw 360 * i / panels
+    panel(i % 4 == 0, 360 * i / panels)
+  }
+}
+repeat round(arms) as i {
+  branch {
+    yaw 360 * i / round(arms)
+    comb_row(360 * i / round(arms))
+  }
+}
+// A cap of thicker jelly over the top, where the panels meet.
+colour aged(bell_colour)
+lay { move (0, -0.8 * jelly * size, 0); grow (0.6 * reach, 1.6 * jelly * size, 0.6 * reach) }
+// A bell that curves right round underneath, like a comb jelly's, is closed by a second cap at the
+// bottom, which grows in as the rim closes up.
+let closed = 2.6 * rim.x * smoothmix(0, 1, (sweep - 120) / 40)
+lay { move (0, rim.y + 0.3 * jelly * size, 0); grow (closed, 1.2 * jelly * size, closed) }
+
+// How far the bell is squeezed at a point in a pulse (0 to 1): quickly in, then slowly out.
+function pulse(phase) {
+  if phase < 0.3 {
+    return smoothmix(0, 1, phase / 0.3)
+  }
+  return smoothmix(1, 0, (phase - 0.3) / 0.7)
+}
+
+// A colour tinted towards the young colour while the jellyfish is young.
+function aged(c) {
+  return mix(c, young_colour, (1 - grown) * 0.6)
+}
+
+// Where the bell's ellipse is at angle a from the top: how far out and how far up.
+function bell_at(a) {
+  return (across * sin(a), tall * cos(a) - tall, 0)
+}
+
+// How much further out the bell reaches in the direction round_it, seen from above: 1 all round
+// for a round bell; for a square one, more at the corners and less at the middle of each side.
+function shape_at(round_it) {
+  let n = mix(2, 8, square)
+  return 1 / (abs(cos(round_it)) ^ n + abs(sin(round_it)) ^ n) ^ (1 / n) / mix(1, 1.2, square)
+}
+
+// How wide a panel pointing round_it has to be to fill its room, out at distance out from the
+// middle: the gap between where its two neighbours' middle lines would be.
+function room_at(round_it, out) {
+  let half = 180 / panels
+  let a = (sin(round_it - half), cos(round_it - half), 0) * shape_at(round_it - half)
+  let b = (sin(round_it + half), cos(round_it + half), 0) * shape_at(round_it + half)
+  return out * length(b - a)
+}
+
+// How far the edge of the bell, seen from above, turns away from a circle at round_it, in
+// degrees: 0 all round a round bell, and on a square one 0 at the corners and the middle of each
+// side, most in between.
+function slant_at(round_it) {
+  let half = 180 / panels
+  let a = (sin(round_it - half), cos(round_it - half), 0) * shape_at(round_it - half)
+  let b = (sin(round_it + half), cos(round_it + half), 0) * shape_at(round_it + half)
+  let edge = b - a
+  let circle = (cos(round_it), -sin(round_it), 0)
+  return atan2(circle.x * edge.y - circle.y * edge.x, dot(circle, edge))
+}
+
+// One panel of the bell, from the top out to the rim. The panels lie side by side and overlap a
+// little, and the overlaps show as lines running out from the top. In the young star, only the
+// middle is whole: every fourth panel narrows into an arm and the ones between them shrink away.
+// As it grows, the gaps fill in and the arms widen into the bell.
+part panel(is_arm, round_it) {
+  let steps = 12
+  let wide = shape_at(round_it)
+  let slant = slant_at(round_it)
+  let heading = 0 // how far the turtle points down, in degrees
+  let before = bell_at(0) * (wide, 1, 1)
+  stroke {
+    for k from 0 to steps {
+      let along = k / steps
+      let here = bell_at(sweep * along) * (wide, 1, 1)
+      let gap = here - before
+      if k > 0 {
+        let down = atan2(-gap.y, gap.x)
+        pitch down - heading
+        heading = down
+        forward length(gap)
+      }
+      before = here
+      let room = 1.1 * room_at(round_it, here.x / wide)
+      let starry = smoothmix(0, 1, (along - 0.25) / 0.2)
+      let young_share = mix(1, 0, starry)
+      if is_arm {
+        young_share = mix(1, 4 * arm_width, starry)
+      }
+      let share = mix(young_share, 1, filled)
+      // The tips round off, into the paddles of a young arm or the scallops of a grown rim.
+      let tip = 1
+      if along > 0.8 {
+        tip = mix(1, mix(0.35, 0.8, filled), (along - 0.8) / 0.2)
+      }
+      colour aged(mix(bell_colour, rim_colour, along ^ 3))
+      // A panel shrinking away thins as well as narrowing, so it doesn't show edge-on as a spike.
+      // Where the bell runs down, the panel turns round its length to lie along the edge of a
+      // square bell instead of across it, so the panels' edges don't stick out like a blind's.
+      let turn = slant * max(0, sin(heading))
+      roll turn
+      lay { grow (room * share * tip, jelly * size * mix(1, 0.15, along) * min(1, share / 0.4), 1) }
+      roll -turn
+    }
+  }
+  // A bright spot at the tip of each arm, which ends up on the rim.
+  if is_arm {
+    colour spot_colour
+    lay { grow 0.15 * size * spots }
+  }
+}
+
+// A horseshoe of colour inside the bell, near the top, showing through it, open towards the
+// middle and thickest round its bend. It only appears as the jellyfish grows.
+part gonad {
+  let out = 0.42 * reach
+  let a = asin(min(1, out / across))
+  let bend = 0.16 * reach * horseshoes * grown ^ 1.5 // how far the horseshoe's middle line is from its centre
+  move (0, tall * cos(a) - tall - jelly * size * 0.7, out)
+  colour aged(ring_colour)
+  shine 0.3
+  sharpness 0.4
+  stroke {
+    repeat 13 as k {
+      let along = k / 12
+      branch {
+        yaw mix(-140, 140, along) // round from one end, past the outside, to the other
+        forward bend
+        yaw 90 // along the horseshoe
+        let width = bend * mix(0.25, 0.8, bump(along))
+        lay { grow (width, width * 0.35, 1) }
+      }
+    }
+  }
+}
+
+// A tentacle hanging from the bell, pointing round_it. Each pulse flicks it out a little, and the
+// wave runs down it. It grows as the jellyfish grows.
+part tentacle(i, round_it) {
+  let segments = 14
+  let long = tentacle_length * size * grown ^ 1.2
+  let own = frac(i * golden) // so neighbouring tentacles don't wave together
+  let root = bell_at(sweep * (1 - inset))
+  move (0, root.y, root.x * shape_at(round_it))
+  pitch 90 // pointing down
+  let flare = 15 + 10 * pull
+  pitch -flare
+  stroke {
+    repeat segments + 1 as k {
+      let along = k / segments
+      colour aged(tentacle_colour)
+      let width = tentacle_width * size * mix(1, 0.35, along)
+      lay { grow (width, width, 1) }
+      forward long / segments
+      let swing = ripples * along - time / beat_time + own
+      pitch flare * 1.3 / segments + drift * along * wave(swing) / segments * 3
+      yaw drift * along * wave(swing + 0.25 + own) / segments * 2
+    }
+  }
+}
+
+// A frilly mouth arm trailing from the middle, under the bell: a wide ribbon that twists round as
+// it goes and waves after each pulse. The young star has only a short stub of it.
+part mouth_arm(i) {
+  let segments = 18
+  let long = mouth_length * size * mix(0.2, 1, grown)
+  let own = frac(i * golden)
+  move (0, -jelly * size, 0)
+  pitch 90 // pointing down
+  pitch -12 // and a little outwards
+  stroke {
+    repeat segments + 1 as k {
+      let along = k / segments
+      colour aged(mouth_colour)
+      let width = 0.25 * reach * mouth_width * mix(1, 0.3, along)
+      lay { grow (width, width * 0.15, 1) }
+      forward long / segments
+      roll 360 * frills / segments
+      let swing = ripples * 0.6 * along - time / beat_time + own
+      pitch 10 / segments + drift * along * wave(swing) / segments * 2
+    }
+  }
+}
+
+// A row of little combs running down the outside of the bell, pointing round_it. A rainbow
+// shimmers down them as time goes by, the way light catches a comb jelly's beating combs.
+part comb_row(round_it) {
+  let plate = 0.13 * reach * combs
+  let wide = shape_at(round_it)
+  shine 1
+  sharpness 0.9
+  for k from 1 to 11 {
+    let along = k / 12
+    let here = bell_at(sweep * along)
+    branch {
+      move (0, here.y, here.x * wide + jelly * size * 0.3)
+      colour hsv(360 * (along * 1.5 - time * 0.6) + round_it, 0.7, 1, 0.9)
+      lay { grow (plate * 1.6, plate * 0.6, plate) }
+    }
+  }
+}
+
+background {
+  fill gradient(hsv(225, 0.85, 0.04), hsv(205, 0.75, 0.28))
+}
+
+// Its own dance, slow and drifting like a jellyfish in a current: the music carries it gently
+// from one kind of jellyfish to the next, the bass draws it nearer and lets it float back, and it
+// turns slowly, swinging round to a new way only now and then, and smoothly.
+dance {
+  gene glide = 0.25 in 0.05..1 // how many kinds of jellyfish a second the music carries it through
+  gene turning = 30 in 5..90 // how fast it turns at its loudest, in degrees a second
+
+  morph follows music.level speed glide settle 6
+  zoom follows music.bass amount 0.35 settle 10
+  spin follows music.mid from 6 to turning smooth 4
+  turn on music.bass_hit rises by 0.7
+  reverse on music.high drops by 0.6 on 12 off 24
+}
+
+// A sea nettle: a tall golden bell, long dark red tentacles, and long frilly mouth arms.
+variant SeaNettle {
+  bell_size = 3.5
+  dome = 95
+  flatness = 0.85
+  jelly = 0.45
+  tentacle_length = 15
+  tentacle_width = 0.045
+  drift = 30
+  ripples = 1
+  mouth_length = 13
+  mouth_width = 0.8
+  frills = 4.5
+  horseshoes = 0.4
+  bell_colour = hsv(38, 0.6, 1, 0.4)
+  rim_colour = hsv(20, 0.7, 0.9, 0.65)
+  ring_colour = hsv(30, 0.3, 1, 0.35)
+  tentacle_colour = hsv(355, 0.65, 0.95, 0.8)
+  mouth_colour = hsv(45, 0.3, 1, 0.55)
+  spot_colour = hsv(30, 0.5, 1)
+}
+
+// A lion's mane: a great wide red bell, slow to pulse, with a mass of long thick tentacles hanging
+// from underneath it.
+variant LionsMane {
+  bell_size = 6
+  dome = 70
+  flatness = 0.5
+  jelly = 0.7
+  beat_time = 3.5
+  squeeze = 0.12
+  tentacle_length = 18
+  tentacle_width = 0.11
+  inset = 0.35
+  drift = 18
+  ripples = 0.7
+  mouth_length = 6
+  mouth_width = 1.6
+  frills = 5
+  horseshoes = 0.8
+  bell_colour = hsv(12, 0.7, 0.85, 0.45)
+  rim_colour = hsv(30, 0.8, 1, 0.6)
+  ring_colour = hsv(350, 0.8, 0.7, 0.6)
+  tentacle_colour = hsv(25, 0.6, 1, 0.45)
+  mouth_colour = hsv(5, 0.75, 0.9, 0.6)
+  spot_colour = hsv(40, 0.6, 1)
+}
+
+// A box jelly: a clear, tall, square bell that pulses fast, with its tentacles in a bunch at each
+// corner and bright eyes round its rim.
+variant BoxJelly {
+  bell_size = 3
+  dome = 100
+  flatness = 1.25
+  square = 1
+  jelly = 0.35
+  beat_time = 1.4
+  squeeze = 0.25
+  bob = 0.8
+  tentacle_length = 10
+  tentacle_width = 0.05
+  corners = 1
+  drift = 20
+  mouth_length = 2.5
+  mouth_width = 0.6
+  frills = 1
+  horseshoes = 0.3
+  bell_colour = hsv(195, 0.15, 1, 0.22)
+  rim_colour = hsv(190, 0.3, 1, 0.45)
+  ring_colour = hsv(60, 0.4, 1, 0.4)
+  tentacle_colour = hsv(200, 0.15, 1, 0.6)
+  mouth_colour = hsv(190, 0.2, 1, 0.35)
+  spot_colour = hsv(40, 0.9, 1)
+}
+
+// A comb jelly: a clear oval, closed underneath, with no tentacles or mouth arms, gliding gently
+// along on its rows of shimmering combs.
+variant CombJelly {
+  bell_size = 2.5
+  dome = 165
+  flatness = 1.5
+  jelly = 0.3
+  squeeze = 0
+  bob = 0.15
+  tentacle_length = 0
+  mouth_length = 0
+  horseshoes = 0
+  spots = 0
+  combs = 1
+  bell_colour = hsv(185, 0.12, 1, 0.18)
+  rim_colour = hsv(200, 0.25, 1, 0.3)
+}

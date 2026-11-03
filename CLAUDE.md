@@ -36,9 +36,11 @@ contributing rules apply to every change:
   DancerDNA.
 - **Docs remarks are shown in the example.** When a remark in `docs/` mentions some code or a
   feature, the entry's example uses it and the remark points at it ("in the example, …").
-- **Variants are stages of one life.** A creature's variants and the creature itself form one loop
-  that Morph plays through. Variants keep the same structure (the same number of legs, tentacles,
-  …); parts appear and disappear by growing and shrinking smoothly, never by a jump in a count.
+- **Variants must morph.** A creature's variants and the creature itself form one loop that Morph
+  plays through, and each must morph smoothly into the next. They can be very different (other
+  species, like Medusa's jellyfish, or stages of one life, like Tentacles), but they keep the same
+  structure (the same number of legs, tentacles, …); parts appear and disappear by growing and
+  shrinking smoothly, never by a jump in a count.
 - **Nothing from DancerDNA,** and nothing that refers to files outside this repository.
 - **Versions on 0.x:** a minor bump of `core` means `render` must widen its `core` dependency and
   be released too, because `^0.N.0` doesn't take `0.(N+1).0`.
