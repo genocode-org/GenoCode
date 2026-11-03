@@ -138,37 +138,42 @@ describe("renaming in the starter creatures", () => {
   const dir = new URL("../../../creatures/", import.meta.url);
   const files = readdirSync(dir).filter((f) => f.endsWith(".genie"));
 
-  it.each(files)("%s draws the same with any of its names renamed", (file) => {
-    const text = readFileSync(new URL(file, dir), "utf8");
-    const before = check(text);
-    // A pattern written in the file carries its code, which has the names in it: what it draws is
-    // compared instead.
-    const drawnPatterns = (_key: string, v: unknown) => {
-      if (typeof v !== "object" || v === null || !("source" in v) || !v.source) return v;
-      const { kind, seed, source, ...rest } = v as Pattern;
-      const picture = buildPattern(check(source!.text), kind!, seed, new Canvas(16), {
-        genes: new Map(source!.genes),
-      }).picture;
-      return { ...rest, seed, picture: picture && Array.from(picture.v) };
-    };
-    const shapes = (p: ReturnType<typeof check>) =>
-      JSON.stringify(build(p, { genes: valuesOf(p.genes) }).shapes, drawnPatterns);
-    const drawn = shapes(before);
-    const declarations = new Map(before.references.map((r) => [r.declaration.start, r]));
-    expect(declarations.size).toBeGreaterThan(0);
-    for (const [start] of declarations) {
-      const result = rename(before, start, "renamed_name");
-      const name = text.slice(
-        start,
-        before.references.find((r) => r.span.start === start)!.span.end,
-      );
-      if ("error" in result) throw new Error(`${name}: ${result.error}`);
-      const after = check(applyEdits(text, result.edits));
-      expect(
-        after.diagnostics.map((d) => d.message),
-        name,
-      ).toEqual([]);
-      expect(shapes(after) === drawn, name).toBe(true);
-    }
-  });
+  // Every name is renamed and the creature built again, so a big creature takes a few seconds.
+  it.each(files)(
+    "%s draws the same with any of its names renamed",
+    (file) => {
+      const text = readFileSync(new URL(file, dir), "utf8");
+      const before = check(text);
+      // A pattern written in the file carries its code, which has the names in it: what it draws is
+      // compared instead.
+      const drawnPatterns = (_key: string, v: unknown) => {
+        if (typeof v !== "object" || v === null || !("source" in v) || !v.source) return v;
+        const { kind, seed, source, ...rest } = v as Pattern;
+        const picture = buildPattern(check(source!.text), kind!, seed, new Canvas(16), {
+          genes: new Map(source!.genes),
+        }).picture;
+        return { ...rest, seed, picture: picture && Array.from(picture.v) };
+      };
+      const shapes = (p: ReturnType<typeof check>) =>
+        JSON.stringify(build(p, { genes: valuesOf(p.genes) }).shapes, drawnPatterns);
+      const drawn = shapes(before);
+      const declarations = new Map(before.references.map((r) => [r.declaration.start, r]));
+      expect(declarations.size).toBeGreaterThan(0);
+      for (const [start] of declarations) {
+        const result = rename(before, start, "renamed_name");
+        const name = text.slice(
+          start,
+          before.references.find((r) => r.span.start === start)!.span.end,
+        );
+        if ("error" in result) throw new Error(`${name}: ${result.error}`);
+        const after = check(applyEdits(text, result.edits));
+        expect(
+          after.diagnostics.map((d) => d.message),
+          name,
+        ).toEqual([]);
+        expect(shapes(after) === drawn, name).toBe(true);
+      }
+    },
+    30_000,
+  );
 });
