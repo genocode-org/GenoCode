@@ -1168,7 +1168,7 @@ dance {
 - Its genes have full names starting with `dance.`.
 
 **Effect lines.** Each line is the effect's name, then words, each followed by a value, except
-`changes`, `drops` and `rises`, which stand alone. The words can come in any order after the
+`changes`, `drops`, `rises` and `upright`, which stand alone. The words can come in any order after the
 first. Values are numbers. Settings left out take the default shown.
 
 | Effect    | Line                                       | Settings                                                                                                                                                                                                                                                 |
@@ -1181,6 +1181,18 @@ first. Values are numbers. Settings left out take the default shown.
 | `flat`    | `flat on x drops by 0.5 on 24 off 48`      | while on, the creature turns face-on and spins flat; each trigger reverses the flat spin                                                                                                                                                                 |
 
 `x` is the effect's input, a number from 0 to 1 (values outside are clamped).
+
+**Upright.** `upright` on the `spin` line keeps the creature the right way up, as a tree or a
+building should be: it only turns about its up axis, each `turn` trigger reverses the direction of
+the spin instead of picking a new axis, and `flat` never lays it face-on. If the dance switches to
+an upright style while the creature is tumbling, it rights itself over about `smooth` seconds.
+
+```
+dance {
+  spin follows music.level from 10 to 60 smooth 2 upright
+  turn on music.mid changes by 1
+}
+```
 
 **Triggers.** `turn`, `reverse` and `flat` act when their input **triggers**: when it has moved by
 at least `by` since the last trigger. After `on x`, one word says which moves count: `changes`
@@ -1548,7 +1560,7 @@ bg_block      = "{" { bg_stmt } "}" ;
 
 dance_body    = { gene | "let" NAME "=" expr NL | effect NL } ;
 effect        = effect_name { setting } ;
-setting       = "changes" | "drops" | "rises" | word expr ;
+setting       = "changes" | "drops" | "rises" | "upright" | word expr ;
 effect_name   = "morph" | "zoom" | "spin" | "turn" | "reverse" | "flat" ;
 word          = NAME | "from" | "to" | "by" ;
 

@@ -606,6 +606,15 @@ export const EFFECT_HELP: ReadonlyMap<string, { help: Help; words: ReadonlyMap<s
               "17",
             ),
           ],
+          [
+            "upright",
+            h(
+              "upright",
+              "Keeps the creature the right way up: it only turns round its up axis, `turn` " +
+                "reverses the spin instead of picking a new axis, and `flat` doesn't tip it over.",
+              "17",
+            ),
+          ],
         ]),
       },
     ],

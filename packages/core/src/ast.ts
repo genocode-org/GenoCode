@@ -509,5 +509,8 @@ export const EFFECT_LINES: ReadonlyMap<string, EffectLine> = new Map<string, Eff
 /** Words in an effect line that stand alone: which moves of the input trigger it. */
 export const TRIGGER_KINDS: ReadonlySet<string> = new Set(["changes", "drops", "rises"]);
 
+/** Other words that stand alone in an effect line, and the effect each belongs to. */
+export const EFFECT_FLAGS: ReadonlyMap<string, string> = new Map([["upright", "spin"]]);
+
 /** Keywords that can be words in an effect line. */
 export const EFFECT_KEYWORD_WORDS: ReadonlySet<string> = new Set(["from", "to", "by"]);

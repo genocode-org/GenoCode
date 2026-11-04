@@ -19,6 +19,8 @@ const MORPH_ATTACK = 10;
 const ZOOM_ATTACK = 50;
 /** The axis the spin starts about, and the flat spin's: the line of sight. */
 const VIEW_AXIS: Vector = [0, 0, 1];
+/** The upright spin's axis: the creature's up. */
+const UP_AXIS: Vector = [0, 1, 0];
 
 /** Fires when an input has moved far enough since it last moved that far. */
 class Switch {
@@ -80,6 +82,9 @@ export class Dancer {
   private toSpeed = 0;
   private swing = 1;
   private flatSign = 1;
+  /** Whether the spin is upright, and which way round it goes then (1 or -1). */
+  private upright = false;
+  private upSign = 1;
 
   private readonly turnSwitch = new Switch();
   private readonly reverseSwitch = new Switch();
@@ -107,16 +112,35 @@ export class Dancer {
   /** Moves the dance on by `dt` seconds, with the style of this moment. */
   step(style: DanceStyle, dt: number): void {
     if (dt <= 0) return;
+    this.stepUpright(style);
     this.stepFlat(style);
     this.stepSpin(style, dt);
     this.stepZoom(style, dt);
     this.stepMorph(style, dt);
   }
 
+  /** Swings the spin round to the up axis when the style turns `upright` on. */
+  private stepUpright(style: DanceStyle): void {
+    const upright = style.spin?.upright === true;
+    if (upright === this.upright) return;
+    this.upright = upright;
+    if (!upright) return;
+    this.flat = false;
+    this.upSign = 1;
+    if (this.fromSpeed === undefined) {
+      // From the start of the dance there's nothing to swing from.
+      this.fromAxis = this.toAxis = UP_AXIS;
+      this.swing = 1;
+    } else {
+      this.newAxis(style, UP_AXIS);
+    }
+  }
+
   private stepFlat(style: DanceStyle): void {
     const f = style.flat;
     if (f !== undefined && this.flatSwitch.fires(f)) this.flatBursts.trigger(f.bursts);
-    const flat = this.faceOn || (f !== undefined && this.flatBursts.working);
+    // Bursts are still counted while upright, but an upright creature is never laid flat.
+    const flat = !this.upright && (this.faceOn || (f !== undefined && this.flatBursts.working));
     if (flat === this.flat) return;
     this.flat = flat;
     if (flat) {
@@ -138,9 +162,12 @@ export class Dancer {
     if (this.fromSpeed === undefined) this.toSpeed = s.from;
     if (style.turn === undefined) {
       // With nothing to turn the axis, the speed follows the input all the time.
-      this.toSpeed = spinSpeed(style);
+      this.toSpeed = this.speedFor(style);
     } else if (this.turnSwitch.fires(style.turn, this.flat)) {
-      if (this.flat) {
+      if (this.upright) {
+        this.upSign = -this.upSign;
+        this.newAxis(style, UP_AXIS);
+      } else if (this.flat) {
         this.flatSign = -this.flatSign;
         this.newAxis(style, [0, 0, this.flatSign]);
       } else {
@@ -151,6 +178,16 @@ export class Dancer {
     this.swing = s.smooth > 0 ? Math.min(1, this.swing + dt / s.smooth) : 1;
     const { axis, speed } = this.spin;
     this.orientation = multiply(axisAngle(axis, (speed * dt * Math.PI) / 180), this.orientation);
+    if (this.upright) {
+      // Rights a creature that was tumbling when the style turned upright, over about `smooth`.
+      const t = s.smooth > 0 ? 1 - Math.exp((-3 * dt) / s.smooth) : 1;
+      this.orientation = nlerp(this.orientation, aboutUp(this.orientation), t);
+    }
+  }
+
+  /** The speed the input asks for, signed by the upright spin's direction. */
+  private speedFor(style: DanceStyle): number {
+    return (this.upright ? this.upSign : 1) * spinSpeed(style);
   }
 
   /** Starts swinging from where the spin is now to a new axis, at the speed the input asks for. */
@@ -159,7 +196,7 @@ export class Dancer {
     this.fromAxis = now.axis;
     this.fromSpeed = now.speed;
     this.toAxis = axis;
-    this.toSpeed = spinSpeed(style);
+    this.toSpeed = this.speedFor(style);
     this.swing = 0;
   }
 
@@ -221,6 +258,24 @@ function multiply(a: Quaternion, b: Quaternion): Quaternion {
     aw * by - ax * bz + ay * bw + az * bx,
     aw * bz + ax * by - ay * bx + az * bw,
     aw * bw - ax * bx - ay * by - az * bz,
+  ];
+  const n = Math.hypot(...q);
+  return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
+}
+
+/** The part of a rotation that turns about the up axis, with any tilt taken out. */
+function aboutUp(q: Quaternion): Quaternion {
+  const n = Math.hypot(q[1], q[3]);
+  return n < 1e-9 ? [0, 0, 0, 1] : [0, q[1] / n, 0, q[3] / n];
+}
+
+/** Goes `t` of the way from rotation `a` to `b` (both on the same side, as `aboutUp` keeps them). */
+function nlerp(a: Quaternion, b: Quaternion, t: number): Quaternion {
+  const q: Quaternion = [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+    a[3] + (b[3] - a[3]) * t,
   ];
   const n = Math.hypot(...q);
   return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];

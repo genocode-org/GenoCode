@@ -2,6 +2,7 @@
 // may appear, what functions may do, and types wherever they're known without running the program.
 
 import {
+  EFFECT_FLAGS,
   EFFECT_LINES,
   TRIGGER_KINDS,
   type Block,
@@ -1523,6 +1524,16 @@ class Checker {
           this.error(a.span, "An effect line can say only one of `changes`, `drops` and `rises`.");
         }
         trigger = true;
+        return;
+      }
+      const owner = EFFECT_FLAGS.get(a.text);
+      if (owner !== undefined) {
+        if (owner !== stmt.name) {
+          this.error(a.span, `\`${a.text}\` is for \`${owner}\` lines.`);
+        } else if (seen.has(a.text)) {
+          this.error(a.span, `\`${a.text}\` is said twice.`);
+        }
+        seen.add(a.text);
         return;
       }
       if (!line.settings.includes(a.text)) {

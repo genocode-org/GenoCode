@@ -197,6 +197,8 @@ describe("checker: statements and types", () => {
     rejects("dance {\n  zoom follows music.level settle 1 settle 2\n}", "set twice");
     rejects("dance {\n  spin follows music.bass drops\n}", "for effects that trigger");
     rejects("dance {\n  turn on music.mid drops rises\n}", "only one of");
+    rejects("dance {\n  turn on music.mid upright\n}", "is for `spin` lines");
+    rejects("dance {\n  spin follows music.mid upright upright\n}", "said twice");
     rejects("dance {\n  reverse on music.bass on 4\n}", "need both counts");
     rejects("dance {\n  morph follows red\n}", "must be a number");
     rejects(
