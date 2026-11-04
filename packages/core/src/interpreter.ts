@@ -414,6 +414,23 @@ class LimitReached extends Error {
   }
 }
 
+/** A value error (such as adding a colour to a number) as a runtime error at the code that caused it. */
+function located(e: unknown, span: Span): unknown {
+  return e instanceof ValueError ? new RuntimeError(span, e.message) : e;
+}
+
+/** An expression turned into a function that works it out for a run, in a scope. */
+type Compiled = (r: Run, env: Env) => Value;
+
+/** Statements turned into a function that runs them, giving back a `return`'s signal if one ran. */
+type Exec = (r: Run, env: Env) => ReturnSignal | undefined;
+
+/**
+ * Where each expression, and each list of statements, keeps its function, made the first time
+ * it's run and kept for every build of the program.
+ */
+const COMPILED = Symbol("compiled");
+
 class ReturnSignal {
   constructor(readonly value: Value | undefined) {}
 }
@@ -423,13 +440,29 @@ interface Binding {
   mutable: boolean;
 }
 
+/**
+ * A scope of variables. Most scopes (a loop's pass, an `if` block) never bind anything, so their
+ * map is made only when needed. Scopes that grow from one root share the set of every name ever
+ * bound in them: a name that isn't in it, such as a built-in function's, is known to be unbound
+ * without walking up the scopes.
+ */
 class Env {
-  readonly vars = new Map<string, Binding>();
-  constructor(readonly parent: Env | undefined) {}
+  private vars: Map<string, Binding> | undefined;
+  private readonly names: Set<string>;
+
+  constructor(readonly parent: Env | undefined) {
+    this.names = parent ? parent.names : new Set();
+  }
+
+  set(name: string, binding: Binding): void {
+    (this.vars ??= new Map()).set(name, binding);
+    this.names.add(name);
+  }
 
   lookup(name: string): Binding | undefined {
+    if (!this.names.has(name)) return undefined;
     for (let e: Env | undefined = this; e; e = e.parent) {
-      const b = e.vars.get(name);
+      const b = e.vars?.get(name);
       if (b) return b;
     }
     return undefined;
@@ -555,9 +588,11 @@ class Run {
   }
 
   private bindGenes(env: Env, owner: string | undefined): void {
-    for (const g of this.genesByOwner.get(owner) ?? []) {
+    const genes = this.genesByOwner.get(owner);
+    if (genes === undefined) return;
+    for (const g of genes) {
       if (g.fullName === "seed") continue;
-      env.vars.set(g.name, { value: this.geneValue(g)!, mutable: false });
+      env.set(g.name, { value: this.geneValue(g)!, mutable: false });
     }
   }
 
@@ -638,14 +673,299 @@ class Run {
     }
   }
 
-  private execItems(items: Stmt[], env: Env): void {
-    for (const s of items) this.exec(s, env);
+  /**
+   * Runs statements in order until one returns. Like expressions, a list of statements is turned
+   * once into a function that runs them (see `compileItems`), kept on the list.
+   */
+  private execItems(items: Stmt[], env: Env): ReturnSignal | undefined {
+    let c = (items as { [COMPILED]?: Exec })[COMPILED];
+    if (c === undefined) {
+      c = Run.compileItems(items);
+      Object.defineProperty(items, COMPILED, { value: c });
+    }
+    return c(this, env);
   }
 
-  private execBlock(block: Block, env: Env, setup?: (env: Env) => void): void {
+  /** Statements as one function that runs each in turn, stopping at a `return`. */
+  private static compileItems(items: Stmt[]): Exec {
+    const execs = items.map((s) => Run.compileStatement(s));
+    const n = execs.length;
+    if (n === 1) return execs[0]!;
+    return (r, env) => {
+      for (let i = 0; i < n; i++) {
+        const done = execs[i]!(r, env);
+        if (done) return done;
+      }
+      return undefined;
+    };
+  }
+
+  /** A block's statements as a function that runs them in a scope of their own. */
+  private static compileBlock(block: Block): Exec {
+    const items = Run.compileItems(block.items);
+    return (r, env) => items(r, new Env(env));
+  }
+
+  /**
+   * A statement as a function that runs it exactly as `execTree` does, counting the same steps
+   * and giving the same errors. The common kinds are done here; the rest go to `execTree`.
+   */
+  private static compileStatement(s: Stmt): Exec {
+    const span = s.span;
+    switch (s.kind) {
+      case "Gene":
+      case "Part":
+      case "Function":
+      case "Background":
+      case "Dance":
+      case "Variant":
+      case "Breed":
+      case "GeneSetting":
+      case "Pattern":
+      case "ErrorStmt":
+        return (r) => {
+          r.tick(span);
+          return undefined;
+        };
+      case "Let": {
+        const name = s.name;
+        const value = Run.compile(s.value);
+        return (r, env) => {
+          r.tick(span);
+          env.set(name, { value: value(r, env), mutable: true });
+          return undefined;
+        };
+      }
+      case "Assign": {
+        const { name, nameSpan } = s;
+        const value = Run.compile(s.value);
+        const op = s.op === "=" ? undefined : (s.op[0] as "+" | "-" | "*" | "/");
+        return (r, env) => {
+          r.tick(span);
+          const v = value(r, env);
+          const b = env.lookup(name);
+          if (b === undefined) throw new RuntimeError(nameSpan, r.unsetMessage(name));
+          if (op === undefined) b.value = v;
+          else {
+            try {
+              b.value = binaryOp(op, b.value, v);
+            } catch (err) {
+              throw located(err, span);
+            }
+          }
+          return undefined;
+        };
+      }
+      case "PartCall": {
+        const { name, nameSpan } = s;
+        const args = s.args.map((a) => Run.compile(a));
+        return (r, env) => {
+          r.tick(span);
+          const values = new Array<Value>(args.length);
+          for (let i = 0; i < args.length; i++) values[i] = args[i]!(r, env);
+          r.callPart(name, values, nameSpan, env);
+          return undefined;
+        };
+      }
+      case "Return": {
+        const value = s.value ? Run.compile(s.value) : undefined;
+        return (r, env) => {
+          r.tick(span);
+          return new ReturnSignal(value ? value(r, env) : undefined);
+        };
+      }
+      case "If": {
+        const conditions = s.branches.map((b) => Run.compileBool(b.condition, "A condition"));
+        const blocks = s.branches.map((b) => Run.compileBlock(b.block));
+        const otherwise = s.elseBlock ? Run.compileBlock(s.elseBlock) : undefined;
+        const n = conditions.length;
+        return (r, env) => {
+          r.tick(span);
+          for (let i = 0; i < n; i++) {
+            if (conditions[i]!(r, env)) return blocks[i]!(r, env);
+          }
+          return otherwise ? otherwise(r, env) : undefined;
+        };
+      }
+      case "Repeat": {
+        const count = Run.compileNumber(s.count, "`repeat`");
+        const items = Run.compileItems(s.block.items);
+        const as = s.as?.name;
+        return (r, env) => {
+          r.tick(span);
+          const n = roundHalfUp(count(r, env));
+          for (let k = 0; k < n; k++) {
+            r.tick(span);
+            const inner = new Env(env);
+            if (as !== undefined) inner.set(as, { value: k, mutable: false });
+            const done = items(r, inner);
+            if (done) return done;
+          }
+          return undefined;
+        };
+      }
+      case "For": {
+        const from = Run.compileNumber(s.from, "`for`");
+        const to = Run.compileNumber(s.to, "`for`");
+        const by = s.by ? Run.compileNumber(s.by, "`for`") : undefined;
+        const bySpan = s.by?.span;
+        const items = Run.compileItems(s.block.items);
+        const name = s.variable.name;
+        return (r, env) => {
+          r.tick(span);
+          const a = from(r, env);
+          const b = to(r, env);
+          const step = by ? by(r, env) : 1;
+          if (step === 0) throw new RuntimeError(bySpan!, "`by 0` would never finish.");
+          for (let k = 0; ; k++) {
+            const v = a + k * step;
+            if (step > 0 ? v > b : v < b) break;
+            r.tick(span);
+            const inner = new Env(env);
+            inner.set(name, { value: v, mutable: false });
+            const done = items(r, inner);
+            if (done) return done;
+          }
+          return undefined;
+        };
+      }
+      case "Branch": {
+        const block = Run.compileBlock(s.block);
+        return (r, env) => {
+          r.tick(span);
+          const saved = cloneState(r.state);
+          try {
+            return block(r, env);
+          } finally {
+            r.record("return", r.state.turtle.pos, saved.turtle.pos, span);
+            r.state = saved;
+          }
+        };
+      }
+      case "Lay": {
+        if (s.block === undefined) {
+          return (r) => {
+            r.tick(span);
+            r.lay(span);
+            return undefined;
+          };
+        }
+        const block = Run.compileBlock(s.block);
+        return (r, env) => {
+          r.tick(span);
+          const saved = cloneFrame(r.state.shapeFrame);
+          r.shapeMode++;
+          let done;
+          try {
+            done = block(r, env);
+          } finally {
+            r.shapeMode--;
+          }
+          // A `return` inside leaves the part straight away, without laying the shape.
+          if (done) return done;
+          r.lay(span);
+          r.state.shapeFrame = saved;
+          return undefined;
+        };
+      }
+      case "Stroke": {
+        const block = Run.compileBlock(s.block);
+        return (r, env) => {
+          r.tick(span);
+          const points: StrokePoint[] = [];
+          r.strokes.push(points);
+          try {
+            return block(r, env);
+          } finally {
+            r.endStroke(points);
+          }
+        };
+      }
+      case "Command": {
+        const value = s.value;
+        switch (s.command) {
+          case "forward":
+          case "back": {
+            const d = Run.compileNumber(value, `\`${s.command}\``);
+            const sign = s.command === "forward" ? 1 : -1;
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              r.walk(f, [0, 0, sign * d(r, env)], span);
+              return undefined;
+            };
+          }
+          case "move": {
+            const v = Run.compileVector(value, "`move`");
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              r.walk(f, v(r, env), span);
+              return undefined;
+            };
+          }
+          case "pitch":
+          case "yaw":
+          case "roll": {
+            const a = Run.compileNumber(value, `\`${s.command}\``);
+            const axis = s.command === "pitch" ? 0 : s.command === "yaw" ? 1 : 2;
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              turn(f, axis, a(r, env));
+              return undefined;
+            };
+          }
+          case "grow": {
+            const g = Run.compile(value);
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              const v = g(r, env);
+              if (typeof v === "number") grow(f, [v, v, v]);
+              else if (isVec(v)) grow(f, [v.x, v.y, v.z]);
+              else
+                throw new RuntimeError(
+                  value.span,
+                  `\`grow\` needs a number or a vector, not ${typeLabel(typeOf(v))}.`,
+                );
+              return undefined;
+            };
+          }
+        }
+        break;
+      }
+      case "Rotate": {
+        const angle = Run.compileNumber(s.angle, "`rotate`");
+        const axis = Run.compileVector(s.axis, "`around`");
+        return (r, env) => {
+          r.tick(span);
+          const a = angle(r, env);
+          rotateAround(r.frame(), axis(r, env), a);
+          return undefined;
+        };
+      }
+      case "Material":
+        return (r, env) => {
+          r.tick(span);
+          r.material(s, env);
+          return undefined;
+        };
+    }
+    return (r, env) => r.execTree(s, env);
+  }
+
+  private execBlock(block: Block, env: Env, setup?: (env: Env) => void): ReturnSignal | undefined {
     const inner = new Env(env);
     setup?.(inner);
-    this.execItems(block.items, inner);
+    return this.execItems(block.items, inner);
+  }
+
+  /** The values of a call's arguments. */
+  private evalAll(args: Expr[], env: Env): Value[] {
+    const values = new Array<Value>(args.length);
+    for (let i = 0; i < args.length; i++) values[i] = this.eval(args[i]!, env);
+    return values;
   }
 
   /** The frame that turtle commands act on: the shape transform inside reshape and lay blocks. */
@@ -653,7 +973,8 @@ class Run {
     return this.shapeMode > 0 ? this.state.shapeFrame : this.state.turtle;
   }
 
-  private exec(s: Stmt, env: Env): void {
+  /** Runs a statement by walking its tree; a `return` comes back as its signal. */
+  private execTree(s: Stmt, env: Env): ReturnSignal | undefined {
     this.tick(s.span);
     switch (s.kind) {
       case "Gene":
@@ -674,7 +995,7 @@ class Run {
         this.effect(s, env);
         return;
       case "Let":
-        env.vars.set(s.name, { value: this.eval(s.value, env), mutable: true });
+        env.set(s.name, { value: this.eval(s.value, env), mutable: true });
         return;
       case "Assign": {
         const value = this.eval(s.value, env);
@@ -683,40 +1004,37 @@ class Run {
         if (s.op === "=") b.value = value;
         else {
           const op = s.op[0] as "+" | "-" | "*" | "/";
-          b.value = this.guard(s.span, () => binaryOp(op, b.value, value));
+          try {
+            b.value = binaryOp(op, b.value, value);
+          } catch (err) {
+            throw located(err, s.span);
+          }
         }
         return;
       }
       case "PartCall":
-        this.callPart(
-          s.name,
-          s.args.map((a) => this.eval(a, env)),
-          s.nameSpan,
-          env,
-        );
+        this.callPart(s.name, this.evalAll(s.args, env), s.nameSpan, env);
         return;
       case "Return":
-        throw new ReturnSignal(s.value ? this.eval(s.value, env) : undefined);
+        return new ReturnSignal(s.value ? this.eval(s.value, env) : undefined);
       case "Print":
         this.printed.push(s.args.map((a) => formatValue(this.eval(a, env))).join(" "));
         return;
       case "If": {
         for (const b of s.branches) {
-          if (this.bool(b.condition, env, "A condition")) {
-            this.execBlock(b.block, env);
-            return;
-          }
+          if (this.bool(b.condition, env, "A condition")) return this.execBlock(b.block, env);
         }
-        if (s.elseBlock) this.execBlock(s.elseBlock, env);
+        if (s.elseBlock) return this.execBlock(s.elseBlock, env);
         return;
       }
       case "Repeat": {
         const n = roundHalfUp(this.num(s.count, env, "`repeat`"));
         for (let k = 0; k < n; k++) {
           this.tick(s.span);
-          this.execBlock(s.block, env, (inner) => {
-            if (s.as) inner.vars.set(s.as.name, { value: k, mutable: false });
-          });
+          const inner = new Env(env);
+          if (s.as) inner.set(s.as.name, { value: k, mutable: false });
+          const done = this.execItems(s.block.items, inner);
+          if (done) return done;
         }
         return;
       }
@@ -729,37 +1047,36 @@ class Run {
           const v = from + k * by;
           if (by > 0 ? v > to : v < to) break;
           this.tick(s.span);
-          this.execBlock(s.block, env, (inner) =>
-            inner.vars.set(s.variable.name, { value: v, mutable: false }),
-          );
+          const inner = new Env(env);
+          inner.set(s.variable.name, { value: v, mutable: false });
+          const done = this.execItems(s.block.items, inner);
+          if (done) return done;
         }
         return;
       }
       case "While":
         while (this.bool(s.condition, env, "A condition")) {
           this.tick(s.span);
-          this.execBlock(s.block, env);
+          const done = this.execBlock(s.block, env);
+          if (done) return done;
         }
         return;
       case "Branch":
-        this.branch(s.span, () => this.execBlock(s.block, env));
-        return;
+        return this.branch(s.span, () => this.execBlock(s.block, env));
       case "Symmetric": {
         const axis = { x: 0, y: 1, z: 2 }[s.axis];
         const flip: V3 = [1, 1, 1];
         flip[axis] = -1;
-        this.branch(s.span, () =>
-          this.execBlock(s.block, env, (inner) =>
-            inner.vars.set("side", { value: 1, mutable: false }),
-          ),
+        const done = this.branch(s.span, () =>
+          this.execBlock(s.block, env, (inner) => inner.set("side", { value: 1, mutable: false })),
         );
-        this.branch(s.span, () => {
+        if (done) return done;
+        return this.branch(s.span, () => {
           grow(this.state.turtle, flip);
-          this.execBlock(s.block, env, (inner) =>
-            inner.vars.set("side", { value: -1, mutable: false }),
+          return this.execBlock(s.block, env, (inner) =>
+            inner.set("side", { value: -1, mutable: false }),
           );
         });
-        return;
       }
       case "Lay": {
         if (s.block === undefined) {
@@ -768,11 +1085,14 @@ class Run {
         }
         const saved = cloneFrame(this.state.shapeFrame);
         this.shapeMode++;
+        let done;
         try {
-          this.execBlock(s.block, env);
+          done = this.execBlock(s.block, env);
         } finally {
           this.shapeMode--;
         }
+        // A `return` inside leaves the part straight away, without laying the shape.
+        if (done) return done;
         this.lay(s.span);
         this.state.shapeFrame = saved;
         return;
@@ -786,35 +1106,18 @@ class Run {
       case "Reshape":
         this.shapeMode++;
         try {
-          this.execBlock(s.block, env);
+          return this.execBlock(s.block, env);
         } finally {
           this.shapeMode--;
         }
-        return;
       case "Stroke": {
         const points: StrokePoint[] = [];
         this.strokes.push(points);
         try {
-          this.execBlock(s.block, env);
+          return this.execBlock(s.block, env);
         } finally {
-          this.strokes.pop();
-          // A stroke with fewer than two points has nothing to join, so it draws nothing.
-          const first = points[0];
-          if (first && points.length >= 2) {
-            this.shapes.push({
-              shape: "stroke",
-              matrix: first.matrix,
-              colour: first.colour,
-              shine: first.shine,
-              sharpness: first.sharpness,
-              texture: null,
-              wear: 0,
-              mirrored: false,
-              points,
-            });
-          }
+          this.endStroke(points);
         }
-        return;
       }
       case "Command": {
         const f = this.frame();
@@ -922,10 +1225,30 @@ class Run {
     }
   }
 
-  private branch(span: Span, f: () => void): void {
+  /** Ends the innermost stroke, laying it if it has points to join. */
+  private endStroke(points: StrokePoint[]): void {
+    this.strokes.pop();
+    // A stroke with fewer than two points has nothing to join, so it draws nothing.
+    const first = points[0];
+    if (first && points.length >= 2) {
+      this.shapes.push({
+        shape: "stroke",
+        matrix: first.matrix,
+        colour: first.colour,
+        shine: first.shine,
+        sharpness: first.sharpness,
+        texture: null,
+        wear: 0,
+        mirrored: false,
+        points,
+      });
+    }
+  }
+
+  private branch<T>(span: Span, f: () => T): T {
     const saved = cloneState(this.state);
     try {
-      f();
+      return f();
     } finally {
       this.record("return", this.state.turtle.pos, saved.turtle.pos, span);
       this.state = saved;
@@ -934,7 +1257,11 @@ class Run {
 
   /** Moves the frame; a move of the turtle (not of a shape in `lay`) is part of its path. */
   private walk(f: Frame, local: V3, span: Span): void {
-    const from: V3 = [...f.pos];
+    if (!this.options.trace) {
+      move(f, local);
+      return;
+    }
+    const from: V3 = [f.pos[0], f.pos[1], f.pos[2]];
     move(f, local);
     if (f === this.state.turtle) this.record("move", from, f.pos, span);
   }
@@ -990,7 +1317,10 @@ class Run {
   }
 
   private bindParams(env: Env, decl: PartDecl | FunctionDecl, args: Value[]): void {
-    decl.params.forEach((p, i) => env.vars.set(p.name, { value: args[i]!, mutable: true }));
+    const params = decl.params;
+    for (let i = 0; i < params.length; i++) {
+      env.set(params[i]!.name, { value: args[i]!, mutable: true });
+    }
   }
 
   private callPart(name: string, args: Value[], span: Span, env: Env): void {
@@ -1005,8 +1335,6 @@ class Run {
     this.bindGenes(callEnv, decl.name);
     try {
       this.execItems(decl.body.items, callEnv);
-    } catch (e) {
-      if (!(e instanceof ReturnSignal)) throw e;
     } finally {
       this.depth--;
     }
@@ -1017,14 +1345,13 @@ class Run {
     const callEnv = new Env(this.module);
     this.bindParams(callEnv, decl, args);
     this.bindGenes(callEnv, decl.name);
+    let done;
     try {
-      this.execItems(decl.body.items, callEnv);
-    } catch (e) {
-      if (e instanceof ReturnSignal && e.value !== undefined) return e.value;
-      throw e;
+      done = this.execItems(decl.body.items, callEnv);
     } finally {
       this.depth--;
     }
+    if (done?.value !== undefined) return done.value;
     throw new RuntimeError(
       decl.nameSpan,
       `The function \`${decl.name}\` ended without returning a value.`,
@@ -1037,8 +1364,7 @@ class Run {
     try {
       return f();
     } catch (e) {
-      if (e instanceof ValueError) throw new RuntimeError(span, e.message);
-      throw e;
+      throw located(e, span);
     }
   }
 
@@ -1069,7 +1395,196 @@ class Run {
     return [v.x, v.y, v.z];
   }
 
+  /**
+   * Works out an expression. Each expression is turned once into a JavaScript function that
+   * works it out (see `compile`), which runs much faster than walking the tree every time.
+   */
   private eval(e: Expr, env: Env): Value {
+    let c = (e as { [COMPILED]?: Compiled })[COMPILED];
+    if (c === undefined) {
+      c = Run.compile(e);
+      // Hidden from equality checks and JSON, so the tree reads as it did.
+      Object.defineProperty(e, COMPILED, { value: c });
+    }
+    return c(this, env);
+  }
+
+  /**
+   * An expression as a function that works it out exactly as `evalTree` does, counting the same
+   * steps and giving the same errors, with its parts already turned into functions. The common
+   * kinds are done here; the rest go to `evalTree`.
+   */
+  private static compile(e: Expr): Compiled {
+    switch (e.kind) {
+      case "Number":
+      case "Bool": {
+        const value = e.value;
+        const span = e.span;
+        return (r) => {
+          r.tick(span);
+          return value;
+        };
+      }
+      case "Name": {
+        const { name, span } = e;
+        return (r, env) => {
+          r.tick(span);
+          const b = env.lookup(name);
+          if (b) return b.value;
+          if (r.program.patterns.has(name)) return { type: "patternKind", name };
+          const c = BUILTIN_CONSTANTS.get(name);
+          if (c !== undefined) return c;
+          throw new RuntimeError(span, r.unsetMessage(name));
+        };
+      }
+      case "Turtle": {
+        const { field, span } = e;
+        return (r) => {
+          r.tick(span);
+          return r.turtleField(field, span);
+        };
+      }
+      case "Time":
+        return (r) => {
+          r.tick(e.span);
+          return r.inputs.time;
+        };
+      case "Vector": {
+        const x = Run.compileNumber(e.x, "A vector");
+        const y = Run.compileNumber(e.y, "A vector");
+        const z = Run.compileNumber(e.z, "A vector");
+        return (r, env) => {
+          r.tick(e.span);
+          return vec(x(r, env), y(r, env), z(r, env));
+        };
+      }
+      case "Unary": {
+        const operand = Run.compile(e.operand);
+        const minus = e.op === "-";
+        return (r, env) => {
+          r.tick(e.span);
+          const v = operand(r, env);
+          try {
+            return minus ? negate(v) : not(v);
+          } catch (err) {
+            throw located(err, e.span);
+          }
+        };
+      }
+      case "Binary": {
+        const { op, opSpan } = e;
+        if (op === "and" || op === "or") {
+          const left = Run.compileBool(e.left, `The left side of \`${op}\``);
+          const right = Run.compileBool(e.right, `The right side of \`${op}\``);
+          const and = op === "and";
+          return (r, env) => {
+            r.tick(e.span);
+            const l = left(r, env);
+            if (and ? !l : l) return l;
+            return right(r, env);
+          };
+        }
+        const left = Run.compile(e.left);
+        const right = Run.compile(e.right);
+        return (r, env) => {
+          r.tick(e.span);
+          const a = left(r, env);
+          const b = right(r, env);
+          try {
+            return binaryOp(op, a, b);
+          } catch (err) {
+            throw located(err, opSpan);
+          }
+        };
+      }
+      case "Member": {
+        const object = Run.compile(e.object);
+        const { name, nameSpan } = e;
+        return (r, env) => {
+          r.tick(e.span);
+          const v = object(r, env);
+          try {
+            return member(v, name);
+          } catch (err) {
+            throw located(err, nameSpan);
+          }
+        };
+      }
+      case "Call": {
+        const callee = e.callee;
+        if (callee.kind !== "Name") break;
+        const name = callee.name;
+        const args = e.args.map((a) => Run.compile(a));
+        const evalArgs = (r: Run, env: Env): Value[] => {
+          const values = new Array<Value>(args.length);
+          for (let i = 0; i < args.length; i++) values[i] = args[i]!(r, env);
+          return values;
+        };
+        // What the name means doesn't change within a program, so it's looked up once for each.
+        let program: CheckResult | undefined;
+        let fn: FunctionDecl | undefined;
+        const builtin = BUILTIN_FUNCTIONS.get(name);
+        const picture = PICTURE_FUNCTIONS.get(name);
+        return (r, env) => {
+          r.tick(e.span);
+          if (env.lookup(name) === undefined) {
+            if (r.program !== program) {
+              program = r.program;
+              fn = program.functions.get(name);
+            }
+            if (fn) return r.callFunction(fn, evalArgs(r, env), callee.span);
+            const f = builtin ?? (r.canvas ? picture : undefined);
+            if (f) {
+              const values = evalArgs(r, env);
+              try {
+                return f.call(values, r.builtinContext());
+              } catch (err) {
+                throw located(err, e.span);
+              }
+            }
+          }
+          return r.callValue(e, env);
+        };
+      }
+    }
+    return (r, env) => r.evalTree(e, env);
+  }
+
+  /** `compile` for a value that must be a number, with `num`'s error. */
+  private static compileNumber(e: Expr, what: string): (r: Run, env: Env) => number {
+    const f = Run.compile(e);
+    return (r, env) => {
+      const v = f(r, env);
+      if (typeof v !== "number")
+        throw new RuntimeError(e.span, `${what} needs a number, not ${typeLabel(typeOf(v))}.`);
+      return v;
+    };
+  }
+
+  /** `compile` for a value that must be a vector, with `vector`'s error. */
+  private static compileVector(e: Expr, what: string): (r: Run, env: Env) => V3 {
+    const f = Run.compile(e);
+    return (r, env) => {
+      const v = f(r, env);
+      if (!isVec(v))
+        throw new RuntimeError(e.span, `${what} needs a vector, not ${typeLabel(typeOf(v))}.`);
+      return [v.x, v.y, v.z];
+    };
+  }
+
+  /** `compile` for a value that must be a bool, with `bool`'s error. */
+  private static compileBool(e: Expr, what: string): (r: Run, env: Env) => boolean {
+    const f = Run.compile(e);
+    return (r, env) => {
+      const v = f(r, env);
+      if (typeof v !== "boolean")
+        throw new RuntimeError(e.span, `${what} must be a bool, not ${typeLabel(typeOf(v))}.`);
+      return v;
+    };
+  }
+
+  /** Works out an expression by walking its tree. */
+  private evalTree(e: Expr, env: Env): Value {
     this.tick(e.span);
     switch (e.kind) {
       case "Number":
@@ -1104,7 +1619,11 @@ class Run {
         );
       case "Unary": {
         const v = this.eval(e.operand, env);
-        return this.guard(e.span, () => (e.op === "-" ? negate(v) : not(v)));
+        try {
+          return e.op === "-" ? negate(v) : not(v);
+        } catch (err) {
+          throw located(err, e.span);
+        }
       }
       case "Binary": {
         if (e.op === "and" || e.op === "or") {
@@ -1114,11 +1633,19 @@ class Run {
         }
         const a = this.eval(e.left, env);
         const b = this.eval(e.right, env);
-        return this.guard(e.opSpan, () => binaryOp(e.op, a, b));
+        try {
+          return binaryOp(e.op, a, b);
+        } catch (err) {
+          throw located(err, e.opSpan);
+        }
       }
       case "Member": {
         const v = this.eval(e.object, env);
-        return this.guard(e.nameSpan, () => member(v, e.name));
+        try {
+          return member(v, e.name);
+        } catch (err) {
+          throw located(err, e.nameSpan);
+        }
       }
       case "Call":
         return this.call(e, env);
@@ -1149,20 +1676,25 @@ class Run {
     const callee = e.callee;
     if (callee.kind === "Name" && env.lookup(callee.name) === undefined) {
       const fn = this.program.functions.get(callee.name);
-      if (fn)
-        return this.callFunction(
-          fn,
-          e.args.map((a) => this.eval(a, env)),
-          callee.span,
-        );
+      if (fn) return this.callFunction(fn, this.evalAll(e.args, env), callee.span);
       const builtin =
         BUILTIN_FUNCTIONS.get(callee.name) ??
         (this.canvas ? PICTURE_FUNCTIONS.get(callee.name) : undefined);
       if (builtin) {
-        const args = e.args.map((a) => this.eval(a, env));
-        return this.guard(e.span, () => builtin.call(args, this.builtinContext()));
+        const args = this.evalAll(e.args, env);
+        try {
+          return builtin.call(args, this.builtinContext());
+        } catch (err) {
+          throw located(err, e.span);
+        }
       }
     }
+    return this.callValue(e, env);
+  }
+
+  /** A call of something that isn't a function by name: a picture or gradient being sampled. */
+  private callValue(e: Extract<Expr, { kind: "Call" }>, env: Env): Value {
+    const callee = e.callee;
     const target = this.eval(callee, env);
     if (isPicture(target)) {
       return samplePicture(
@@ -1180,10 +1712,17 @@ class Run {
     return sampleGradient(target, t);
   }
 
+  /** Kept while it's still right, as built-ins are called thousands of times a build. */
+  private context: BuiltinContext | undefined;
+
   private builtinContext(): BuiltinContext {
-    return this.canvas
+    const c = this.context;
+    if (c !== undefined && c.random === this.random && c.pictureSize === this.canvas?.size) {
+      return c;
+    }
+    return (this.context = this.canvas
       ? { random: this.random, pictureSize: this.canvas.size }
-      : { random: this.random };
+      : { random: this.random });
   }
 
   /** A recipe of a pattern written in GenoCode carries the pattern, so it can be drawn anywhere. */

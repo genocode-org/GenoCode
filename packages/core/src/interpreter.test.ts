@@ -271,6 +271,31 @@ describe("control flow, parts and functions", () => {
     ).toHaveLength(7);
   });
 
+  it("leaves a part or function at once on return, from inside loops, branches and lay", () => {
+    const r = run(
+      "print(first(10))\nstop\nprint(turtle.position.z)\n" +
+        "function first(n) {\n  for i from 0 to n {\n    repeat 3 as j {\n      if i * 3 + j == 7 {\n        return i\n      }\n    }\n  }\n  return -1\n}\n" +
+        "part stop {\n  forward 1\n  branch {\n    forward 5\n    stroke {\n      lay\n      forward 1\n      lay\n      return\n    }\n  }\n  lay\n}",
+    );
+    expect(r.printed).toEqual(["2", "1"]);
+    // The stroke still ends and draws and the branch still puts the turtle back, but the `lay`
+    // after the branch never runs.
+    expect(r.shapes.map((s) => s.shape)).toEqual(["stroke"]);
+  });
+
+  it("samples a gradient held in a variable", () => {
+    const r = run("let g = gradient(red at 0, blue at 1)\nprint(g(0) == red, clamp(5, 0, 1))");
+    expect(r.printed).toEqual(["true 1"]);
+  });
+
+  it("builds the same program again and again with different genes", () => {
+    const program = checked("creature T\ngene n = 2 in 0..5\nrepeat n {\n  forward 1\n  lay\n}\n");
+    for (const n of [1, 4, 0, 3]) {
+      const genes = new Map([["n", n]]);
+      expect(build(program, { genes }).shapes).toHaveLength(n);
+    }
+  });
+
   it("gives each part call its genes and copies of its arguments", () => {
     const r = run(
       "let a = 1\nleg(a)\nprint(a)\npart leg(x) {\n  gene g = 2 in 0..3\n  x = 5\n  print(g)\n}",

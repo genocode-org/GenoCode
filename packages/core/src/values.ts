@@ -363,6 +363,31 @@ function scaled(v: Vec, f: (p: number) => number): Vec {
 }
 
 export function binaryOp(op: BinaryOp, a: Value, b: Value): Value {
+  // Two numbers are by far the most common case, so they're done first, the same way as below.
+  if (typeof a === "number" && typeof b === "number") {
+    switch (op) {
+      case "+":
+        return a + b;
+      case "-":
+        return a - b;
+      case "*":
+        return a * b;
+      case "/":
+        return a / b;
+      case "%":
+        return a % b;
+      case "<":
+        return a < b;
+      case "<=":
+        return a <= b;
+      case ">":
+        return a > b;
+      case ">=":
+        return a >= b;
+      case "^":
+        return Math.pow(a, b);
+    }
+  }
   switch (op) {
     case "==":
     case "!=": {
