@@ -431,13 +431,24 @@ dance {
 `);
     const quiet = buildDance(program).style!;
     expect(quiet.morph).toEqual({ input: 0, speed: 2, settle: 2 });
-    expect(quiet.spin).toEqual({ input: 0, from: 10, to: 20, smooth: 0.4 });
+    expect(quiet.spin).toEqual({ input: 0, from: 10, to: 20, smooth: 0.4, upright: false });
     expect(quiet.turn).toEqual({ input: 0, when: "drops", by: 1, bursts: undefined });
     expect(quiet.flat).toEqual({ input: 0, when: "changes", by: 0.5, bursts: { on: 24, off: 48 } });
     expect(quiet.zoom).toBeUndefined();
     const loud = buildDance(program, { inputs: { music: { mid: 0.3, bass_hit: 1.5 } } }).style!;
     expect(loud.morph!.input).toBeCloseTo(0.6);
     expect(loud.spin!.input).toBe(1);
+  });
+
+  it("reads `upright` on a spin line", () => {
+    const file = checked("dance Tall\nspin follows music.mid from 5 upright to 40\n");
+    expect(buildDance(file).style!.spin).toEqual({
+      input: 0,
+      from: 5,
+      to: 40,
+      smooth: 0.4,
+      upright: true,
+    });
   });
 
   it("reads bursts, and dance files", () => {

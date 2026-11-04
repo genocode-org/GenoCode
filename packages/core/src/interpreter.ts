@@ -2,6 +2,7 @@
 // the shapes it lays (docs/LANGUAGE.md section 20).
 
 import {
+  EFFECT_FLAGS,
   TRIGGER_KINDS,
   type BinaryOp,
   type Block,
@@ -222,7 +223,8 @@ export interface Trigger {
 export interface DanceStyle {
   morph?: { input: number; speed: number; settle: number };
   zoom?: { input: number; amount: number; settle: number };
-  spin?: { input: number; from: number; to: number; smooth: number };
+  /** `upright`: the spin stays about the creature's up axis, so it never tips over. */
+  spin?: { input: number; from: number; to: number; smooth: number; upright?: boolean };
   turn?: Trigger;
   reverse?: Trigger;
   flat?: Trigger;
@@ -256,6 +258,8 @@ interface EffectValues {
   name: string;
   settings: Map<string, number>;
   when: TriggerKind | undefined;
+  /** The words that stand alone and aren't triggers, such as `upright`. */
+  flags: Set<string>;
 }
 
 /** The effect lines as a style, with the defaults of section 17 for settings left out. */
@@ -286,6 +290,7 @@ function danceStyle(effects: EffectValues[]): DanceStyle {
           from: get("from", 45),
           to: get("to", 170),
           smooth: get("smooth", 0.4),
+          upright: e.flags.has("upright"),
         };
         break;
       case "turn":
@@ -872,16 +877,18 @@ class Run {
   private effect(s: Extract<Stmt, { kind: "Effect" }>, env: Env): void {
     const settings = new Map<string, number>();
     let when: TriggerKind | undefined;
+    const flags = new Set<string>();
     s.args.forEach((a, i) => {
       if (a.kind === "Word") {
         if (TRIGGER_KINDS.has(a.text)) when = a.text as TriggerKind;
+        else if (EFFECT_FLAGS.has(a.text)) flags.add(a.text);
         return;
       }
       const word = s.args[i - 1]!;
       const name = word.kind === "Word" ? word.text : "";
       settings.set(i === 1 ? "input" : name, this.num(a.expr, env, `\`${name}\``));
     });
-    this.effects.push({ name: s.name, settings, when });
+    this.effects.push({ name: s.name, settings, when, flags });
   }
 
   private material(s: Extract<Stmt, { kind: "Material" }>, env: Env): void {

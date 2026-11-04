@@ -128,6 +128,43 @@ describe("Dancer", () => {
     expect(d.flat).toBe(false);
   });
 
+  it("keeps an upright spin about the up axis, turns reversing it and flat never tipping it", () => {
+    const d = new Dancer(() => 0.9);
+    const directions: number[] = [];
+    let input = 0;
+    for (let i = 0; i < 200; i++) {
+      input = i % 7 === 0 ? 1 - input : input;
+      d.step(
+        {
+          spin: { input: 0.5, from: 90, to: 360, smooth: 0.3, upright: true },
+          turn: { input, when: "changes", by: 0.5, bursts: undefined },
+          flat: { input, when: "changes", by: 0.5, bursts: { on: 1, off: 1 } },
+        },
+        0.05,
+      );
+      const [x, , z] = d.orientation;
+      expect(d.flat).toBe(false);
+      expect(Math.hypot(x, z)).toBeLessThan(1e-9);
+      directions.push(Math.sign(d.spin.speed));
+    }
+    expect(directions).toContain(1);
+    expect(directions).toContain(-1);
+  });
+
+  it("rights a tumbling creature when the style turns upright", () => {
+    const d = new Dancer(() => 0.2);
+    const style = (input: number, upright: boolean): DanceStyle => ({
+      spin: { input: 1, from: 120, to: 120, smooth: 0.5, upright },
+      turn: { input, when: "changes", by: 0.5, bursts: undefined },
+    });
+    dance(d, 0.1, () => style(0, false));
+    dance(d, 1, () => style(1, false));
+    expect(Math.hypot(d.orientation[0], d.orientation[2])).toBeGreaterThan(0.05);
+    dance(d, 3, () => style(1, true));
+    expect(Math.hypot(d.orientation[0], d.orientation[2])).toBeLessThan(1e-3);
+    expect(d.spin.axis[1]).toBeCloseTo(1);
+  });
+
   it("does nothing without a style", () => {
     const d = new Dancer();
     dance(d, 1, () => ({}));

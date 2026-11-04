@@ -2,6 +2,7 @@
 // a statement that can't be read becomes an ErrorStmt, and parsing carries on with the next one.
 
 import {
+  EFFECT_FLAGS,
   EFFECT_KEYWORD_WORDS,
   EFFECT_NAMES,
   TRIGGER_KINDS,
@@ -772,7 +773,7 @@ class Parser {
       }
       this.next();
       args.push({ kind: "Word", text: w.text, span: w.span });
-      if (TRIGGER_KINDS.has(w.text)) continue;
+      if (TRIGGER_KINDS.has(w.text) || EFFECT_FLAGS.has(w.text)) continue;
       if (this.atStatementEnd())
         this.fail(this.peek().span, `Expected a value after \`${w.text}\`.`);
       args.push({ kind: "Value", expr: this.parseExpr() });

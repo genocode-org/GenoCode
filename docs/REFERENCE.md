@@ -1422,26 +1422,31 @@ Spins the creature about its spin axis, faster or slower with the input.
 
 ```text
 spin follows x from slowest to fastest smooth t
+spin follows x from slowest to fastest smooth t upright
 ```
 
-| Setting   | Type   | Default | Description                                                   |
-| --------- | ------ | ------- | ------------------------------------------------------------- |
-| `follows` | number | —       | The input, 0–1 (clamped).                                     |
-| `from`    | number | 45      | Degrees a second at input 0.                                  |
-| `to`      | number | 170     | Degrees a second at input 1.                                  |
-| `smooth`  | number | 0.4     | Seconds to swing to a new axis and speed. 0 switches at once. |
+| Setting   | Type   | Default | Description                                                     |
+| --------- | ------ | ------- | --------------------------------------------------------------- |
+| `follows` | number | —       | The input, 0–1 (clamped).                                       |
+| `from`    | number | 45      | Degrees a second at input 0.                                    |
+| `to`      | number | 170     | Degrees a second at input 1.                                    |
+| `smooth`  | number | 0.4     | Seconds to swing to a new axis and speed. 0 switches at once.   |
+| `upright` | —      | off     | Keeps the creature the right way up, turning about its up axis. |
 
 **Used in:** dance blocks and files.
 
 **Remarks**
 
 - With a [turn](#turn) line, the input is read each time the axis turns; without one, all the time.
+- `upright` keeps the creature standing, as in the example: it only turns about its up axis,
+  each [turn](#turn) reverses the spin instead of picking a new axis, and [flat](#flat) doesn't
+  tip it over.
 
 **Example**
 
 ```
 dance {
-  spin follows music.bass_hit from 20 to 200 smooth 0.2
+  spin follows music.bass_hit from 20 to 200 smooth 0.2 upright
   turn on music.mid changes by 1
 }
 ```
