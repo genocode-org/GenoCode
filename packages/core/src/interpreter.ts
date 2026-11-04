@@ -417,9 +417,12 @@ function located(e: unknown, span: Span): unknown {
 /** An expression turned into a function that works it out for a run, in a scope. */
 type Compiled = (r: Run, env: Env) => Value;
 
+/** Statements turned into a function that runs them, giving back a `return`'s signal if one ran. */
+type Exec = (r: Run, env: Env) => ReturnSignal | undefined;
+
 /**
- * Where each expression keeps its function, made the first time it's worked out and kept for
- * every build of the program.
+ * Where each expression, and each list of statements, keeps its function, made the first time
+ * it's run and kept for every build of the program.
  */
 const COMPILED = Symbol("compiled");
 
@@ -665,12 +668,286 @@ class Run {
     }
   }
 
+  /**
+   * Runs statements in order until one returns. Like expressions, a list of statements is turned
+   * once into a function that runs them (see `compileItems`), kept on the list.
+   */
   private execItems(items: Stmt[], env: Env): ReturnSignal | undefined {
-    for (let i = 0; i < items.length; i++) {
-      const done = this.exec(items[i]!, env);
-      if (done) return done;
+    let c = (items as { [COMPILED]?: Exec })[COMPILED];
+    if (c === undefined) {
+      c = Run.compileItems(items);
+      Object.defineProperty(items, COMPILED, { value: c });
     }
-    return undefined;
+    return c(this, env);
+  }
+
+  /** Statements as one function that runs each in turn, stopping at a `return`. */
+  private static compileItems(items: Stmt[]): Exec {
+    const execs = items.map((s) => Run.compileStatement(s));
+    const n = execs.length;
+    if (n === 1) return execs[0]!;
+    return (r, env) => {
+      for (let i = 0; i < n; i++) {
+        const done = execs[i]!(r, env);
+        if (done) return done;
+      }
+      return undefined;
+    };
+  }
+
+  /** A block's statements as a function that runs them in a scope of their own. */
+  private static compileBlock(block: Block): Exec {
+    const items = Run.compileItems(block.items);
+    return (r, env) => items(r, new Env(env));
+  }
+
+  /**
+   * A statement as a function that runs it exactly as `execTree` does, counting the same steps
+   * and giving the same errors. The common kinds are done here; the rest go to `execTree`.
+   */
+  private static compileStatement(s: Stmt): Exec {
+    const span = s.span;
+    switch (s.kind) {
+      case "Gene":
+      case "Part":
+      case "Function":
+      case "Background":
+      case "Dance":
+      case "Variant":
+      case "Breed":
+      case "GeneSetting":
+      case "Pattern":
+      case "ErrorStmt":
+        return (r) => {
+          r.tick(span);
+          return undefined;
+        };
+      case "Let": {
+        const name = s.name;
+        const value = Run.compile(s.value);
+        return (r, env) => {
+          r.tick(span);
+          env.set(name, { value: value(r, env), mutable: true });
+          return undefined;
+        };
+      }
+      case "Assign": {
+        const { name, nameSpan } = s;
+        const value = Run.compile(s.value);
+        const op = s.op === "=" ? undefined : (s.op[0] as "+" | "-" | "*" | "/");
+        return (r, env) => {
+          r.tick(span);
+          const v = value(r, env);
+          const b = env.lookup(name);
+          if (b === undefined) throw new RuntimeError(nameSpan, r.unsetMessage(name));
+          if (op === undefined) b.value = v;
+          else {
+            try {
+              b.value = binaryOp(op, b.value, v);
+            } catch (err) {
+              throw located(err, span);
+            }
+          }
+          return undefined;
+        };
+      }
+      case "PartCall": {
+        const { name, nameSpan } = s;
+        const args = s.args.map((a) => Run.compile(a));
+        return (r, env) => {
+          r.tick(span);
+          const values = new Array<Value>(args.length);
+          for (let i = 0; i < args.length; i++) values[i] = args[i]!(r, env);
+          r.callPart(name, values, nameSpan, env);
+          return undefined;
+        };
+      }
+      case "Return": {
+        const value = s.value ? Run.compile(s.value) : undefined;
+        return (r, env) => {
+          r.tick(span);
+          return new ReturnSignal(value ? value(r, env) : undefined);
+        };
+      }
+      case "If": {
+        const conditions = s.branches.map((b) => Run.compileBool(b.condition, "A condition"));
+        const blocks = s.branches.map((b) => Run.compileBlock(b.block));
+        const otherwise = s.elseBlock ? Run.compileBlock(s.elseBlock) : undefined;
+        const n = conditions.length;
+        return (r, env) => {
+          r.tick(span);
+          for (let i = 0; i < n; i++) {
+            if (conditions[i]!(r, env)) return blocks[i]!(r, env);
+          }
+          return otherwise ? otherwise(r, env) : undefined;
+        };
+      }
+      case "Repeat": {
+        const count = Run.compileNumber(s.count, "`repeat`");
+        const items = Run.compileItems(s.block.items);
+        const as = s.as?.name;
+        return (r, env) => {
+          r.tick(span);
+          const n = roundHalfUp(count(r, env));
+          for (let k = 0; k < n; k++) {
+            r.tick(span);
+            const inner = new Env(env);
+            if (as !== undefined) inner.set(as, { value: k, mutable: false });
+            const done = items(r, inner);
+            if (done) return done;
+          }
+          return undefined;
+        };
+      }
+      case "For": {
+        const from = Run.compileNumber(s.from, "`for`");
+        const to = Run.compileNumber(s.to, "`for`");
+        const by = s.by ? Run.compileNumber(s.by, "`for`") : undefined;
+        const bySpan = s.by?.span;
+        const items = Run.compileItems(s.block.items);
+        const name = s.variable.name;
+        return (r, env) => {
+          r.tick(span);
+          const a = from(r, env);
+          const b = to(r, env);
+          const step = by ? by(r, env) : 1;
+          if (step === 0) throw new RuntimeError(bySpan!, "`by 0` would never finish.");
+          for (let k = 0; ; k++) {
+            const v = a + k * step;
+            if (step > 0 ? v > b : v < b) break;
+            r.tick(span);
+            const inner = new Env(env);
+            inner.set(name, { value: v, mutable: false });
+            const done = items(r, inner);
+            if (done) return done;
+          }
+          return undefined;
+        };
+      }
+      case "Branch": {
+        const block = Run.compileBlock(s.block);
+        return (r, env) => {
+          r.tick(span);
+          const saved = cloneState(r.state);
+          try {
+            return block(r, env);
+          } finally {
+            r.record("return", r.state.turtle.pos, saved.turtle.pos, span);
+            r.state = saved;
+          }
+        };
+      }
+      case "Lay": {
+        if (s.block === undefined) {
+          return (r) => {
+            r.tick(span);
+            r.lay(span);
+            return undefined;
+          };
+        }
+        const block = Run.compileBlock(s.block);
+        return (r, env) => {
+          r.tick(span);
+          const saved = cloneFrame(r.state.shapeFrame);
+          r.shapeMode++;
+          let done;
+          try {
+            done = block(r, env);
+          } finally {
+            r.shapeMode--;
+          }
+          // A `return` inside leaves the part straight away, without laying the shape.
+          if (done) return done;
+          r.lay(span);
+          r.state.shapeFrame = saved;
+          return undefined;
+        };
+      }
+      case "Stroke": {
+        const block = Run.compileBlock(s.block);
+        return (r, env) => {
+          r.tick(span);
+          const points: StrokePoint[] = [];
+          r.strokes.push(points);
+          try {
+            return block(r, env);
+          } finally {
+            r.endStroke(points);
+          }
+        };
+      }
+      case "Command": {
+        const value = s.value;
+        switch (s.command) {
+          case "forward":
+          case "back": {
+            const d = Run.compileNumber(value, `\`${s.command}\``);
+            const sign = s.command === "forward" ? 1 : -1;
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              r.walk(f, [0, 0, sign * d(r, env)], span);
+              return undefined;
+            };
+          }
+          case "move": {
+            const v = Run.compileVector(value, "`move`");
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              r.walk(f, v(r, env), span);
+              return undefined;
+            };
+          }
+          case "pitch":
+          case "yaw":
+          case "roll": {
+            const a = Run.compileNumber(value, `\`${s.command}\``);
+            const axis = s.command === "pitch" ? 0 : s.command === "yaw" ? 1 : 2;
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              turn(f, axis, a(r, env));
+              return undefined;
+            };
+          }
+          case "grow": {
+            const g = Run.compile(value);
+            return (r, env) => {
+              r.tick(span);
+              const f = r.frame();
+              const v = g(r, env);
+              if (typeof v === "number") grow(f, [v, v, v]);
+              else if (isVec(v)) grow(f, [v.x, v.y, v.z]);
+              else
+                throw new RuntimeError(
+                  value.span,
+                  `\`grow\` needs a number or a vector, not ${typeLabel(typeOf(v))}.`,
+                );
+              return undefined;
+            };
+          }
+        }
+        break;
+      }
+      case "Rotate": {
+        const angle = Run.compileNumber(s.angle, "`rotate`");
+        const axis = Run.compileVector(s.axis, "`around`");
+        return (r, env) => {
+          r.tick(span);
+          const a = angle(r, env);
+          rotateAround(r.frame(), axis(r, env), a);
+          return undefined;
+        };
+      }
+      case "Material":
+        return (r, env) => {
+          r.tick(span);
+          r.material(s, env);
+          return undefined;
+        };
+    }
+    return (r, env) => r.execTree(s, env);
   }
 
   private execBlock(block: Block, env: Env, setup?: (env: Env) => void): ReturnSignal | undefined {
@@ -691,8 +968,8 @@ class Run {
     return this.shapeMode > 0 ? this.state.shapeFrame : this.state.turtle;
   }
 
-  /** Runs a statement; a `return` comes back as its signal, for the part or function to stop. */
-  private exec(s: Stmt, env: Env): ReturnSignal | undefined {
+  /** Runs a statement by walking its tree; a `return` comes back as its signal. */
+  private execTree(s: Stmt, env: Env): ReturnSignal | undefined {
     this.tick(s.span);
     switch (s.kind) {
       case "Gene":
@@ -834,24 +1111,8 @@ class Run {
         try {
           return this.execBlock(s.block, env);
         } finally {
-          this.strokes.pop();
-          // A stroke with fewer than two points has nothing to join, so it draws nothing.
-          const first = points[0];
-          if (first && points.length >= 2) {
-            this.shapes.push({
-              shape: "stroke",
-              matrix: first.matrix,
-              colour: first.colour,
-              shine: first.shine,
-              sharpness: first.sharpness,
-              texture: null,
-              wear: 0,
-              mirrored: false,
-              points,
-            });
-          }
+          this.endStroke(points);
         }
-        return;
       }
       case "Command": {
         const f = this.frame();
@@ -954,6 +1215,26 @@ class Run {
         if (typeof v !== "object" || v.type !== "pattern") return wrong("a pattern");
         this.state.texture = v.kind === null ? null : this.withSource(v);
         return;
+    }
+  }
+
+  /** Ends the innermost stroke, laying it if it has points to join. */
+  private endStroke(points: StrokePoint[]): void {
+    this.strokes.pop();
+    // A stroke with fewer than two points has nothing to join, so it draws nothing.
+    const first = points[0];
+    if (first && points.length >= 2) {
+      this.shapes.push({
+        shape: "stroke",
+        matrix: first.matrix,
+        colour: first.colour,
+        shine: first.shine,
+        sharpness: first.sharpness,
+        texture: null,
+        wear: 0,
+        mirrored: false,
+        points,
+      });
     }
   }
 
@@ -1270,6 +1551,17 @@ class Run {
       if (typeof v !== "number")
         throw new RuntimeError(e.span, `${what} needs a number, not ${typeLabel(typeOf(v))}.`);
       return v;
+    };
+  }
+
+  /** `compile` for a value that must be a vector, with `vector`'s error. */
+  private static compileVector(e: Expr, what: string): (r: Run, env: Env) => V3 {
+    const f = Run.compile(e);
+    return (r, env) => {
+      const v = f(r, env);
+      if (!isVec(v))
+        throw new RuntimeError(e.span, `${what} needs a vector, not ${typeLabel(typeOf(v))}.`);
+      return [v.x, v.y, v.z];
     };
   }
 
