@@ -26,10 +26,15 @@ export function newFrame(): Frame {
 }
 
 export function cloneFrame(f: Frame): Frame {
+  const [x, y, z] = f.ax;
   return {
-    pos: [...f.pos],
-    ax: [[...f.ax[0]], [...f.ax[1]], [...f.ax[2]]],
-    size: [...f.size],
+    pos: [f.pos[0], f.pos[1], f.pos[2]],
+    ax: [
+      [x[0], x[1], x[2]],
+      [y[0], y[1], y[2]],
+      [z[0], z[1], z[2]],
+    ],
+    size: [f.size[0], f.size[1], f.size[2]],
     mirrored: f.mirrored,
   };
 }
