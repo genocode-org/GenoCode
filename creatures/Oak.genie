@@ -1,0 +1,334 @@
+creature Oak
+// A tree grown the way real trees grow, to show what GenoCode can build in 3D. The trunk and every
+// branch are smooth tapering strokes; side branches spiral out along each limb, four levels down to
+// the twigs, curving up towards the light. Each twig carries its own leaves, every one placed,
+// angled and coloured on its own, and they flutter in the wind. Buttress roots flare out where the
+// trunk meets the ground.
+// The creature itself is an old oak in summer, and its variants are the same tree through the year
+// and other kinds of tree, so it morphs from one to the next: a maple in autumn, the oak bare in
+// winter, a cherry in blossom, a silver birch and a weeping willow.
+
+gene height = 4.5 in 2..8 // how tall the trunk is, up to where its first big limb grows
+gene girth = 0.9 in 0.3..2 // how thick the trunk is at the foot
+gene lean = 4 in 0..25 // how far the trunk leans, in degrees
+gene gnarl = 0.6 in 0..1.5 // how crooked the trunk and branches are
+gene limb_length = 4 in 1.5..6 // how long the big limbs are
+gene reach = 0.62 in 0.4..0.9 // each level of branches' length compared with the one it grows from
+gene spread = 48 in 15..80 // how far each branch leans out from the one it grows from, in degrees
+gene lift = 12 in -30..60 // how much the branches curve up towards the light, or droop if below 0
+gene droop = 0 in 0..170 // how far the thinnest twigs hang down, in degrees, like a weeping willow
+gene twig_length = 1 in 0.5..4 // how long the twigs are, compared with the branches they grow from
+gene roots = 1 in 0.3..2 // how big the roots flaring out at the foot of the trunk are
+gene wind = 0.4 in 0..1 // how much the branches sway and the leaves flutter
+
+gene leaf_size = 0.6 in 0..1 // how long each leaf is; 0 leaves the tree bare
+gene leaf_width = 0.55 in 0.15..1 // how wide each leaf is for its length
+gene leaf_spread = 25 in 0..120 // how far the leaves' colours vary round the colour wheel, in degrees
+gene blossom = 0 in 0..1 // how big the flowers on the twigs are
+gene fallen = 0 in 0..1 // how big the fallen leaves on the ground are
+
+gene bark_colour = hsv(30, 0.35, 0.35) in hsv(0, 0, 0.1)..hsv(360, 1, 1)
+gene leaf_colour = hsv(110, 0.65, 0.5) in hsv(0, 0, 0.1)..hsv(360, 1, 1)
+gene blossom_colour = hsv(335, 0.3, 1) in hsv(0, 0, 0.5)..hsv(360, 1, 1)
+gene ground_colour = hsv(95, 0.45, 0.3) in hsv(0, 0, 0.1)..hsv(360, 1, 1)
+
+// Music stirs the wind: the high notes make the leaves flutter more.
+let breeze = wind + 0.6 * music.high
+
+shine 0.25
+sharpness 0.4
+
+branch {
+  move (0, 0.55 * (height + limb_length), 0)
+  focuspoint
+}
+ground
+repeat 7 as i {
+  branch {
+    yaw 360 * i / 7 + 20 * noise(i * 1.9)
+    root(i)
+  }
+}
+move (0, -0.6, 0) // the trunk starts under the ground
+pitch -90 // pointing up
+trunk
+
+// Turns the turtle's heading by a towards straight up (or, if a is negative, towards straight
+// down), round the axis square to both. It stops at straight up or down rather than going past.
+part bend_up(a) {
+  let axis = cross(turtle.heading, y_axis)
+  let h = clamp(turtle.heading.y, -1, 1)
+  if length(axis) > 0.001 {
+    rotate clamp(a, -acos(-h), acos(h)) around local(normalize(axis))
+  }
+}
+
+// A direction in the world, written in the turtle's own axes, for `rotate … around`.
+function local(v) {
+  return (dot(v, turtle.side), dot(v, turtle.up), dot(v, turtle.heading))
+}
+
+// The ground the tree stands on: a low mound, with fallen leaves lying on it.
+part ground {
+  let wide = 7 + 3 * girth
+  colour ground_colour
+  texture pattern(cells, ground_colour.hue, 4, analogous, satin)
+  wear 0.12
+  lay { move (0, -0.25, 0); grow (wide, 0.5, wide) }
+  texture none
+  repeat 40 as i {
+    branch {
+      yaw 360 * frac(i * golden)
+      let r = wide / 2 * (0.25 + 0.65 * frac(i * 0.37 + 0.2))
+      // On the mound's surface, a little above it.
+      move (0, 0.25 * sqrt(1 - (2 * r / wide) ^ 2) - 0.25 + 0.02, r)
+      yaw 360 * frac(i * 0.71)
+      roll 8 * noise(i * 3.1)
+      let hue = leaf_colour.hue + leaf_spread * noise(i * 0.43) - 10
+      colour hsv(hue, leaf_colour.sat * 0.9, leaf_colour.val * 0.75)
+      lay { grow (leaf_width * 0.5, 0.03, 0.5) * fallen }
+    }
+  }
+}
+
+// A buttress root: tall and thin where it leaves the trunk, flaring out and down into the ground.
+part root(i) {
+  let big = roots * girth
+  move (0, 0.7 * big, 0)
+  pitch 28 // out and down
+  colour mix(bark_colour, black, 0.25)
+  stroke {
+    repeat 5 as k {
+      let t = k / 4
+      lay { grow (0.3 * big * mix(1, 0.4, t), 0.9 * big * mix(1, 0.25, t), 1) }
+      forward 0.4 * big
+      pitch 9
+      yaw 14 * gnarl * noise(i * 2.1 + k * 0.5)
+    }
+  }
+}
+
+// The trunk, rising from under the ground; its big limbs spiral out from its top part, and its
+// leader carries on up into the crown.
+part trunk {
+  let steps = 8
+  pitch lean
+  branch {
+    stroke {
+      for k from 0 to steps {
+        let t = k / steps
+        colour mix(mix(bark_colour, black, 0.3), bark_colour, smoothmix(0, 1, t / 0.4))
+        lay { grow girth * trunk_width(t) }
+        if k < steps {
+          forward height / steps
+          trunk_bend(k)
+        }
+      }
+    }
+  }
+  colour bark_colour
+  for k from 1 to steps {
+    forward height / steps
+    trunk_bend(k - 1)
+    if k >= steps - 3 {
+      branch {
+        roll 137.5 * k + 40
+        pitch spread * mix(1, 0.25, clamp(k - steps + 1, 0, 1)) // the leader at the top grows almost straight up
+        limb(1, limb_length, 0.55 * girth * trunk_width(k / steps), k)
+      }
+    }
+  }
+}
+
+// How wide the trunk is, from its foot (0) to its top (1): flared at the foot, narrowing upwards.
+function trunk_width(t) {
+  return mix(1, 0.5, t) * (1 + 0.5 * (1 - smoothmix(0, 1, t / 0.25)))
+}
+
+part trunk_bend(k) {
+  yaw 8 * gnarl * noise(k * 0.6 + 1.3) + breeze * 0.6 * wave(time / 6) * k / 8
+  pitch 8 * gnarl * noise(k * 0.6 + 7.1)
+}
+
+// A branch: one smooth stroke, tapering to its tip, with side branches spiralling out along it.
+// Level 1 are the big limbs and level 3 the twigs, which carry the leaves and flowers. id tells
+// the branches apart, so each one bends its own way.
+part limb(level, long, thick, id) {
+  let steps = 5
+  // The wind sways every branch a little, so the twigs move the most.
+  yaw breeze * 2.5 * level * wave(time / 5 + id * 0.13)
+  colour mix(bark_colour, white, 0.05 * level)
+  branch {
+    stroke {
+      for k from 0 to steps {
+        lay { grow thick * mix(1, 0.4, k / steps) }
+        if k < steps {
+          forward pace(long / steps)
+          limb_bend(level, id, k)
+        }
+      }
+    }
+  }
+  // Walk the same path again, laying what grows from it.
+  for k from 1 to steps {
+    forward pace(long / steps)
+    limb_bend(level, id, k - 1)
+    if level < 3 {
+      if k >= 2 {
+        branch {
+          roll 137.5 * k + 50 * id
+          pitch spread
+          let twig = clamp(level - 1, 0, 1) // 1 when the new branch is a twig
+          let next = long * reach * mix(1.2, 0.7, k / steps) * mix(1, twig_length, twig)
+          limb(level + 1, next, 0.75 * thick * mix(1, 0.4, k / steps), id * 7 + k)
+        }
+      }
+    } else {
+      repeat 3 as j {
+        leaf(id, 3 * k + j)
+      }
+      if k == 2 or k == 5 {
+        flower(id, k)
+      }
+    }
+  }
+  if level == 3 {
+    leaf(id, 0)
+  }
+}
+
+// A step along a branch, shortened as it nears the ground, so hanging twigs stop just above it.
+function pace(d) {
+  return d * clamp((turtle.position.y - 0.2) / 0.8, 0.03, 1)
+}
+
+// One step's turn along a branch: a little crookedness, a curve up towards the light, and on the
+// thinner branches the droop.
+part limb_bend(level, id, k) {
+  let hang = droop * clamp((level - 1.7) / 1.3, 0, 1)
+  bend_up((lift - hang) / 5)
+  yaw 9 * gnarl * noise(id * 1.7 + k * 0.6)
+  pitch 9 * gnarl * noise(id * 2.3 + k * 0.6 + 4)
+}
+
+// A leaf on a short stalk, tilted out from the twig and turned up towards the light, fluttering.
+part leaf(id, j) {
+  branch {
+    roll 137.5 * j + 40 * noise(id * 0.7 + j)
+    pitch 50
+    bend_up(25)
+    roll breeze * 25 * wave(time / 1.3 + id * 0.31 + j * 0.17)
+    let hue = leaf_colour.hue + leaf_spread * noise(id * 0.31 + j * 0.53)
+    colour hsv(hue, leaf_colour.sat, leaf_colour.val * (0.8 + 0.4 * frac(j * golden + id * 0.13)))
+    let s = leaf_size * (0.85 + 0.3 * noise(id + j * 1.3))
+    lay { forward 0.55 * s; grow (leaf_width * s, 0.05 * s, s) }
+  }
+}
+
+// A flower of five petals round a yellow middle, facing up and out.
+part flower(id, k) {
+  branch {
+    roll 137.5 * k + 90 + 30 * noise(id + k)
+    pitch 60
+    forward 0.08
+    bend_up(50)
+    colour blossom_colour
+    repeat 5 as p {
+      branch {
+        roll 72 * p + 20 * id
+        pitch 70
+        lay { forward 0.13 * blossom; grow (0.17, 0.03, 0.26) * blossom }
+      }
+    }
+    colour mix(blossom_colour, hsv(50, 0.8, 1), 0.6)
+    lay { grow 0.08 * blossom }
+  }
+}
+
+background {
+  fill gradient(hsv(200, 0.45, 0.35), hsv(225, 0.5, 0.18), hsv(250, 0.6, 0.07))
+}
+
+// Its own dance, calm like a tree in a breeze: the music grows it slowly from one tree to the
+// next, and the bass breathes it nearer. It turns round its trunk and never tips over.
+dance {
+  gene growth = 0.25 in 0.05..1 // how many kinds of tree a second the music carries it through
+
+  morph follows music.level speed growth settle 5
+  zoom follows music.bass amount 0.25 settle 6
+  spin follows music.level from 4 to 24 smooth 3 upright
+  turn on music.mid changes by 1
+  reverse on music.high drops by 0.5 on 8 off 16
+}
+
+// A maple in autumn: red and orange leaves, and more of them fallen on the ground.
+variant Maple {
+  height = 3.8
+  girth = 0.75
+  spread = 55
+  lift = 18
+  leaf_width = 0.8
+  leaf_spread = 45
+  fallen = 1
+  leaf_colour = hsv(12, 0.85, 0.8)
+  bark_colour = hsv(20, 0.25, 0.3)
+  ground_colour = hsv(40, 0.45, 0.3)
+}
+
+// The oak bare in winter, standing in snow.
+variant Winter {
+  leaf_size = 0
+  bark_colour = hsv(25, 0.15, 0.3)
+  ground_colour = hsv(210, 0.06, 0.9)
+}
+
+// A cherry in blossom: a leaning trunk, branches spreading out flat, and pink flowers before the
+// leaves are out.
+variant Cherry {
+  height = 3
+  girth = 0.7
+  lean = 15
+  gnarl = 1
+  spread = 62
+  lift = 4
+  leaf_size = 0.18
+  blossom = 1
+  bark_colour = hsv(8, 0.35, 0.25)
+  leaf_colour = hsv(95, 0.6, 0.6)
+  ground_colour = hsv(110, 0.4, 0.35)
+}
+
+// A silver birch: tall and slender with white bark, and small leaves on twigs that hang a little.
+variant Birch {
+  height = 6
+  girth = 0.45
+  lean = 2
+  gnarl = 0.3
+  limb_length = 3
+  spread = 32
+  lift = 22
+  droop = 40
+  roots = 0.6
+  leaf_size = 0.3
+  leaf_width = 0.7
+  leaf_colour = hsv(80, 0.7, 0.65)
+  bark_colour = hsv(40, 0.05, 0.85)
+}
+
+// A weeping willow: its limbs arch up and out, and its long twigs of narrow leaves hang down.
+variant Willow {
+  height = 3.2
+  girth = 1
+  gnarl = 0.5
+  limb_length = 3.5
+  reach = 0.75
+  spread = 45
+  lift = 25
+  droop = 160
+  twig_length = 3.2
+  leaf_size = 0.5
+  leaf_width = 0.18
+  leaf_spread = 15
+  leaf_colour = hsv(75, 0.6, 0.7)
+  bark_colour = hsv(35, 0.3, 0.4)
+}
