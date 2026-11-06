@@ -6,7 +6,7 @@ gene apart = 32.1 in -20..40 // how far apart the fish are
 gene fly_at = (2.239, 4.799, -3.661) in (-10, -15, -12.13)..(10, 15, 10) // where each fly is from its fish
 gene stray = 0.2733 in -17..10 // how far the third fish strays up or down
 
-gene head_shape = ball from [ball, ring]
+gene ringed = 0 in 0..1 // how far the fish's head and body have turned from balls into rings
 gene dive = -8.008 in -65.41..65.41 // how far the fish tip their heads down
 gene bank = 0 in -114.6..114.6 // how far they roll
 gene stride = 0.6983 in 0.2..1 // how far apart the body's segments are
@@ -15,12 +15,12 @@ gene flap = 1.166 in 0..2 // where the body is in its beat, which bends it
 gene swim = -80.53 in -180..180 // where the segments' spacing starts its wave
 
 gene fin_size = -0.05533 in -1..1 // how big the side fins are; never less than 0.2
-gene fin_length = 7.154 in 7..11 // how many beads each fin has
+gene fin_length = 8 in 7..11 step 1 // how many beads each fin has
 gene fin_tilt = 33.67 in -57.3..57.3
 gene fin_curl = 1.657 in -22.92..28.65 // how far each bead of a fin turns from the last: up
 gene fin_sweep = 6.333 in -5.73..28.65 // and sideways
 
-gene fly_length = 8.915 in 5..15 // how many cones the fly has
+gene fly_length = 9 in 5..15 step 1 // how many cones the fly has
 gene fly_size = 0.2073 in 0.2..1.2
 gene fly_curl = 12.83 in -22.92..28.65
 gene fly_sweep = 16.2 in -5.73..85.95
@@ -64,8 +64,9 @@ part fish {
   branch {
     pitch dive
     roll bank
-    shape head_shape
-    lay
+    // The head and body are balls shrinking away as rings grow round them, so the fish changes
+    // smoothly from one to the other.
+    lay_ringed
     forward stride / 2
     reshape { grow (1, 1, 2) }
     repeat 26 as k {
@@ -74,7 +75,7 @@ part fish {
       yaw degrees(0.07) * wave(flap)
       reshape { grow (swell * 0.93, swell, thickness) }
       colour body(along)
-      lay
+      lay_ringed
       if k == 9 {
         branch {
           yaw -90
@@ -98,6 +99,14 @@ part fish {
   }
 }
 
+// A ball and a ring in the same place, one shrinking as the other grows.
+part lay_ringed {
+  shape ball
+  lay { grow max(1 - ringed, 0.000001) }
+  shape ring
+  lay { grow max(ringed, 0.000001) }
+}
+
 part fin {
   branch {
     grow max(fin_size, 0.2)
@@ -106,12 +115,14 @@ part fin {
     shape ball
     reshape { grow (1, 1, 6); forward 0.5 }
     pitch fin_tilt
-    repeat ceil(fin_length) as k {
+    // Every fin has all eleven beads: a bead past the length has shrunk to nothing, so beads grow
+    // in and out smoothly while it morphs.
+    repeat 11 as k {
       pitch fin_curl
       yaw fin_sweep
       grow (1, 1, 0.9)
       colour fins(k / (fin_length - 1))
-      lay
+      lay { grow max(clamp(fin_length - k, 0, 1), 0.000001) }
     }
   }
 }
@@ -147,12 +158,13 @@ part fly {
     reshape { grow (1, 1, 5); forward 0.5 }
     grow fly_size
     shape cone
-    repeat ceil(fly_length) as k {
+    // Every fly has all fifteen cones, growing in and out like the fins' beads.
+    repeat 15 as k {
       pitch fly_curl
       yaw fly_sweep
       reshape { grow (1, 1, 1.1) }
       colour flies(k / (fly_length - 1))
-      lay
+      lay { grow max(clamp(fly_length - k, 0, 1), 0.000001) }
     }
   }
 }
@@ -168,11 +180,11 @@ variant member_2 {
   flap = 1.289
   swim = -107.7
   fin_size = -0.9755
-  fin_length = 7.508
+  fin_length = 8
   fin_tilt = 28.62
   fin_curl = 3.049
   fin_sweep = 5.008
-  fly_length = 11.72
+  fly_length = 12
   fly_size = 0.5459
   fly_curl = 28.09
   fly_sweep = 6.877
@@ -197,11 +209,11 @@ variant member_3 {
   thickness = 1.036
   flap = 1.289
   fin_size = -0.9518
-  fin_length = 7.374
+  fin_length = 8
   fin_tilt = 19.34
   fin_curl = 0
   fin_sweep = -1.298
-  fly_length = 9.985
+  fly_length = 10
   fly_size = 0.5802
   fly_curl = 19.68
   fly_sweep = 28.17
@@ -227,11 +239,11 @@ variant member_4 {
   flap = 1.188
   swim = -177.2
   fin_size = -0.5424
-  fin_length = 7.158
+  fin_length = 8
   fin_tilt = 3.954
   fin_curl = -9.357
   fin_sweep = 0.008759
-  fly_length = 9.985
+  fly_length = 10
   fly_size = 0.512
   fly_curl = 25.92
   fly_sweep = -1.973
@@ -257,11 +269,11 @@ variant member_5 {
   flap = 1.129
   swim = -106.5
   fin_size = -0.9506
-  fin_length = 7.705
+  fin_length = 8
   fin_tilt = 39.69
   fin_curl = -3.348
   fin_sweep = 5.008
-  fly_length = 11.72
+  fly_length = 12
   fly_size = 0.6
   fly_curl = 28.09
   fly_sweep = 7.298
@@ -286,11 +298,11 @@ variant member_6 {
   thickness = 1.016
   flap = 1.289
   fin_size = -0.9518
-  fin_length = 7.374
+  fin_length = 8
   fin_tilt = 19.34
   fin_curl = -0.283
   fin_sweep = -1.298
-  fly_length = 11.12
+  fly_length = 12
   fly_size = 0.5984
   fly_curl = 11.33
   fly_sweep = 28.17
@@ -316,11 +328,11 @@ variant member_7 {
   flap = 1.188
   swim = -126.9
   fin_size = -0.06071
-  fin_length = 7.158
+  fin_length = 8
   fin_tilt = 3.954
   fin_curl = -9.941
   fin_sweep = 0.008759
-  fly_length = 8.08
+  fly_length = 9
   fly_size = 0.512
   fly_curl = 25.92
   fly_sweep = 13.5
@@ -346,11 +358,11 @@ variant member_8 {
   flap = 0.718
   swim = -93.57
   fin_size = -0.5424
-  fin_length = 8.141
+  fin_length = 9
   fin_tilt = 3.954
   fin_curl = -9.357
   fin_sweep = 2.105
-  fly_length = 9.985
+  fly_length = 10
   fly_size = 0.3535
   fly_curl = 25.92
   fly_sweep = 18.6
@@ -376,11 +388,11 @@ variant member_9 {
   flap = 1.237
   swim = -157.1
   fin_size = -0.5424
-  fin_length = 7.751
+  fin_length = 8
   fin_tilt = 25.17
   fin_curl = -9.357
   fin_sweep = 3.095
-  fly_length = 10.47
+  fly_length = 11
   fly_size = 0.4094
   fly_curl = 25.92
   fly_sweep = -1.973
@@ -406,11 +418,11 @@ variant member_10 {
   flap = 0.8101
   swim = -87
   fin_size = 0.3009
-  fin_length = 7.158
+  fin_length = 8
   fin_tilt = 21.26
   fin_curl = -15.84
   fin_sweep = 2.992
-  fly_length = 6.273
+  fly_length = 7
   fly_size = 0.6315
   fly_curl = 25.92
   fly_sweep = 5.87
@@ -436,11 +448,11 @@ variant member_11 {
   flap = 1.258
   swim = -28.49
   fin_size = 0.7504
-  fin_length = 9.433
+  fin_length = 10
   fin_tilt = 21.26
   fin_curl = 6.364
   fin_sweep = 2.992
-  fly_length = 13.67
+  fly_length = 14
   fly_size = 0.6315
   fly_curl = 25.92
   fly_sweep = 77.75
@@ -466,11 +478,11 @@ variant member_12 {
   flap = 0.1711
   swim = 51
   fin_size = 0.5962
-  fin_length = 7.5
+  fin_length = 8
   fin_tilt = 20.07
   fin_curl = -9.169
   fin_sweep = 2.992
-  fly_length = 13.36
+  fly_length = 14
   fly_size = 1.169
   fly_curl = -20.28
   fly_sweep = 5.87
@@ -496,11 +508,11 @@ variant member_13 {
   flap = 1.685
   swim = -30.64
   fin_size = 0.7621
-  fin_length = 10.44
+  fin_length = 11
   fin_tilt = 21.26
   fin_curl = 6.364
   fin_sweep = -3.675
-  fly_length = 10.24
+  fly_length = 11
   fly_size = 0.7337
   fly_curl = 18.67
   fly_sweep = 77.75
@@ -525,11 +537,11 @@ variant member_14 {
   thickness = 1.036
   flap = 1.223
   fin_size = -0.7883
-  fin_length = 7.588
+  fin_length = 8
   fin_tilt = 26.15
   fin_curl = 7.205
   fin_sweep = -1.982
-  fly_length = 8.879
+  fly_length = 9
   fly_size = 0.7447
   fly_curl = 19.68
   fly_sweep = 20.5
@@ -555,11 +567,11 @@ variant member_15 {
   flap = 1.63
   swim = -118.3
   fin_size = 0.3009
-  fin_length = 7.158
+  fin_length = 8
   fin_tilt = 21.26
   fin_curl = -15.84
   fin_sweep = 2.992
-  fly_length = 6.273
+  fly_length = 7
   fly_size = 0.6315
   fly_curl = 25.92
   fly_sweep = 5.87
@@ -585,11 +597,11 @@ variant member_16 {
   flap = 0.6
   swim = 10.01
   fin_size = 0.9106
-  fin_length = 7.706
+  fin_length = 8
   fin_tilt = 10.5
   fin_curl = -9.143
   fin_sweep = 2.992
-  fly_length = 14.9
+  fly_length = 15
   fly_size = 0.8439
   fly_curl = -12.02
   fly_sweep = 5.87
@@ -615,11 +627,11 @@ variant member_17 {
   flap = 0.1711
   swim = 3.695
   fin_size = 0.5962
-  fin_length = 7.311
+  fin_length = 8
   fin_tilt = 24.59
   fin_curl = -5.176
   fin_sweep = -2.651
-  fly_length = 14.73
+  fly_length = 15
   fly_size = 1.169
   fly_curl = -20.28
   fly_sweep = -2.184
@@ -638,7 +650,7 @@ variant member_18 {
   apart = 7.815
   fly_at = (-2.184, 9.66, -11.31)
   stray = -16.93
-  head_shape = ring
+  ringed = 1
   dive = -55.01
   bank = -55.42
   stride = 0.5655
@@ -646,11 +658,11 @@ variant member_18 {
   flap = 0.2385
   swim = 1.673
   fin_size = 0.3009
-  fin_length = 7.158
+  fin_length = 8
   fin_tilt = 20.07
   fin_curl = -15.84
   fin_sweep = 13.35
-  fly_length = 6.999
+  fly_length = 7
   fly_size = 0.2993
   fly_curl = -20.28
   fly_sweep = 5.87
@@ -676,11 +688,11 @@ variant member_19 {
   flap = 0.8101
   swim = -87
   fin_size = -0.9209
-  fin_length = 7.158
+  fin_length = 8
   fin_tilt = 21.26
   fin_curl = 11.69
   fin_sweep = -1.826
-  fly_length = 14.65
+  fly_length = 15
   fly_size = 0.6315
   fly_curl = 25.92
   fly_sweep = 42.54
@@ -706,11 +718,11 @@ variant member_20 {
   flap = 1.258
   swim = -28.49
   fin_size = 0.3009
-  fin_length = 8.609
+  fin_length = 9
   fin_tilt = 21.26
   fin_curl = 6.364
   fin_sweep = 2.992
-  fly_length = 12.43
+  fly_length = 13
   fly_size = 0.6315
   fly_curl = 25.92
   fly_sweep = 77.75
@@ -736,11 +748,11 @@ variant member_21 {
   flap = 0.6
   swim = 10.01
   fin_size = 0.9106
-  fin_length = 7.706
+  fin_length = 8
   fin_tilt = 20.07
   fin_curl = -9.143
   fin_sweep = 2.992
-  fly_length = 14.24
+  fly_length = 15
   fly_size = 1.044
   fly_curl = -15.11
   fly_sweep = 5.87
@@ -766,11 +778,11 @@ variant member_22 {
   flap = 0.3681
   swim = 51
   fin_size = 0.5962
-  fin_length = 7.972
+  fin_length = 8
   fin_tilt = 44.97
   fin_curl = -9.169
   fin_sweep = -5.202
-  fly_length = 13.36
+  fly_length = 14
   fly_size = 1.086
   fly_curl = -20.28
   fly_sweep = 5.87

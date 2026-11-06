@@ -16,7 +16,7 @@ gene wobble_start = 0.02209 in -0.5..0.5
 gene flower_tilt = 35.67 in -114.6..114.6 // how far the flowers tip up from their stems
 gene flower_out = 16.37 in 15..35 // how far out the flowers are
 gene flower_turn = 12.82 in -57.3..85.94 // how far they turn to the side
-gene petals = 11.18 in 4..15 // how many petals
+gene petals = 12 in 4..15 step 1 // how many petals
 gene petal_length = 8.511 in 4..12
 gene petal_rise = 1.944 in -5.73..17.19 // how far each petal tips up from the last
 gene petal_turn = 9.983 in -5.73..85.94 // how far each turns sideways from the last
@@ -82,11 +82,15 @@ part flower {
     grow 1.2
     yaw flower_turn
     reshape { grow (1, 1, petal_length) }
-    repeat ceil(petals) as k {
-      grow 1.05
-      pitch petal_rise
-      yaw petal_turn
-      colour blooms(k / (petals - 1))
+    // Every flower has all fifteen petals. A petal past the count lies exactly on top of the last
+    // one shown, the same size and colour, so it's hidden behind it; as the count grows, it fans
+    // out from behind it to its own place. Nothing ever shrinks to a tiny dot.
+    repeat 15 as k {
+      let out = clamp(petals - k, 0, 1) // how far this petal has fanned out from the one before
+      grow 1.05 ^ out
+      pitch petal_rise * out
+      yaw petal_turn * out
+      colour blooms(min(k, petals - 1) / (petals - 1))
       lay
       branch {
         reshape { grow (1, 1, 1 / petal_length) }
@@ -108,7 +112,7 @@ variant member_2 {
   flower_tilt = 4.136
   flower_out = 15.1
   flower_turn = 40.79
-  petals = 9.623
+  petals = 10
   petal_length = 8.772
   petal_rise = 0.2405
   petal_turn = 17.13
@@ -134,7 +138,7 @@ variant member_3 {
   flower_tilt = -80.55
   flower_out = 15.81
   flower_turn = -14.08
-  petals = 10.12
+  petals = 11
   petal_length = 6.982
   petal_rise = -0.8544
   petal_turn = 50.84
@@ -160,7 +164,7 @@ variant member_4 {
   flower_tilt = 34.86
   flower_out = 21.14
   flower_turn = 50.89
-  petals = 11.38
+  petals = 12
   petal_length = 5.246
   petal_rise = 0.9676
   petal_turn = 6.16
@@ -186,7 +190,7 @@ variant member_5 {
   flower_tilt = 1.816
   flower_out = 19.43
   flower_turn = 50.89
-  petals = 11.38
+  petals = 12
   petal_length = 11.71
   petal_rise = -5.587
   petal_turn = 6.16
@@ -212,7 +216,7 @@ variant member_6 {
   flower_tilt = 34.86
   flower_out = 29.33
   flower_turn = 2.224
-  petals = 11.38
+  petals = 12
   petal_length = 5.749
   petal_rise = 13.01
   petal_turn = 6.16
@@ -238,7 +242,7 @@ variant member_7 {
   flower_tilt = -17.13
   flower_out = 15.73
   flower_turn = -37.2
-  petals = 10.12
+  petals = 11
   petal_length = 7.901
   petal_rise = -0.9835
   petal_turn = 32.03
@@ -264,7 +268,7 @@ variant member_8 {
   flower_tilt = 1.816
   flower_out = 24.65
   flower_turn = -50.74
-  petals = 11.13
+  petals = 12
   petal_length = 11.71
   petal_rise = -4.728
   petal_turn = 11.7
@@ -290,7 +294,7 @@ variant member_9 {
   flower_tilt = 13.02
   flower_out = 16.31
   flower_turn = -4.83
-  petals = 14.14
+  petals = 15
   petal_length = 11.43
   petal_rise = 8.701
   petal_turn = 5.353
@@ -316,7 +320,7 @@ variant member_10 {
   flower_tilt = 101.3
   flower_out = 22.98
   flower_turn = 25.73
-  petals = 13.08
+  petals = 14
   petal_length = 11.43
   petal_rise = 8.701
   petal_turn = 5.188
@@ -342,7 +346,7 @@ variant member_11 {
   flower_tilt = 32
   flower_out = 15.73
   flower_turn = -3.481
-  petals = 11.55
+  petals = 12
   petal_length = 10.56
   petal_rise = 5.842
   petal_turn = 7.895
@@ -368,7 +372,7 @@ variant member_12 {
   flower_tilt = 58.43
   flower_out = 26.57
   flower_turn = -26.72
-  petals = 12.14
+  petals = 13
   petal_length = 5.061
   petal_rise = 5.488
   petal_turn = 5.188
@@ -394,7 +398,7 @@ variant member_13 {
   flower_tilt = 3.72
   flower_out = 15.73
   flower_turn = 25.73
-  petals = 11.5
+  petals = 12
   petal_length = 9.635
   petal_rise = 5.351
   petal_turn = 9.162
@@ -420,7 +424,7 @@ variant member_14 {
   flower_tilt = 40.73
   flower_out = 33.18
   flower_turn = 84.3
-  petals = 7.743
+  petals = 8
   petal_length = 4.72
   petal_rise = 12.61
   petal_turn = 24.93
@@ -446,7 +450,7 @@ variant member_15 {
   flower_tilt = 34.86
   flower_out = 17.6
   flower_turn = 2.224
-  petals = 11.38
+  petals = 12
   petal_length = 5.749
   petal_rise = 13.01
   petal_turn = 1.826

@@ -2,6 +2,7 @@ creature Monster
 // A many-eyed monster with curling tentacles, sitting on a ring of coral.
 // Inspired by Monster, a DancerDNA creature.
 
+gene overall = 1 in 0.25..4 log // how big the whole creature is, coral and all
 gene head_size = 5.51 in 2..8
 gene head_colour = hsv(240.5, 1, 0.29) in hsv(0, 1, 0.2)..hsv(252, 1, 0.6)
 
@@ -45,6 +46,8 @@ let tentacle_colours = spectrum(head_colour, tentacle_tip)
 
 sharpness 1
 shine 1
+// Monsters that grow big are shrunk with `overall`, so the camera frames the whole family.
+grow overall
 pitch 90
 coral
 monster
@@ -126,16 +129,15 @@ part head {
 
 part eyes {
   branch {
-    repeat ceil(eye_count) as k {
+    // Every monster has all thirty-five eyes: an eye past the count has shrunk to nothing, so eyes
+    // grow in and out smoothly while it morphs.
+    repeat 35 as k {
       let along = k / 34
       roll scatter(1398.73, 1713.58, 1.3424, along)
       yaw scatter(1989.34, 1433.78, 5.9346, along)
       pitch scatter(567.972, 917.12, 0.7753, along)
       let size = 1 + eye_size_spread * sin(180 * eye_size_waves * along)
-      // The last eye is cut short.
-      if k + 1 > eye_count {
-        size *= eye_count % k
-      }
+      size *= max(clamp(eye_count - k, 0, 1), 0.000001) // the last eye is cut short
       branch {
         forward head_size / 2
         eye(size)
@@ -168,20 +170,14 @@ part eye(size) {
 
 part tentacles {
   branch {
-    repeat ceil(tentacle_count) as k {
+    // All four tentacles, growing in and out like the eyes.
+    repeat 4 as k {
       let along = k / 3
       roll scatter(1597.11, 143.324, 0.7739, along)
       yaw scatter(343.398, 1339.13, 3.916, along)
       pitch scatter(1259.35, 987.997, 1.1193, along)
       let completeness = 0.5 + 0.5 * sin(180 * tentacle_waves * along)
-      // The last tentacle is cut short.
-      if k + 1 > tentacle_count {
-        if k == 0 {
-          completeness = 0
-        } else {
-          completeness *= tentacle_count % k
-        }
-      }
+      completeness *= clamp(tentacle_count - k, 0, 1) // the last tentacle is cut short
       branch {
         forward head_size / 2
         tentacle(completeness)
@@ -198,8 +194,10 @@ part tentacle(completeness) {
     grow (1, 1, tentacle_flatness)
     shape ball
     let size = start
-    while size > 0.01 {
-      let along = 1 - (size - 0.01) / (start - 0.01)
+    // Every tentacle lays the same number of balls: once it has tapered away, the rest are laid
+    // at no size at all, so tentacles never gain or lose balls while the monster morphs.
+    repeat 80 {
+      let along = clamp(1 - (size - 0.01) / max(start - 0.01, 0.0001), 0, 1)
       colour tentacle_colours(completeness * along)
       let taper = cos(90 * along) * completeness * 0.99
       lay
@@ -323,6 +321,7 @@ variant member_4 {
 }
 
 variant member_5 {
+  overall = 1.5
   head_size = 7.73
   head_colour = hsv(7.9, 1, 0.41)
   coral_spread = 0.909
@@ -391,6 +390,7 @@ variant member_6 {
 }
 
 variant member_7 {
+  overall = 0.45
   head_size = 5.892
   head_colour = hsv(7.9, 1, 0.41)
   coral_spread = 1.826
@@ -425,6 +425,7 @@ variant member_7 {
 }
 
 variant member_8 {
+  overall = 0.25
   head_size = 7.552
   head_colour = hsv(209.3, 1, 0.24)
   coral_spread = 0.8899
@@ -492,6 +493,7 @@ variant member_9 {
 }
 
 variant member_10 {
+  overall = 0.33
   head_size = 5.892
   head_colour = hsv(75, 1, 0.56)
   coral_spread = 1.414
@@ -526,6 +528,7 @@ variant member_10 {
 }
 
 variant member_11 {
+  overall = 0.3
   head_size = 7.288
   head_colour = hsv(211.5, 1, 0.28)
   coral_spread = 0.8002
@@ -560,6 +563,7 @@ variant member_11 {
 }
 
 variant member_12 {
+  overall = 0.45
   head_size = 5.772
   head_colour = hsv(5.2, 1, 0.4)
   coral_spread = 1.623
