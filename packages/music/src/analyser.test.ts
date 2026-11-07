@@ -63,9 +63,20 @@ describe("MusicAnalyser", () => {
     play(a, 0.05, () => 0, 2);
     expect(a.music.mid).toBe(0);
     expect(a.music.level).toBeGreaterThan(0.5);
-    // A second of silence is the music stopping.
-    play(a, 1, () => 0, 2.05);
+    // Two seconds of silence is the music stopping.
+    play(a, 2, () => 0, 2.05);
     expect(a.music.level).toBeLessThan(0.01);
+  });
+
+  it("keeps the loudness up between drum hits half a second apart, with silence between", () => {
+    const a = new MusicAnalyser(RATE);
+    play(a, 2, kicks(120, 0.8));
+    let lowest = 1;
+    for (let t = 2; t < 4; t += 0.01) {
+      play(a, 0.01, kicks(120, 0.8), t);
+      lowest = Math.min(lowest, a.music.level);
+    }
+    expect(lowest).toBeGreaterThan(0.2);
   });
 
   it("jumps on each kick and falls back between them", () => {
