@@ -3,6 +3,7 @@
 
 import { morph, type Diagnostic } from "@genocode/core";
 import type { CreatureView } from "@genocode/render";
+import { FrameBuilder, type Built } from "./builder.js";
 import { buildCreature, type Creature } from "./creature.js";
 
 export interface MorphFrame {
@@ -37,6 +38,9 @@ export class Morpher {
   private frame = 0;
   private started = 0;
   playing = true;
+  private readonly builder = new FrameBuilder();
+  /** The build on show. */
+  private shown: Built | undefined;
   /** Seconds from one creature to the next. */
   secondsEach = 3;
 
@@ -60,6 +64,7 @@ export class Morpher {
     this.started = performance.now();
     this.last = this.started;
     this.stop();
+    this.builder.reset();
     this.draw(true);
   }
 
@@ -92,10 +97,16 @@ export class Morpher {
     }
     this.last = now;
     const f = morphAt(this.members, this.position);
-    const { built, background } = buildCreature(f.creature, { time: (now - this.started) / 1000 });
+    // Built in the background: what's drawn is the newest build, a frame or so behind.
+    const next = this.builder.frame(f.creature, { time: (now - this.started) / 1000 }, first);
+    const { built, background } = next;
     f.problems = built.diagnostics;
-    this.view.setCreature(built.shapes, !first, built.focus);
-    this.view.setBackground(background);
+    // While the next build is on its way, the creature on show stays.
+    if (first || next !== this.shown) {
+      this.shown = next;
+      this.view.setCreature(built.shapes, !first, built.focus);
+      this.view.setBackground(background);
+    }
     this.onFrame(f);
     this.frame = requestAnimationFrame(() => this.draw(false));
   }
