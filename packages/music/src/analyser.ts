@@ -26,6 +26,11 @@ const BAND_REFERENCE = 9;
 const FLOOR = 1e-4;
 /** Seconds of the slow average that rises are measured against. */
 const RISE_AVERAGE = 0.15;
+/**
+ * Seconds for the overall loudness to fall to about a third once the music gets quieter; it rises
+ * at once. The short gaps between notes and drum hits then don't read as the music stopping.
+ */
+const LEVEL_FALL = 0.15;
 /** Seconds for a hit to fall to about a third. */
 const HIT_FALL = 0.12;
 /** Rises smaller than this share of the recent largest don't count as hits. */
@@ -78,6 +83,8 @@ export class MusicAnalyser {
   private readonly l = new Float64Array(OCTAVES + 1);
   private readonly r = new Float64Array(OCTAVES + 1);
   private readonly bass = new Band();
+  /** The overall loudness given out: the whole music's level, falling gently. */
+  private level = 0;
   private readonly mid = new Band();
   private readonly high = new Band();
   private readonly all = new Band();
@@ -146,11 +153,17 @@ export class MusicAnalyser {
     const fresh = this.all.level === 0 ? 0 : clamp((relative - HIT_GATE) / (1 - HIT_GATE), 0, 1);
     this.hit = Math.max(fresh, this.hit * Math.exp(-dt / HIT_FALL));
 
+    const loud = this.all.level;
+    this.level =
+      loud >= this.level
+        ? loud
+        : this.level + (loud - this.level) * (1 - Math.exp(-dt / LEVEL_FALL));
+
     this.current = {
       bass: this.bass.level,
       mid: this.mid.level,
       high: this.high.level,
-      level: this.all.level,
+      level: this.level,
       hit: this.hit,
       bass_hit: this.bass.hit,
       mid_hit: this.mid.hit,
