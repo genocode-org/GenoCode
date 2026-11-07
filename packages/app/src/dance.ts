@@ -13,6 +13,7 @@ import {
 import { Dancer } from "@genocode/dance";
 import type { MusicPlayer } from "@genocode/music";
 import type { CreatureView } from "@genocode/render";
+import { FrameBuilder, type Built } from "./builder.js";
 import { buildCreature, type Creature } from "./creature.js";
 import { morphAt, type MorphFrame } from "./morph.js";
 import { songLook } from "./songlook.js";
@@ -49,6 +50,9 @@ export class DanceFloor {
   private last = 0;
   private faceOn = false;
   private dancing = false;
+  private readonly builder = new FrameBuilder();
+  /** The build on show. */
+  private shown: Built | undefined;
 
   constructor(
     private readonly view: CreatureView,
@@ -77,6 +81,7 @@ export class DanceFloor {
     this.started = performance.now();
     this.last = this.started;
     this.stop();
+    this.builder.reset();
     this.dancing = true;
     this.draw(true);
   }
@@ -196,15 +201,21 @@ export class DanceFloor {
         size = Math.max(SMALLEST, (1 + Math.cos(2 * Math.PI * t)) / 2);
       }
     }
-    const { built, background } = buildCreature(f.creature, inputs);
-    if (size < 1) built.shapes = shrunk(built.shapes, built.focus, size);
+    // Built in the background: what's drawn is the newest build, a frame or so behind.
+    const next = this.builder.frame(f.creature, inputs, first);
+    const { built, background } = next;
     f.problems = built.diagnostics;
-    this.view.setCreature(built.shapes, !first, built.focus);
+    // While the next build is on its way, the creature on show stays; the dance still moves it.
+    if (first || next !== this.shown || size < 1) {
+      this.shown = next;
+      const shapes = size < 1 ? shrunk(built.shapes, built.focus, size) : built.shapes;
+      this.view.setCreature(shapes, !first, built.focus);
+      this.view.setBackground(background);
+    }
     if (first && this.faceOn) {
       this.view.lockCamera(true);
       this.view.viewFrom("front");
     }
-    this.view.setBackground(background);
     this.view.setPose(this.dancer.orientation, this.dancer.nearness);
     this.onFrame({ ...f, music, beat, styleOk });
     this.frame = requestAnimationFrame(() => this.draw(false));
