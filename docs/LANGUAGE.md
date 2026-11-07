@@ -1091,18 +1091,18 @@ a background file into a creature replaces the creature's background block. Its 
 
 A creature can react to time and music through these read-only values:
 
-| Name             | Range     | Meaning                                                                                |
-| ---------------- | --------- | -------------------------------------------------------------------------------------- |
-| `time`           | 0 upwards | seconds since the creature started being shown                                         |
-| `beat`           | 0 → 1     | position within the current beat: 0 on the beat, rising towards 1 just before the next |
-| `music.bass`     | 0–1       | level of the low frequencies                                                           |
-| `music.mid`      | 0–1       | level of the middle frequencies                                                        |
-| `music.high`     | 0–1       | level of the high frequencies                                                          |
-| `music.level`    | 0–1       | overall loudness                                                                       |
-| `music.hit`      | 0–1       | jumps up on each onset (a drum hit, a note starting) and falls back                    |
-| `music.bass_hit` | 0–1       | jumps up on each low onset (a kick drum, a bass note) and falls back                   |
-| `music.mid_hit`  | 0–1       | jumps up on each onset in the middle (a snare, a voice) and falls back                 |
-| `music.high_hit` | 0–1       | jumps up on each high onset (a hi-hat, a cymbal) and falls back                        |
+| Name             | Range     | Meaning                                                                                                                      |
+| ---------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `time`           | 0 upwards | seconds since the creature started being shown                                                                               |
+| `beat`           | 0 → 1     | position within the current beat: 0 on the beat, rising towards 1 just before the next                                       |
+| `music.bass`     | 0–1       | level of the low frequencies                                                                                                 |
+| `music.mid`      | 0–1       | level of the middle frequencies                                                                                              |
+| `music.high`     | 0–1       | level of the high frequencies                                                                                                |
+| `music.level`    | 0–1       | overall loudness: rises at once and falls over a fraction of a second, so the short gaps between notes don't read as silence |
+| `music.hit`      | 0–1       | jumps up on each onset (a drum hit, a note starting) and falls back                                                          |
+| `music.bass_hit` | 0–1       | jumps up on each low onset (a kick drum, a bass note) and falls back                                                         |
+| `music.mid_hit`  | 0–1       | jumps up on each onset in the middle (a snare, a voice) and falls back                                                       |
+| `music.high_hit` | 0–1       | jumps up on each high onset (a hi-hat, a cymbal) and falls back                                                              |
 
 ```
 gene flap = 30 in 0..70 // how hard the wings beat with the bass

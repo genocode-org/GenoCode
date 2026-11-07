@@ -2812,16 +2812,16 @@ music.part
 
 **Type:** number from 0 to 1, whatever the volume. All are 0 when no music is playing.
 
-| Part             | Description                                                            |
-| ---------------- | ---------------------------------------------------------------------- |
-| `music.bass`     | Level of the low frequencies.                                          |
-| `music.mid`      | Level of the middle frequencies.                                       |
-| `music.high`     | Level of the high frequencies.                                         |
-| `music.level`    | Overall loudness.                                                      |
-| `music.hit`      | Jumps up on each onset (a drum hit, a note starting), then falls back. |
-| `music.bass_hit` | Jumps up on each low onset, such as a kick drum or bass note.          |
-| `music.mid_hit`  | Jumps up on each onset in the middle, such as a snare or a voice.      |
-| `music.high_hit` | Jumps up on each high onset, such as a hi-hat or cymbal.               |
+| Part             | Description                                                                                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `music.bass`     | Level of the low frequencies.                                                                                                    |
+| `music.mid`      | Level of the middle frequencies.                                                                                                 |
+| `music.high`     | Level of the high frequencies.                                                                                                   |
+| `music.level`    | Overall loudness. It rises at once and falls over a fraction of a second, so the short gaps between notes don't read as silence. |
+| `music.hit`      | Jumps up on each onset (a drum hit, a note starting), then falls back.                                                           |
+| `music.bass_hit` | Jumps up on each low onset, such as a kick drum or bass note.                                                                    |
+| `music.mid_hit`  | Jumps up on each onset in the middle, such as a snare or a voice.                                                                |
+| `music.high_hit` | Jumps up on each high onset, such as a hi-hat or cymbal.                                                                         |
 
 **Example**
 
