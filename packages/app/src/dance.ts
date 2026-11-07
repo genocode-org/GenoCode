@@ -91,8 +91,20 @@ export class DanceFloor {
     this.dancer.faceOn = on;
     if (!this.dancing) return;
     this.view.lockCamera(on);
-    if (on) this.view.viewFrom("front");
-    else this.view.resetView();
+    this.reframe();
+  }
+
+  /**
+   * Frames the camera again as when the dance started, on the first creature, whichever is on
+   * show: framing a bigger or smaller one would show the rest too small or cut off.
+   */
+  reframe(): void {
+    const first = this.members[0];
+    if (!this.dancing || first === undefined) return;
+    const { beat, music } = this.player.inputs();
+    const time = (performance.now() - this.started) / 1000;
+    const { built } = buildCreature(first, { time, beat, music });
+    this.view.viewFrom(this.faceOn ? "front" : undefined, built);
   }
 
   /**

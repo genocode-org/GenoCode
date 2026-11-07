@@ -67,6 +67,17 @@ export class Morpher {
     cancelAnimationFrame(this.frame);
   }
 
+  /**
+   * Frames the camera again as when the morph started, on the first creature, whichever is on
+   * show: framing a bigger or smaller one would show the rest too small or cut off.
+   */
+  reframe(): void {
+    const first = this.members[0];
+    if (first === undefined) return;
+    const { built } = buildCreature(first, { time: (performance.now() - this.started) / 1000 });
+    this.view.viewFrom(undefined, built);
+  }
+
   resume(): void {
     this.stop();
     this.last = performance.now();

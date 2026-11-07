@@ -1350,7 +1350,11 @@ const recorder = new VideoRecorder(view, canvas, $("stage"), $("record-mark"), p
   // On a wide screen the tools float over the bottom of the stage; on a phone they're in the sheet.
   shell.narrow.matches ? 0 : $("modebar").offsetHeight + 34,
 );
-recorder.onReframe = () => (mode === "dance" && faceOn ? view.viewFrom("front") : view.resetView());
+recorder.onReframe = () => {
+  if (mode === "dance") floor.reframe();
+  else if (mode === "morph") morpher.reframe();
+  else view.resetView();
+};
 recorder.onTick = (seconds) => {
   $("record-label").textContent = `Stop ${minutes(seconds)}`;
 };

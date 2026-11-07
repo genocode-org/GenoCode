@@ -27,4 +27,4 @@ export {
   type FieldDrawer,
 } from "./texture.js";
 export { drawField, type Field } from "./patterns.js";
-export { CreatureView, Thumbnails } from "./webgl.js";
+export { CreatureView, Thumbnails, type Around } from "./webgl.js";

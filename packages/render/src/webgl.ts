@@ -604,11 +604,19 @@ class CreatureScene {
     texture.offset.set((1 - texture.repeat.x) / 2, (1 - texture.repeat.y) / 2);
   }
 
-  /** Points the camera at the whole creature, from the front and a little above. */
-  frame(camera: PerspectiveCamera, aspect: number, side?: Side): CameraPlacement {
+  /**
+   * Points the camera at the whole creature, from the front and a little above; or at `around`,
+   * other shapes than the ones on show.
+   */
+  frame(
+    camera: PerspectiveCamera,
+    aspect: number,
+    side?: Side,
+    around: Around = { shapes: this.shapes, focus: this.focus },
+  ): CameraPlacement {
     this.aspect = aspect;
     this.coverBackground();
-    const placement = frameCamera(creatureBounds(this.shapes, this.focus), aspect, side);
+    const placement = frameCamera(creatureBounds(around.shapes, around.focus), aspect, side);
     camera.position.set(...placement.position);
     camera.near = placement.near / 4;
     camera.far = placement.far * 4;
@@ -628,6 +636,12 @@ class CreatureScene {
     this.opaqueStrokes.dispose();
     this.seeThroughStrokes.dispose();
   }
+}
+
+/** Shapes to frame the camera on, with their focus point if they have one. */
+export interface Around {
+  shapes: readonly LaidShape[];
+  focus?: readonly [number, number, number] | undefined;
 }
 
 export class CreatureView {
@@ -775,15 +789,19 @@ export class CreatureView {
     this.viewFrom(undefined);
   }
 
-  /** Frames the whole creature, seen straight on from one side; without one, as `resetView`. */
-  viewFrom(side: Side | undefined): void {
+  /**
+   * Frames the whole creature, seen straight on from one side; without one, as `resetView`. With
+   * `around`, it frames those shapes instead of the ones on show: morphing and dancing frame the
+   * first creature of the loop, whichever is on show, so the others are seen at the same size.
+   */
+  viewFrom(side: Side | undefined, around?: Around): void {
     const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
     if (side !== undefined) {
       // The lights are set for the front view, so note where that is first.
-      this.look.frame(this.camera, aspect);
+      this.look.frame(this.camera, aspect, undefined, around);
       this.frontTurn.copy(this.camera.quaternion);
     }
-    const placement = this.look.frame(this.camera, aspect, side);
+    const placement = this.look.frame(this.camera, aspect, side, around);
     if (side === undefined) this.frontTurn.copy(this.camera.quaternion);
     this.controls.target.set(...placement.target);
     this.controls.minDistance = 0;
