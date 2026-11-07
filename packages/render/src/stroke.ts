@@ -41,7 +41,7 @@ const cross = (a: V3, b: V3): V3 => [
   a[2] * b[0] - a[0] * b[2],
   a[0] * b[1] - a[1] * b[0],
 ];
-const length = (a: V3): number => Math.hypot(a[0], a[1], a[2]);
+const length = (a: V3): number => Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const lerp3 = (a: V3, b: V3, t: number): V3 => [
   lerp(a[0], b[0], t),
@@ -112,7 +112,7 @@ function sections(points: readonly StrokePoint[]): Section[] {
 }
 
 /** A ring of the tube: its middle, the way along, its section's axes and look. */
-interface Ring {
+export interface Ring {
   at: V3;
   along: V3;
   side: V3;
@@ -171,33 +171,74 @@ function ringBetween(a: Section, b: Section, t: number, previous: Ring | undefin
   };
 }
 
-/** The tube for a stroke's points, or undefined if they don't make one (fewer than two places). */
-export function strokeMesh(
+/** A stroke's tube as rings, before they're turned into corners. */
+export interface TubeRings {
+  /** The rings down the tube, without the rounded ends. */
+  rings: Ring[];
+  /** Corners round each ring. */
+  sides: number;
+  /** Rings in each rounded end. */
+  capRings: number;
+}
+
+/** The rings for a stroke's points, or undefined if they don't make a tube (fewer than two places). */
+export function strokeRings(
   points: readonly StrokePoint[],
   detail: Detail = "high",
-): StrokeMesh | undefined {
+): TubeRings | undefined {
   const all = sections(points);
   if (all.length < 2) return undefined;
   const steps = STEPS[detail];
-  const sides = SIDES[detail];
-  const capRings = CAP_RINGS[detail];
-
-  // The rings down the tube.
   const rings: Ring[] = [];
   for (let i = 0; i + 1 < all.length; i++) {
     for (let k = i === 0 ? 0 : 1; k <= steps; k++) {
       rings.push(ringBetween(all[i]!, all[i + 1]!, k / steps, rings[rings.length - 1]));
     }
   }
+  return { rings, sides: SIDES[detail], capRings: CAP_RINGS[detail] };
+}
+
+/** How many rings `eachRing` gives for a tube: its own and its rounded ends'. */
+export function ringCount(tube: TubeRings): number {
+  return tube.rings.length + 2 * tube.capRings;
+}
+
+/**
+ * Every ring of the tube in order from tip to tip, rounded ends included: `bulge` (0 to 1) moves a
+ * ring along the tube by that much of its width and shrinks it to match, and `out` is +1 or −1,
+ * which end it belongs to (0 down the tube). Each ring is joined to the one before it.
+ */
+export function eachRing(
+  tube: TubeRings,
+  visit: (ring: Ring, bulge: number, out: number) => void,
+): void {
+  const { rings, capRings } = tube;
+  const start = rings[0]!;
+  const end = rings[rings.length - 1]!;
+  // The rounded start, from its tip to the tube's first ring.
+  for (let k = capRings; k > 0; k--) visit(start, Math.sin((Math.PI / 2) * (k / capRings)), -1);
+  for (const r of rings) visit(r, 0, 0);
+  // The rounded end, from the tube's last ring to its tip.
+  for (let k = 1; k <= capRings; k++) visit(end, Math.sin((Math.PI / 2) * (k / capRings)), 1);
+}
+
+/** The tube for a stroke's points, or undefined if they don't make one (fewer than two places). */
+export function strokeMesh(
+  points: readonly StrokePoint[],
+  detail: Detail = "high",
+): StrokeMesh | undefined {
+  const tube = strokeRings(points, detail);
+  if (!tube) return undefined;
+  const { sides } = tube;
 
   // Every corner and triangle is counted first and written straight into its array: building the
   // tube is done again for every frame while dancing, so it has to be quick.
-  const ringCount = 2 * capRings + rings.length;
-  const position = new Float32Array(ringCount * sides * 3);
-  const normal = new Float32Array(ringCount * sides * 3);
-  const colour = new Float32Array(ringCount * sides * 3);
-  const look = new Float32Array(ringCount * sides * 4);
-  const index = new Uint32Array((ringCount - 1) * sides * 6);
+  const rings = ringCount(tube);
+  const position = new Float32Array(rings * sides * 3);
+  const normal = new Float32Array(rings * sides * 3);
+  const colour = new Float32Array(rings * sides * 3);
+  const look = new Float32Array(rings * sides * 4);
+  const index = new Uint32Array((rings - 1) * sides * 6);
   const cos = new Float64Array(sides);
   const sin = new Float64Array(sides);
   for (let j = 0; j < sides; j++) {
@@ -288,22 +329,10 @@ export function strokeMesh(
     }
   };
 
-  const start = rings[0]!;
-  const end = rings[rings.length - 1]!;
-  // The rounded start, from its tip to the tube's first ring.
-  for (let k = capRings; k > 0; k--) {
-    ring(start, Math.sin((Math.PI / 2) * (k / capRings)), -1);
-    if (k < capRings) join();
-  }
-  for (const r of rings) {
-    ring(r);
+  eachRing(tube, (r, bulge, out) => {
+    ring(r, bulge, out);
     if (corners > sides) join();
-  }
-  // The rounded end, from the tube's last ring to its tip.
-  for (let k = 1; k <= capRings; k++) {
-    ring(end, Math.sin((Math.PI / 2) * (k / capRings)), 1);
-    join();
-  }
+  });
 
   return { position, normal, colour, look, index };
 }
