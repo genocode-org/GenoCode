@@ -22,6 +22,7 @@ import {
   Color,
   DataTexture,
   DirectionalLight,
+  DynamicDrawUsage,
   Group,
   InstancedBufferAttribute,
   InstancedMesh,
@@ -251,24 +252,59 @@ function linear(c: number): number {
 
 /**
  * Strokes' tubes as one geometry, in world space, with each corner's colour and look; `fade`
- * multiplies their see-through.
+ * multiplies their see-through. The tubes are made again for every frame of a dance or a morph, so
+ * they're written into `previous`, the geometry of the frame before, when it has room: the graphics
+ * card then gets new numbers in buffers it already has, not new buffers. It's only made afresh,
+ * with room to spare, when the tubes outgrow it.
  */
-function strokeGeometry(meshes: readonly StrokeMesh[], fade: number): BufferGeometry {
+function strokeGeometry(
+  previous: BufferGeometry | undefined,
+  meshes: readonly StrokeMesh[],
+  fade: number,
+): BufferGeometry {
   let corners = 0;
   let triangles = 0;
   for (const m of meshes) {
     corners += m.position.length / 3;
     triangles += m.index.length;
   }
-  const position = new Float32Array(corners * 3);
-  const normal = new Float32Array(corners * 3);
-  const colour = new Float32Array(corners * 3);
-  const look = new Float32Array(corners * 4);
-  const index = new Uint32Array(triangles);
+  let g = previous;
+  const room = g?.getAttribute("position").count ?? -1;
+  const indexRoom = g?.getIndex()?.count ?? -1;
+  if (!g || room < corners || indexRoom < triangles) {
+    g?.dispose();
+    const spare = (n: number) => Math.ceil(n * 1.25);
+    const cornerRoom = spare(corners);
+    g = new BufferGeometry();
+    const attribute = (name: string, size: number) => {
+      const a = new BufferAttribute(new Float32Array(cornerRoom * size), size);
+      a.setUsage(DynamicDrawUsage);
+      g!.setAttribute(name, a);
+    };
+    attribute("position", 3);
+    attribute("normal", 3);
+    attribute("color", 3);
+    // The same names the shapes' per-instance look has, here given per corner.
+    attribute("instanceLook", 4);
+    attribute("instanceWear", 1);
+    const index = new BufferAttribute(new Uint32Array(spare(triangles)), 1);
+    index.setUsage(DynamicDrawUsage);
+    g.setIndex(index);
+  }
+  const position = g.getAttribute("position") as BufferAttribute;
+  const normalAttribute = g.getAttribute("normal") as BufferAttribute;
+  const colourAttribute = g.getAttribute("color") as BufferAttribute;
+  const lookAttribute = g.getAttribute("instanceLook") as BufferAttribute;
+  const indexAttribute = g.getIndex()!;
+  const where = position.array as Float32Array;
+  const normal = normalAttribute.array as Float32Array;
+  const colour = colourAttribute.array as Float32Array;
+  const look = lookAttribute.array as Float32Array;
+  const index = indexAttribute.array as Uint32Array;
   let c = 0;
   let t = 0;
   for (const m of meshes) {
-    position.set(m.position, c * 3);
+    where.set(m.position, c * 3);
     normal.set(m.normal, c * 3);
     // Every corner of a ring has the ring's colour: work each one out once.
     let red = NaN;
@@ -299,16 +335,47 @@ function strokeGeometry(meshes: readonly StrokeMesh[], fade: number): BufferGeom
     c += m.position.length / 3;
     t += m.index.length;
   }
-  const g = new BufferGeometry();
-  g.setAttribute("position", new BufferAttribute(position, 3));
-  g.setAttribute("normal", new BufferAttribute(normal, 3));
-  g.setAttribute("color", new BufferAttribute(colour, 3));
-  // The same names the shapes' per-instance look has, here given per corner.
-  g.setAttribute("instanceLook", new BufferAttribute(look, 4));
-  g.setAttribute("instanceWear", new BufferAttribute(new Float32Array(corners), 1));
-  g.setIndex(new BufferAttribute(index, 1));
-  g.computeBoundingSphere();
+  // Only the part in use goes to the graphics card; the rest is never drawn.
+  for (const [a, size] of [
+    [position, 3],
+    [normalAttribute, 3],
+    [colourAttribute, 3],
+    [lookAttribute, 4],
+  ] as const) {
+    a.clearUpdateRanges();
+    a.addUpdateRange(0, corners * size);
+    a.needsUpdate = true;
+  }
+  indexAttribute.clearUpdateRanges();
+  indexAttribute.addUpdateRange(0, triangles);
+  indexAttribute.needsUpdate = true;
+  g.setDrawRange(0, triangles);
   return g;
+}
+
+/** One mesh of strokes' tubes, kept from frame to frame with its geometry. */
+class Tubes {
+  geometry: BufferGeometry | undefined;
+  shown: Mesh | undefined;
+
+  /** The mesh for the geometry, made again only when the geometry has been. */
+  mesh(material: MeshPhongMaterial): Mesh {
+    const geometry = this.geometry ?? new BufferGeometry();
+    let mesh = this.shown;
+    if (!mesh || mesh.geometry !== geometry || mesh.material !== material) {
+      mesh = new Mesh(geometry, material);
+      // Its buffers hold more than is drawn, so its bounds can't be worked out: it's always drawn.
+      mesh.frustumCulled = false;
+      this.shown = mesh;
+    }
+    return mesh;
+  }
+
+  dispose(): void {
+    this.geometry?.dispose();
+    this.geometry = undefined;
+    this.shown = undefined;
+  }
 }
 
 /** How see-through the shapes are while the turtle's path is drawn over them: their alpha's share. */
@@ -330,6 +397,9 @@ class CreatureScene {
   private readonly seeThrough = makeMaterial(true);
   private readonly opaqueStrokes = makeMaterial(false, undefined, true);
   private readonly seeThroughStrokes = makeMaterial(true, undefined, true);
+  /** The strokes' tubes, kept from frame to frame so their buffers are filled again, not made. */
+  private readonly opaqueTubes = new Tubes();
+  private readonly seeThroughTubes = new Tubes();
   /** The textured materials in use, by texture and whether they're see-through. */
   private textured = new Map<string, Textured>();
   /**
@@ -387,6 +457,8 @@ class CreatureScene {
   ): void {
     for (const child of [...this.creature.children]) {
       this.creature.remove(child);
+      // The strokes' meshes are kept, to be filled again.
+      if (child === this.opaqueTubes.shown || child === this.seeThroughTubes.shown) continue;
       const mesh = child as Mesh;
       mesh.geometry.dispose(); // each mesh has its own copy, carrying its instance attributes
       if (mesh instanceof InstancedMesh) mesh.dispose();
@@ -460,12 +532,9 @@ class CreatureScene {
     for (const seeThrough of [false, true]) {
       const these = strokes.filter((s) => s.seeThrough === seeThrough).map((s) => s.mesh);
       if (these.length === 0) continue;
-      this.creature.add(
-        new Mesh(
-          strokeGeometry(these, this.faded ? FADED : 1),
-          seeThrough ? this.seeThroughStrokes : this.opaqueStrokes,
-        ),
-      );
+      const tubes = seeThrough ? this.seeThroughTubes : this.opaqueTubes;
+      tubes.geometry = strokeGeometry(tubes.geometry, these, this.faded ? FADED : 1);
+      this.creature.add(tubes.mesh(seeThrough ? this.seeThroughStrokes : this.opaqueStrokes));
     }
     const kept = new Set(this.textured.values());
     for (const t of old.values()) {
@@ -657,6 +726,8 @@ class CreatureScene {
     this.seeThrough.dispose();
     this.opaqueStrokes.dispose();
     this.seeThroughStrokes.dispose();
+    this.opaqueTubes.dispose();
+    this.seeThroughTubes.dispose();
   }
 }
 
