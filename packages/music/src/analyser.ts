@@ -28,9 +28,10 @@ const FLOOR = 1e-4;
 const RISE_AVERAGE = 0.15;
 /**
  * Seconds for the overall loudness to fall to about a third once the music gets quieter; it rises
- * at once. The short gaps between notes and drum hits then don't read as the music stopping.
+ * at once. The gaps between notes and drum hits then don't read as the music stopping, even in a
+ * song that opens with drums alone, half a second apart.
  */
-const LEVEL_FALL = 0.15;
+const LEVEL_FALL = 0.3;
 /** Seconds for a hit to fall to about a third. */
 const HIT_FALL = 0.12;
 /** Rises smaller than this share of the recent largest don't count as hits. */
