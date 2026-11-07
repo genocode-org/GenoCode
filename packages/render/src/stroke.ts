@@ -190,11 +190,25 @@ export function strokeMesh(
     }
   }
 
-  const position: number[] = [];
-  const normal: number[] = [];
-  const colour: number[] = [];
-  const look: number[] = [];
-  const index: number[] = [];
+  // Every corner and triangle is counted first and written straight into its array: building the
+  // tube is done again for every frame while dancing, so it has to be quick.
+  const ringCount = 2 * capRings + rings.length;
+  const position = new Float32Array(ringCount * sides * 3);
+  const normal = new Float32Array(ringCount * sides * 3);
+  const colour = new Float32Array(ringCount * sides * 3);
+  const look = new Float32Array(ringCount * sides * 4);
+  const index = new Uint32Array((ringCount - 1) * sides * 6);
+  const cos = new Float64Array(sides);
+  const sin = new Float64Array(sides);
+  for (let j = 0; j < sides; j++) {
+    const angle = (2 * Math.PI * j) / sides;
+    cos[j] = Math.cos(angle);
+    sin[j] = Math.sin(angle);
+  }
+  let corners = 0;
+  let corner3 = 0;
+  let corner4 = 0;
+  let joined = 0;
 
   /**
    * Adds a ring of corners: `bulge` (0 to 1) moves it along the tube by that much of its width
@@ -203,34 +217,60 @@ export function strokeMesh(
   const ring = (r: Ring, bulge = 0, out = 0): void => {
     const shrink = Math.sqrt(Math.max(0, 1 - bulge * bulge));
     const reach = Math.min(r.rx, r.ry) * bulge * out;
+    const [atx, aty, atz] = r.at;
+    const [lx, ly, lz] = r.along;
+    const [sx, sy, sz] = r.side;
+    const [ux, uy, uz] = r.up;
+    // The middle, moved along the tube for a rounded end.
+    const mx = atx + lx * reach;
+    const my = aty + ly * reach;
+    const mz = atz + lz * reach;
+    const toEnd = (bulge * out) / Math.max(Math.min(r.rx, r.ry), 1e-9);
+    const [red, green, blue, alpha] = r.colour;
     for (let j = 0; j < sides; j++) {
-      const angle = (2 * Math.PI * j) / sides;
-      const c = Math.cos(angle);
-      const s = Math.sin(angle);
-      const p = add(
-        add(r.at, scale(r.along, reach)),
-        add(scale(r.side, r.rx * shrink * c), scale(r.up, r.ry * shrink * s)),
-      );
-      position.push(...p);
+      const c = cos[j]!;
+      const s = sin[j]!;
+      const ks = r.rx * shrink * c;
+      const ku = r.ry * shrink * s;
+      position[corner3] = mx + (sx * ks + ux * ku);
+      position[corner3 + 1] = my + (sy * ks + uy * ku);
+      position[corner3 + 2] = mz + (sz * ks + uz * ku);
       // The ellipse's outward direction, tipping along the tube on the rounded ends.
-      const n = unit(
-        add(
-          add(
-            scale(r.side, (shrink * c) / Math.max(r.rx, 1e-9)),
-            scale(r.up, (shrink * s) / Math.max(r.ry, 1e-9)),
-          ),
-          scale(r.along, (bulge * out) / Math.max(Math.min(r.rx, r.ry), 1e-9)),
-        ),
-        r.side,
-      );
-      normal.push(...n);
-      colour.push(r.colour[0], r.colour[1], r.colour[2]);
-      look.push(r.shine, r.sharpness, r.colour[3], 0);
+      const ns = (shrink * c) / Math.max(r.rx, 1e-9);
+      const nu = (shrink * s) / Math.max(r.ry, 1e-9);
+      let nx = sx * ns + ux * nu + lx * toEnd;
+      let ny = sy * ns + uy * nu + ly * toEnd;
+      let nz = sz * ns + uz * nu + lz * toEnd;
+      const l = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      if (l > 1e-9 && Number.isFinite(l)) {
+        const k = 1 / l;
+        nx *= k;
+        ny *= k;
+        nz *= k;
+      } else {
+        nx = sx;
+        ny = sy;
+        nz = sz;
+      }
+      normal[corner3] = nx;
+      normal[corner3 + 1] = ny;
+      normal[corner3 + 2] = nz;
+      colour[corner3] = red;
+      colour[corner3 + 1] = green;
+      colour[corner3 + 2] = blue;
+      look[corner4] = r.shine;
+      look[corner4 + 1] = r.sharpness;
+      look[corner4 + 2] = alpha;
+      look[corner4 + 3] = 0;
+      corner3 += 3;
+      corner4 += 4;
     }
+    corners += sides;
   };
 
-  /** Joins the last two rings added (`first` is the earlier one's first corner). */
-  const join = (first: number): void => {
+  /** Joins the last two rings added. */
+  const join = (): void => {
+    const first = corners - 2 * sides;
     const second = first + sides;
     for (let j = 0; j < sides; j++) {
       const a = first + j;
@@ -238,7 +278,13 @@ export function strokeMesh(
       const c = second + j;
       const d = second + ((j + 1) % sides);
       // Side, up and along make a right-handed set, so this winding faces outwards.
-      index.push(a, b, d, a, d, c);
+      index[joined] = a;
+      index[joined + 1] = b;
+      index[joined + 2] = d;
+      index[joined + 3] = a;
+      index[joined + 4] = d;
+      index[joined + 5] = c;
+      joined += 6;
     }
   };
 
@@ -247,23 +293,17 @@ export function strokeMesh(
   // The rounded start, from its tip to the tube's first ring.
   for (let k = capRings; k > 0; k--) {
     ring(start, Math.sin((Math.PI / 2) * (k / capRings)), -1);
-    if (k < capRings) join(position.length / 3 - 2 * sides);
+    if (k < capRings) join();
   }
-  rings.forEach((r) => {
+  for (const r of rings) {
     ring(r);
-    if (position.length / 3 > sides) join(position.length / 3 - 2 * sides);
-  });
+    if (corners > sides) join();
+  }
   // The rounded end, from the tube's last ring to its tip.
   for (let k = 1; k <= capRings; k++) {
     ring(end, Math.sin((Math.PI / 2) * (k / capRings)), 1);
-    join(position.length / 3 - 2 * sides);
+    join();
   }
 
-  return {
-    position: new Float32Array(position),
-    normal: new Float32Array(normal),
-    colour: new Float32Array(colour),
-    look: new Float32Array(look),
-    index: new Uint32Array(index),
-  };
+  return { position, normal, colour, look, index };
 }

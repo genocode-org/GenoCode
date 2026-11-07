@@ -270,7 +270,29 @@ function strokeGeometry(meshes: readonly StrokeMesh[], fade: number): BufferGeom
   for (const m of meshes) {
     position.set(m.position, c * 3);
     normal.set(m.normal, c * 3);
-    for (let i = 0; i < m.colour.length; i++) colour[c * 3 + i] = linear(m.colour[i]!);
+    // Every corner of a ring has the ring's colour: work each one out once.
+    let red = NaN;
+    let green = NaN;
+    let blue = NaN;
+    let lr = 0;
+    let lg = 0;
+    let lb = 0;
+    for (let i = 0; i < m.colour.length; i += 3) {
+      const cr = m.colour[i]!;
+      const cg = m.colour[i + 1]!;
+      const cb = m.colour[i + 2]!;
+      if (cr !== red || cg !== green || cb !== blue) {
+        red = cr;
+        green = cg;
+        blue = cb;
+        lr = linear(cr);
+        lg = linear(cg);
+        lb = linear(cb);
+      }
+      colour[c * 3 + i] = lr;
+      colour[c * 3 + i + 1] = lg;
+      colour[c * 3 + i + 2] = lb;
+    }
     look.set(m.look, c * 4);
     for (let i = 0; i < m.look.length; i += 4) look[c * 4 + i + 2]! *= fade;
     for (let i = 0; i < m.index.length; i++) index[t + i] = m.index[i]! + c;
