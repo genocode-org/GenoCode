@@ -5,6 +5,7 @@
 
 import type { MusicPlayer } from "@genocode/music";
 import type { CreatureView } from "@genocode/render";
+import { evenSound } from "./mp4sound.js";
 
 export type VideoShape = "tall" | "square" | "wide";
 
@@ -200,7 +201,7 @@ export class VideoRecorder {
   }
 
   /** Puts the stage back as it was, and gathers the video. */
-  private finish(type: string): Video | undefined {
+  private async finish(type: string): Promise<Video | undefined> {
     const seconds = (performance.now() - this.started) / 1000;
     this.recorder?.stream.getVideoTracks().forEach((t) => t.stop());
     this.recorder = undefined;
@@ -220,8 +221,18 @@ export class VideoRecorder {
     this.onReframe?.();
     if (this.chunks.length === 0) return undefined;
     const base = type.split(";")[0]!;
+    let blob = new Blob(this.chunks, { type: base });
+    // The browser stamps the sound by the clock, which clicks in players such as VLC.
+    if (base === "video/mp4") {
+      try {
+        const even = evenSound(new Uint8Array(await blob.arrayBuffer()));
+        blob = new Blob([even as Uint8Array<ArrayBuffer>], { type: base });
+      } catch {
+        // A file it can't read is kept as the browser made it.
+      }
+    }
     return {
-      blob: new Blob(this.chunks, { type: base }),
+      blob,
       ext: base === "video/mp4" ? ".mp4" : ".webm",
       seconds,
     };
