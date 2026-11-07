@@ -1,0 +1,150 @@
+creature Aetherion
+// An abstract entity formed from impossible geometry and living energy.
+
+gene arms = 9 in 4..16 step 1
+gene segments = 18 in 8..32 step 1
+gene rings = 6 in 3..12 step 1
+gene radius = 5 in 3..9
+gene hue = 190 in 0..360
+gene twist = 35 in 0..90
+gene petalDepth = 1.4 in 0.2..3
+gene coreSize = 0.65 in 0.3..1.5
+gene strandWidth = 0.045 in 0.02..0.1
+gene orbitSize = 1.4 in 0.5..3
+
+pitch -90
+
+// Central energy core
+branch {
+  shape ball
+  colour hsv(hue, 0.8, 1)
+  shine 1
+
+  lay { grow coreSize }
+}
+
+// Radial structures
+repeat 16 as i {
+  let grown = shown(clamp(arms - i, 0, 1)) // how much of this arm has grown
+  branch {
+    let angle = 360 * i / arms
+
+    yaw angle
+    pitch twist
+    forward radius * 0.45
+
+    shape cube
+    colour hsv(hue + i * 360 / arms, 0.7, 1)
+    shine 0.85
+
+    lay { grow (strandWidth * grown, strandWidth * grown, radius * 0.6 * grown) }
+
+    // End node
+    branch {
+      forward radius * 0.6
+
+      shape ball
+      colour hsv(hue + i * 360 / arms, 0.5, 1)
+
+      lay { grow coreSize * 0.35 * grown }
+    }
+  }
+}
+
+// Nested rings, built from short laid segments
+repeat 12 as k {
+  let grown = shown(clamp(rings - k, 0, 1)) // how much of this ring has grown
+  let ringRadius = radius * min(k + 1, rings) / rings // a ring still growing in starts at the outside
+  let pieces = 96
+
+  repeat pieces as s {
+    branch {
+      let a = 360 * s / pieces
+      let nextA = 360 * (s + 1) / pieces
+
+      yaw a
+      forward ringRadius
+
+      shape cube
+      colour hsv(hue + k * 360 / rings, 0.65, 1)
+      shine 0.7
+
+      lay {
+        grow (strandWidth * grown, strandWidth * grown, ringRadius * (nextA - a) * 0.0174533 * 1.05)
+      }
+    }
+  }
+}
+
+// Arms and rings that a variant doesn't show have shrunk to nothing, so they grow back smoothly
+// while it morphs: every Aetherion lays all sixteen arms and all twelve rings.
+function shown(amount) {
+  return max(amount, 0.000001)
+}
+
+// Five distinct structural variants
+
+variant Helix {
+  arms = 6
+  segments = 28
+  rings = 3
+  radius = 6
+  hue = 175
+  twist = 75
+  petalDepth = 2.4
+  coreSize = 0.5
+  strandWidth = 0.035
+  orbitSize = 1.1
+}
+
+variant Bloom {
+  arms = 14
+  segments = 20
+  rings = 5
+  radius = 7
+  hue = 315
+  twist = 15
+  petalDepth = 2.8
+  coreSize = 0.85
+  strandWidth = 0.065
+  orbitSize = 1.2
+}
+
+variant Fracture {
+  arms = 8
+  segments = 12
+  rings = 4
+  radius = 6
+  hue = 35
+  twist = 80
+  petalDepth = 0.4
+  coreSize = 1.1
+  strandWidth = 0.085
+  orbitSize = 2.2
+}
+
+variant Orbit {
+  arms = 5
+  segments = 32
+  rings = 11
+  radius = 8
+  hue = 205
+  twist = 25
+  petalDepth = 1.2
+  coreSize = 0.45
+  strandWidth = 0.025
+  orbitSize = 2.8
+}
+
+variant Void {
+  arms = 11
+  segments = 24
+  rings = 7
+  radius = 5
+  hue = 270
+  twist = 90
+  petalDepth = 2.0
+  coreSize = 0.35
+  strandWidth = 0.04
+  orbitSize = 2.5
+}

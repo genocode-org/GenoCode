@@ -1,0 +1,648 @@
+creature Peacock
+// A display bird made from shapes: a fan tail of eyed feathers, a scaled breast, a beaded neck and a
+// crown of plumes. When music plays it dances its courtship display: it bounces on the beat, bobs
+// its head, sways, spreads its fan with the bass and makes the whole fan shiver on the high notes.
+// Without music it opens and folds its fan slowly and bobs on its own. Its variants are other
+// display birds: a jewel-coloured turkey, a white peacock, a golden pheasant and a firebird.
+// Made by Claude for GenoCode.
+
+// Every colour's range goes round the colour wheel from sea green (150°) back to 509° (just
+// short of it again), so while the bird morphs between variants its colours travel round through
+// red and violet rather than crossing that green, and two bright colours never blend into a dull one.
+
+// The fan
+gene feathers = 21 in 9..31 step 1 // how many feathers in each row of the fan
+gene rows = 3 in 1..4 step 1 // how many rows of feathers, each shorter and in front of the last
+gene train = 5.5 in 2..9 // how long the longest feathers are
+gene fan = 190 in 40..240 // how far round the fan spreads when it's fully open, in degrees
+gene lean = 12 in 0..80 // how far back the open fan leans
+gene vane = 0.22 in 0.08..0.45 // how wide each feather is, compared with its length
+gene eye = 0.75 in 0..1.2 // how big the eye on each feather is
+gene bands = 0 in 0..8 // how many dark bands cross each feather
+gene base = hsv(228, 0.9, 0.62) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the colour near each feather's root
+gene tip = hsv(218, 0.9, 0.85) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the colour at each feather's end
+gene band_colour = hsv(182, 0.9, 0.85) in hsv(150, 0, 0)..hsv(509, 1, 1)
+gene eye_rim = hsv(22, 1, 1) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the outer ring of each eye
+gene eye_ring = hsv(118, 0.95, 0.85) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the middle ring of each eye
+gene eye_heart = hsv(192, 0.9, 0.8) in hsv(150, 0, 0)..hsv(509, 1, 1) // the middle of each eye
+gene under = hsv(225, 0.75, 0.5) in hsv(150, 0, 0.1)..hsv(509, 1, 1) // the backs of the fan's feathers
+gene quill = hsv(185, 0.6, 1) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the feathers' shafts, which show from behind
+gene tail_colour = hsv(225, 0.5, 0.3) in hsv(150, 0, 0.1)..hsv(509, 1, 1) // the stiff tail behind the fan, which holds it up
+
+// The bird
+gene plumage = hsv(220, 0.9, 0.85) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the breast and neck
+gene shimmer = 25 in 0..90 // how far the plumage's colour plays across the scales
+gene bulk = 1 in 0.7..1.4 // how big the body is
+gene scale_size = 0.3 in 0.15..0.5 // how big the scales on the breast are
+gene neck = 2.3 in 1..3.5 // how long the neck is
+gene wing = hsv(42, 0.95, 0.95) in hsv(150, 0, 0.2)..hsv(509, 1, 1) // the folded wings
+gene wing_bars = 0.3 in 0..1 // how strongly the wings are barred
+gene primaries = hsv(24, 0.95, 0.9) in hsv(150, 0, 0.1)..hsv(509, 1, 1) // the long feathers at the wings' ends
+gene mantle = hsv(45, 0.9, 0.85) in hsv(150, 0, 0.1)..hsv(509, 1, 1) // the back
+gene face = hsv(0, 0, 0.95) in hsv(150, 0, 0)..hsv(509, 1, 1) // the bare skin round the eyes
+gene wattle = 0 in 0..1 // how big the red flap under the beak is
+gene crest = 0.9 in 0..1.6 // how tall the crown of plumes is
+gene crest_lean = 10 in 0..80 // how far back the crown lies
+gene crest_colour = hsv(125, 0.9, 0.8) in hsv(150, 0, 0.2)..hsv(509, 1, 1)
+gene legs = hsv(30, 0.12, 0.45) in hsv(150, 0, 0.2)..hsv(509, 1, 1)
+gene grass = 0.7 in 0..1.5 // how tall the grass round its feet is
+
+// The dance
+gene dip = 0.35 in 0..0.8 // how far it dips on each beat
+gene bob = 22 in 0..45 // how far the head bobs forward on each beat
+gene sway = 18 in 0..40 // how far it sways from side to side
+gene sway_time = 3.2 in 1..8 // how many seconds one sway takes
+gene show = 50 in 0..80 // how far it turns left and right to show off its fan; it never turns its back to you
+gene show_time = 12 in 4..30 // how many seconds it takes to turn one way and back
+gene shiver = 9 in 0..20 // how hard the fan shivers on the high notes
+gene rustle = 0.5 in 0.1..3 // how many slow ripples a second run across the fan's feathers
+gene flare = 0.25 in 0..0.6 // how much wider the fan spreads with the bass
+gene own_beat = 0.8 in 0.4..2 // seconds between bobs when no music is playing
+gene display_time = 9 in 4..20 // seconds the fan takes to fold and open again without music
+
+// How the music moves it. It slides between its own slow display and the music's beat as the
+// music starts and stops.
+let playing = clamp(music.level * 5, 0, 1)
+let kick = mix(hop(frac(time / own_beat)) * 0.4, hop(beat) * mix(0.5, 1, clamp(music.bass * 1.5, 0, 1)), playing)
+let open = mix(0.55 + 0.45 * cos(360 * time / display_time), clamp(0.85 + flare * music.bass, 0, 1.3), playing)
+let rattle = mix(0.15, 0.3 + music.high_hit, playing) * shiver
+let drop = dip * kick
+let height = 2.2 * bulk // where the middle of the body is at rest
+
+// The camera looks at the focus point, so it goes in the middle of the whole bird at rest: halfway
+// between the feet and the top of the fan or head, and between the beak and the end of the tail.
+// It leaves out the music, so the bird dances round a steady point.
+branch {
+  let fan_top = height + 0.35 * bulk + train * cos(lean)
+  let head_top = height + (0.55 + neck * 0.9) * bulk + max(crest, 0.4) * bulk
+  let tail_end = -0.9 * bulk - train * sin(lean)
+  move (0, max(fan_top, head_top) / 2, (1.6 * bulk + tail_end) / 2)
+  focuspoint
+}
+
+// It turns itself to show off, left and right, but never so far that its back faces the viewer:
+// its dance has no spin, so this is the only turning it does
+yaw clamp(show * wave(time / show_time) + sway * wave(time / sway_time) * mix(0.4, 1, playing), -85, 85)
+
+// The grass it stands on
+branch {
+  grass_tuft
+}
+
+// Legs and feet
+symmetric x {
+  leg(height - drop)
+}
+
+// Everything above the legs rises and dips with the beat
+move (0, height - drop, 0)
+
+// The fan, behind the body
+branch {
+  move (0, 0.35 * bulk, -0.9 * bulk)
+  pitch -90 // the heading points up; the turtle's up now points back, away from the viewer
+  pitch -mix(80, lean, clamp(open, 0, 1))
+  roll rattle * 0.15 * wave(time * rustle * 0.5)
+  repeat rows as r {
+    branch {
+      move (0, -0.06 * r, 0) // each row lies in front of the one before
+      let size = train * (1 - 0.18 * r)
+      let reach = min(fan * open, 230) * (1 - 0.06 * r) // never past a full fan
+      repeat feathers as k {
+        branch {
+          let u = (k + 0.5 * (r % 2)) / feathers
+          yaw (u - 0.5) * reach
+          yaw rattle * 0.45 * wave(time * rustle - u - r * 0.15) // a ripple running across the fan
+          feather(size, u)
+        }
+      }
+    }
+  }
+
+  // the stiff tail behind the train, which holds it up
+  branch {
+    move (0, 0.1 * bulk, 0)
+    let reach = min(fan * open, 230) * 0.7
+    repeat 15 as k {
+      branch {
+        yaw (k / 14 - 0.5) * reach
+        yaw rattle * 0.2 * wave(time * rustle - k / 14)
+        tail_feather(train * 0.42)
+      }
+    }
+  }
+
+  // a puff of white down where the feathers meet
+  down_tuft
+}
+
+body
+
+// The neck and head
+branch {
+  move (0, 0.55 * bulk, 0.75 * bulk)
+  pitch -82
+  neck_and_head
+}
+
+// The folded wings, which droop and quiver as the fan opens
+symmetric x {
+  branch {
+    move (0.7 * bulk, 0.05 * bulk, -0.1 * bulk)
+    roll -clamp(open, 0, 1) * 18 - rattle * 0.4 * wave(time * rustle * 0.7)
+    pitch 12
+    folded_wing
+  }
+}
+
+// One feather of the fan: a shaft, a vane of overlapping barbs that widens to a teardrop, and an
+// eye near the end. The turtle's heading points along the feather and its up axis away from the
+// viewer, so flattened shapes face the front. Each feather has two sides: the coloured front, and
+// a dull back with the pale shaft running down it, as a real peacock's train has.
+part feather(size, u) {
+  let w = vane * size
+  shape tube
+  colour quill
+  shine 0.1
+  branch {
+    move (0, 0.03, 0)
+    forward size * 0.5
+    lay { grow (0.022, 0.022, size) }
+  }
+
+  // the vane
+  // A flat shape has one normal all over, so a highlight would light the whole face up at once,
+  // white, whenever it turns to the light. The flat parts of a feather don't shine.
+  shape ball
+  shine 0
+  sharpness 0
+  repeat 9 as j {
+    let s = 0.34 + 0.66 * (j + 0.5) / 9
+    let width = w * bump(clamp((s - 0.3) / 0.74, 0, 1)) ^ 0.7
+    let stripe = clamp(wave(s * bands + 0.25) * 2 - 0.6, 0, 1) * clamp(bands, 0, 1)
+    let hue_play = shimmer * 0.3 * wave(u * 2 + s - time * 0.15)
+    let c = mix(base, tip, s)
+    colour mix(hsv(c.hue + hue_play, c.sat, c.val), band_colour, stripe)
+    branch {
+      forward size * s
+      move (0, -0.002 * j, 0)
+      lay { grow (width, 0.025, size * 0.17) }
+      // the back, a little narrower so the front's edge hides it from the front
+      colour mix(mix(under, c, 0.12), band_colour, stripe * 0.6)
+      move (0, 0.022, 0)
+      lay { grow (width * 0.96, 0.025, size * 0.165) }
+    }
+  }
+
+  // the eye: rings laid one in front of another
+  branch {
+    forward size * 0.84
+    let e = eye * w
+    shine 0.04
+    sharpness 0
+    eye_disc(e, eye_rim, 0)
+    eye_disc(e * 0.78, mix(eye_rim, eye_ring, 0.5), 1)
+    eye_disc(e * 0.6, eye_ring, 2)
+    eye_disc(e * 0.4, eye_heart, 3)
+    // the heart's highlight
+    eye_disc(e * 0.12, mix(eye_heart, white, 0.35), 4)
+  }
+}
+
+// One of the stiff tail feathers behind the train: plain, with a pale shaft and a paler edge
+part tail_feather(size) {
+  shape tube
+  colour quill
+  shine 0.1
+  branch {
+    move (0, 0.02, 0)
+    forward size * 0.5
+    lay { grow (0.025, 0.025, size) }
+  }
+  shape ball
+  shine 0
+  sharpness 0
+  repeat 6 as j {
+    let s = 0.2 + 0.8 * (j + 0.5) / 6
+    branch {
+      forward size * s
+      colour mix(tail_colour, quill, 0.25 * s)
+      lay { grow (size * 0.17 * (0.6 + 0.4 * s), 0.03, size * 0.22) }
+    }
+  }
+}
+
+// White down where the feathers of the fan meet, on its back
+part down_tuft {
+  shape ball
+  shine 0
+  sharpness 0
+  repeat 16 as k {
+    branch {
+      yaw -80 + 160 * frac(k * 0.618)
+      forward bulk * (0.15 + 0.45 * frac(k * 0.414))
+      move (0, 0.18 * bulk, 0)
+      colour hsv(40, 0.05, 0.9 + 0.08 * frac(k * 0.31))
+      lay { grow (0.32, 0.22, 0.32) * bulk }
+    }
+  }
+}
+
+part eye_disc(e, c, layer) {
+  colour c
+  branch {
+    move (0, -0.03 - 0.025 * layer, -e * 0.06 * layer)
+    lay { grow (e, 0.025, e * 1.25) }
+  }
+}
+
+// The body, covered in scales on its breast and sides
+part body {
+  shape ball
+  colour plumage
+  shine 0.6
+  sharpness 0.5
+  branch {
+    pitch -12
+    lay { grow (1.5 * bulk, 1.6 * bulk, 2.1 * bulk) }
+  }
+  // the back half in its own darker colour: a slightly smaller egg pushed backwards
+  branch {
+    pitch -12
+    back 0.2 * bulk
+    colour mantle
+    lay { grow (1.46 * bulk, 1.56 * bulk, 1.85 * bulk) }
+  }
+  // rows of overlapping scales over the front half
+  repeat 7 as row {
+    let up = -45 + 15 * row
+    let across = 9 - abs(row - 3)
+    repeat across as k {
+      branch {
+        let round_by = (k - (across - 1) / 2) * 17
+        yaw round_by
+        pitch -up
+        let out = surface(round_by, up)
+        let c = plumage
+        colour hsv(c.hue + shimmer * wave(row * 0.13 + k * 0.07 - time * 0.2), c.sat, c.val * (0.85 + 0.15 * cos(up)))
+        forward out * 0.97 * bulk
+        lay { grow (scale_size * bulk, scale_size * bulk, scale_size * 0.35 * bulk) }
+      }
+    }
+  }
+  // and the back, in its own darker colour
+  repeat 7 as row {
+    let up = -50 + 15 * row
+    let across = 9 - abs(row - 3)
+    repeat across as k {
+      branch {
+        let round_by = 180 + (k - (across - 1) / 2) * 17
+        yaw round_by
+        pitch -up
+        let out = surface(round_by, up)
+        colour hsv(mantle.hue + 6 * wave(row * 0.21 + k * 0.13), mantle.sat, mantle.val * (0.85 + 0.25 * frac(k * 0.37 + row * 0.5)))
+        forward out * 0.97 * bulk
+        lay { grow (scale_size * bulk, scale_size * bulk, scale_size * 0.35 * bulk) }
+      }
+    }
+  }
+}
+
+// The neck as a chain of overlapping beads, then the head, which bobs forward on the beat
+part neck_and_head {
+  let beads = 24
+  let along = neck * bulk / beads
+  shape ball
+  shine 0.6
+  sharpness 0.5
+  repeat beads as i {
+    let t = i / (beads - 1)
+    let c = plumage
+    colour hsv(c.hue + shimmer * 0.6 * wave(t * 0.7 - time * 0.2), c.sat, c.val)
+    lay { grow mix(0.72, 0.4, t) * bulk }
+    forward along
+    pitch (42 + bob * kick * 2) / beads
+  }
+  pitch 42 + bob * kick * 0.3
+  head
+}
+
+part head {
+  // the head itself
+  colour plumage
+  shape ball
+  lay { grow (0.5, 0.5, 0.62) * bulk }
+
+  // the crown of plumes
+  branch {
+    move (0, 0.15 * bulk, -0.05 * bulk)
+    pitch -90 - crest_lean
+    shape tube
+    colour mix(crest_colour, black, 0.3)
+    repeat 7 as k {
+      branch {
+        yaw (k - 3) * 9
+        pitch (k - 3) * 2
+        let h = crest * bulk * (1 - abs(k - 3) * 0.06)
+        branch {
+          forward h * 0.5
+          lay { grow (0.025, 0.025, h) }
+        }
+        forward h
+        shape ball
+        colour crest_colour
+        shine 0.8
+        lay { grow (0.11, 0.05, 0.16) * bulk * clamp(crest * 2, 0, 1) }
+      }
+    }
+  }
+
+  // the beak
+  branch {
+    forward 0.32 * bulk
+    pitch 8
+    shape cone
+    colour hsv(35, 0.25, 0.6)
+    shine 0.6
+    lay { grow (0.14, 0.11, 0.36) * bulk }
+  }
+
+  // the flap of red skin under the beak
+  branch {
+    forward 0.22 * bulk
+    move (0, -0.2 * bulk, 0)
+    pitch 75 + bob * kick * 0.4
+    forward 0.25 * wattle * bulk
+    shape ball
+    colour hsv(355, 0.85, 0.8)
+    shine 0.4
+    lay { grow (0.14, 0.12, 0.55) * wattle * bulk }
+  }
+
+  // eyes, each in a patch of bare skin
+  symmetric x {
+    branch {
+      yaw 50
+      forward 0.24 * bulk
+      shape ball
+      colour face
+      shine 0.3
+      lay { grow (0.18, 0.12, 0.05) * bulk }
+      forward 0.02 * bulk
+      colour black
+      shine 1
+      sharpness 0.9
+      lay { grow 0.07 * bulk }
+    }
+  }
+}
+
+// A folded wing: overlapping long feathers lying back along the body
+part folded_wing {
+  shape ball
+  shine 0.35
+  repeat 6 as k {
+    let t = k / 5
+    branch {
+      move (0, 0.25 * bulk - t * 0.35 * bulk, 0.4 * bulk - t * 0.6 * bulk)
+      pitch -5 + t * 10
+      back (0.3 + t * 0.4) * bulk
+      let bar = clamp(wave(t * 2.5) * 2, 0, 1) * wing_bars
+      colour mix(mix(wing, mix(wing, black, 0.6), bar), primaries, smoothmix(0, 1, (t - 0.5) * 2.5))
+      lay { grow (0.2, 0.55 - t * 0.12, 1.2 + t * 0.45) * bulk }
+    }
+  }
+}
+
+// A leg that bends at the joint behind it, so the body can dip, and a foot with four toes
+part leg(hip_y) {
+  let hip = (0.45 * bulk, hip_y - 0.7 * bulk, 0)
+  let ankle = (0.5 * bulk, 0.16, 0.15)
+  let gap = ankle - hip
+  let d = length(gap)
+  let bone = 0.62 * height / 2
+  let bend = acos(clamp(d / (2 * bone), 0, 1))
+  shape tube
+  colour legs
+  shine 0.4
+  branch {
+    move hip
+    let tilt = atan2(gap.z, -gap.y)
+    yaw atan2(gap.x, -gap.y) // a small tilt outwards
+    pitch 90 - tilt
+    pitch bend
+    // the thigh is hidden in feathers, the back's colour lit a little by the breast's. Only the
+    // brightness is blended: blending the hues of two colours that are nearly opposite would make
+    // the colour flip round the wheel while the bird morphs
+    shape ball
+    colour hsv(mantle.hue, mantle.sat, mix(mantle.val, plumage.val, 0.25))
+    branch {
+      forward bone * 0.4
+      lay { grow (0.32, 0.32, bone) * bulk }
+    }
+    colour legs
+    forward bone
+    shape ball
+    lay { grow 0.14 * bulk }
+    pitch -2 * bend
+    shape tube
+    branch {
+      forward bone * 0.5
+      lay { grow (0.08 * bulk, 0.08 * bulk, bone) }
+    }
+  }
+  // the foot
+  branch {
+    move ankle
+    shape ball
+    colour legs
+    lay { grow 0.12 * bulk }
+    shape cone
+    pitch 8
+    repeat 3 as k {
+      branch {
+        yaw (k - 1) * 30
+        forward 0.28 * bulk
+        lay { grow (0.07, 0.05, 0.56) * bulk }
+      }
+    }
+    branch {
+      yaw 180
+      forward 0.15 * bulk
+      lay { grow (0.06, 0.05, 0.3) * bulk }
+    }
+  }
+}
+
+// A ring of grass blades round the feet, swaying with the music
+part grass_tuft {
+  shape cone
+  shine 0.2
+  repeat 80 as k {
+    branch {
+      // spread over a disc, not in a ring: the distance out uses another step than the angle
+      let a = k * 137.5
+      let r = 0.3 + 2 * sqrt(frac(k * 0.4142 + 0.13))
+      yaw a
+      forward r * bulk
+      pitch -90
+      pitch 12 * noise(k * 0.7) + 8 * wave(time / sway_time + k * 0.05) * mix(0.3, 1, playing)
+      let h = grass * (0.6 + 0.5 * frac(k * 0.371)) * bulk
+      colour hsv(95 + 25 * noise(k * 1.3), 0.7, 0.35 + 0.25 * frac(k * 0.29))
+      forward h * 0.5
+      lay { grow (0.08, 0.025, h) }
+    }
+  }
+}
+
+// How far the body's surface is from its middle, at size 1, in the direction turned round by
+// `round_by` and up by `up`: the body is an egg 1.5 wide, 1.6 high and 2.1 long
+function surface(round_by, up) {
+  let d = (sin(round_by) * cos(up) / 0.75, sin(up) / 0.8, cos(round_by) * cos(up) / 1.05)
+  return 1 / length(d)
+}
+
+// A quick rise on the beat, then a slower fall
+function hop(p) {
+  if p < 0.08 {
+    return smoothmix(0, 1, p / 0.08)
+  }
+  return exp(-(p - 0.08) * 5)
+}
+
+background {
+  gene glow = hsv(228, 0.7, 0.2) in hsv(150, 0, 0)..hsv(509, 1, 1) // the light behind the bird
+  gene sky = hsv(235, 0.6, 0.04) in hsv(150, 0, 0)..hsv(509, 1, 1) // the sky at the top
+  gene pulse = 0.25 in 0..1 // how much the light swells with the bass
+
+  let lit = hsv(glow.hue, glow.sat, glow.val * (1 + pulse * music.bass))
+  // the ground is a dark shade of the light, so the two never blend into a muddy colour
+  fill gradient(hsv(glow.hue, 0.6, 0.1), lit at 0.35, sky)
+}
+
+// Its own dance: the music carries it from one bird to the next, and the kicks bring it nearer.
+// It has no spin: the bird turns itself to show its fan (the show gene), always facing the front.
+dance {
+  gene strut = 0.5 in 0.1..1.5 // how many birds a second the music carries it through
+
+  morph follows music.mid speed strut settle 3
+  zoom follows music.bass_hit amount 0.3 settle 8
+}
+
+variant Turkey {
+  // a fantasy turkey: a turkey's shape, with a wide banded fan, a red wattle and a heavy body, in
+  // jewel colours: a violet body, a purple-to-pink fan crossed by turquoise bands, and flame wings
+  under = hsv(270, 0.7, 0.55)
+  quill = hsv(320, 0.5, 1)
+  tail_colour = hsv(300, 0.6, 0.45)
+  mantle = hsv(330, 0.8, 0.8)
+  primaries = hsv(50, 0.95, 1)
+  train = 3.8
+  fan = 170
+  lean = 18
+  vane = 0.4
+  eye = 0.55
+  bands = 4
+  base = hsv(280, 0.9, 0.7)
+  tip = hsv(322, 0.9, 1)
+  band_colour = hsv(182, 0.9, 0.85)
+  eye_rim = hsv(22, 1, 1)
+  eye_ring = hsv(55, 1, 1)
+  eye_heart = hsv(185, 0.9, 0.8)
+  plumage = hsv(272, 0.85, 0.85)
+  shimmer = 40
+  bulk = 1.3
+  scale_size = 0.4
+  neck = 1.3
+  wing = hsv(12, 0.9, 0.95)
+  wing_bars = 0.5
+  face = hsv(190, 0.8, 1)
+  wattle = 1
+  crest = 0
+  legs = hsv(330, 0.6, 0.85)
+  dip = 0.5
+  bob = 35
+  background.glow = hsv(285, 0.6, 0.22)
+}
+
+variant Snow {
+  under = hsv(285, 0.05, 0.88)
+  quill = hsv(40, 0.03, 1)
+  tail_colour = hsv(300, 0.05, 0.9)
+  mantle = hsv(40, 0.04, 0.95)
+  primaries = hsv(40, 0.05, 0.92)
+  base = hsv(280, 0.05, 0.95)
+  tip = hsv(322, 0.06, 1)
+  eye_rim = hsv(25, 0.1, 0.9)
+  eye_ring = hsv(60, 0.08, 0.95)
+  eye_heart = hsv(220, 0.12, 0.85)
+  plumage = hsv(272, 0.04, 0.97)
+  shimmer = 4
+  wing = hsv(40, 0.05, 0.92)
+  wing_bars = 0
+  crest_colour = hsv(200, 0.05, 1)
+  legs = hsv(20, 0.2, 0.75)
+  background.glow = hsv(200, 0.4, 0.35)
+}
+
+variant Golden {
+  under = hsv(330, 0.7, 0.45)
+  quill = hsv(330, 0.45, 1)
+  tail_colour = hsv(40, 0.9, 0.8)
+  mantle = hsv(55, 0.9, 0.85)
+  primaries = hsv(220, 0.5, 0.35)
+  train = 7.5
+  fan = 45
+  lean = 62
+  vane = 0.14
+  eye = 0
+  bands = 8
+  base = hsv(45, 1, 1)
+  tip = hsv(22, 1, 1)
+  band_colour = hsv(330, 0.9, 0.6)
+  plumage = hsv(5, 0.9, 0.85)
+  shimmer = 10
+  bulk = 1
+  scale_size = 0.25
+  neck = 1.6
+  wing = hsv(225, 0.6, 0.45)
+  wing_bars = 0.3
+  face = hsv(55, 0.8, 0.95)
+  crest = 1.5
+  crest_lean = 75
+  crest_colour = hsv(48, 0.9, 1)
+  legs = hsv(40, 0.3, 0.7)
+  sway = 28
+  shiver = 4
+  background.glow = hsv(320, 0.6, 0.28)
+}
+
+variant Firebird {
+  under = hsv(345, 0.85, 0.75)
+  quill = hsv(45, 0.6, 1)
+  tail_colour = hsv(20, 0.8, 0.55)
+  mantle = hsv(10, 0.85, 0.5)
+  primaries = hsv(30, 0.9, 0.7)
+  train = 7
+  fan = 230
+  vane = 0.26
+  eye = 1
+  base = hsv(15, 0.95, 0.85)
+  tip = hsv(45, 0.95, 1)
+  band_colour = hsv(330, 0.9, 0.6) // no bands, but it keeps the morph from the pheasant's bands smooth
+  eye_rim = hsv(55, 0.6, 1)
+  eye_ring = hsv(5, 0.95, 0.9)
+  eye_heart = hsv(280, 0.8, 0.35)
+  plumage = hsv(10, 0.9, 0.9)
+  shimmer = 40
+  wing = hsv(25, 0.9, 0.8)
+  wing_bars = 0.2
+  face = hsv(50, 0.6, 1)
+  crest = 1.4
+  crest_lean = 20
+  crest_colour = hsv(50, 0.9, 1)
+  shiver = 16
+  flare = 0.5
+  background.glow = hsv(330, 0.7, 0.3)
+  background.sky = hsv(270, 0.8, 0.1)
+}

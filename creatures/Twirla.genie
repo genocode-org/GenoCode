@@ -1,0 +1,418 @@
+creature Twirla
+// Made by Jan Piorek with Claude, written from scratch for GenoCode.
+// A flower that dances like a person: a stem body in a sequined bodice, a skirt of petal ribbons in
+// up to three tiers, two arms with petal fans for hands, and a head with a crown of petals and two
+// antennae. The hips sway on every beat and the body curves back against them, the skirt flares
+// with the bass and swirls after the hips, the arms ripple with the middle of the music, the
+// antennae flick on each hi-hat and the whole dancer bobs between beats. With no music playing it
+// dances by itself, to its own slow beat.
+// The creature and its variants are one troupe that morphs smoothly from dancer to dancer. Every
+// Twirla has the same three tiers, the same arms and the same eight crown petals: a tier or a petal
+// that a dancer doesn't show has only shrunk to nothing, so it grows back smoothly.
+
+breed on
+
+// --- Body ---
+
+gene height = 1 in 0.5..2 log // how big the whole dancer is
+gene waist = 0.55 in 0.3..1 // how thick the stem body is
+gene chest = (1.1, 0.8, 1.3) in (0.7, 0.5, 0.8)..(1.6, 1.3, 1.8) // how the hips are stretched: across, front to back and up; they are never flatter front to back than across
+gene lean = 0 in -25..25 // how far the body leans forward, or back when below 0
+gene head_size = 0.75 in 0.4..1.2 // how big the head is
+gene crown = 6 in 0..8 // how many of the eight crown petals have grown; part of one is a petal growing in
+gene antennae = 1.2 in 0..2.5 // how long the antennae are
+
+// --- Skirt ---
+
+gene tiers = 2.4 in 0..3 // how many tiers of petals the skirt has; part of one is a tier growing in
+gene panels = 14 in 6..20 step 1 // how many petals go round each tier
+gene skirt_length = 2.6 in 1..4.5 // how long the skirt's petals are
+gene flare = 35 in 5..80 // how far the skirt stands out from the body at rest
+gene bell = 4 in -6..12 // how much each petal curls outwards towards the hem
+gene frill = 0.6 in 0.1..1.2 // how wide the petals are, so they overlap or leave gaps
+gene ruffle = 12 in 0..40 // how much the petals twist and ripple
+
+// --- Colours ---
+
+gene skirt_hue = 330 in 0..360 // the skirt's colour at the waist, round the colour wheel
+gene hem_shift = 40 in -90..90 // how far round the wheel the colour turns from the waist to the hem
+gene petal_sat = 0.8 in 0.2..1 // how strong the petal colours are
+gene stem_hue = 120 in 0..360 // the colour of the stem body, arms and head
+gene glitter = 0.6 in 0..1 // how much the bodice sparkles with sequins
+gene sheen = pearl from [matte, metallic, iridescent, pearl, satin] // how the sequins shine
+
+// --- Dancing ---
+
+gene sway = 14 in 0..30 // how far the hips swing on each beat
+gene hop_height = 0.25 in 0..0.7 // how high the dancer bobs between beats
+gene kick = 30 in 0..60 // how much further the skirt flares with the bass
+gene twirl = 25 in 0..90 // how far the skirt swirls round after the hips
+gene flick = 30 in 0..60 // how far the antennae flick on each hi-hat
+gene idle = 0.5 in 0..1 // how much it dances by itself when no music plays
+gene idle_tempo = 0.5 in 0.2..1.5 // its own beats a second, when it dances by itself
+
+// --- How the music moves it ---
+
+let own_beat = frac(time * idle_tempo)
+let listening = clamp(music.level * 4, 0, 1)
+
+let swing = groove(wave(own_beat), wave(beat) * (0.4 + 0.6 * music.level))
+let hop = groove(bump(own_beat), bump(beat) * music.level)
+let flare_now = flare + kick * groove(0.5 * bump(own_beat), music.bass)
+let flicking = groove(0.3 * bump(own_beat), music.high_hit)
+
+// The order the crown petals grow in, so a part-grown crown is spread evenly round the head.
+let order = [0, 4, 2, 6, 1, 5, 3, 7]
+
+// --- The dancer ---
+
+grow height
+move (0, hop_height * hop, 0) // bob up between beats
+roll sway * swing // swing the hips
+
+// The camera looks at the middle of the dancer, halfway between the hem of the skirt and the tips of
+// the antennae, and the dance turns the dancer round it. The hem hangs lower the longer the skirt
+// and the less it flares.
+branch {
+  let top = 3.15 + head_size * 1.2 + antennae * 0.7
+  let bottom = skirt_length * cos(min(flare + bell * 3, 90))
+  move (0, (top - bottom) / 2, 0)
+  focuspoint
+}
+
+branch {
+  pitch 90 // facing down
+  skirt
+}
+
+branch {
+  pitch lean - 90 // facing up, leaning
+  torso
+  branch {
+    back 0.45
+    symmetric x {
+      arm(side)
+    }
+  }
+  headpiece
+}
+
+// The beat it dances to: the music's when there is some, its own when there isn't. Blending the
+// two by how loud the music is lets it slip from one to the other without a jerk.
+function groove(by_itself, to_music) {
+  return mix(idle * by_itself, to_music, listening)
+}
+
+// A size that has shrunk to nothing is kept just above zero, so every shape stays in place.
+function shown(amount) {
+  return max(amount, 0.001)
+}
+
+// --- Parts ---
+
+// The belt round the hips and the tiers of petals hanging from it.
+part skirt {
+  colour hsv(skirt_hue, petal_sat, 0.6)
+  shine 0.8
+  shape donut
+  lay { grow (waist * 1.3, waist * 1.3, waist * 0.9) }
+  repeat 3 as t {
+    tier(t, clamp(tiers - t, 0, 1))
+  }
+}
+
+// One tier of petal ribbons. Tier 0 is the longest, next to the body; each tier after it is shorter,
+// stands further out and is turned half a petal round. amount is how far the tier has grown in.
+part tier(t, amount) {
+  let grown = shown(amount)
+  let reach = skirt_length * (1 - 0.2 * t) * max(amount, 0.02)
+  let width = frill * 7 * waist / panels * grown
+  repeat panels as i {
+    branch {
+      roll 360 * (i + 0.5 * t) / panels + twirl * swing
+      move (0, waist * 0.45, 0)
+      pitch -(flare_now + 12 * t)
+      stroke {
+        repeat 8 as s {
+          let along = s / 7
+          colour hsv(skirt_hue + hem_shift * along + 10 * t, petal_sat * (0.75 + 0.25 * along), 0.7 + 0.3 * along)
+          shine 0.5
+          sharpness 0.6
+          lay { grow (width * (0.6 + 2.4 * along), 0.06 * grown, 1) }
+          if s < 7 {
+            forward reach / 7
+            pitch -bell
+            yaw twirl * swing * 0.06 // the hem trails behind the swirl
+            roll ruffle * noise((i * 1.7 + t * 5, s * 0.5, time * 0.6))
+          }
+        }
+      }
+    }
+  }
+}
+
+// The stem body, from the skirt up to the neck: round at the hips, thin at the waist, fuller at the
+// chest. It curves back against the swing of the hips, so the head ends up over the feet.
+part torso {
+  let hips = chest * waist * 1.6 // how big the hips are: across, front to back and up
+  stroke {
+    repeat 19 as i {
+      let along = i / 18
+      let stem = waist * (0.7 + 0.45 * bump(along))
+      let from_hips = (along * 3 - 1.5) / (hips.z / 2) // -1 at the bottom of the hips, 1 at the top
+      let fall = max(1 - from_hips * from_hips, 0)
+      let hip_part = fall * sqrt(fall)
+      colour hsv(stem_hue + 20 * along, 0.55, 0.45 + 0.35 * along)
+      shine 0.4
+      lay { grow (mix(stem, max(hips.x, stem), hip_part), mix(stem, max(max(hips.x, hips.y), stem), hip_part), 1) }
+      if i < 18 {
+        forward 3 / 18
+        yaw sway * swing * 0.25 / 3
+      }
+    }
+  }
+}
+
+// An arm, held out to one side and rippling with the music, with a fan of petals for a hand. The
+// two arms ripple a quarter of a beat apart.
+part arm(side) {
+  gene reach = 2.2 in 1..3.5 // how long the arms are
+  gene raise = 40 in -40..90 // how high the arms are held: 0 straight out, 90 straight up
+  gene ripple = 30 in 0..70 // how far the arms ripple with the music
+  gene fan = 0.8 in 0..1.5 // how big the fans in the hands are
+
+  let flow = groove(wave(own_beat + 0.25 * side), wave(beat + 0.25 * side) * (0.3 + 0.7 * music.mid))
+  yaw 90 - raise - ripple * flow * 0.5
+  stroke {
+    repeat 9 as i {
+      let along = i / 8
+      colour hsv(stem_hue + 20 + 15 * along, 0.5, 0.8)
+      shine 0.4
+      lay { grow waist * 0.32 * (1 - 0.45 * along) }
+      if i < 8 {
+        forward reach / 8
+        yaw -ripple * flow * 0.12
+        pitch 6 * flow
+      }
+    }
+  }
+  hand_fan(fan)
+}
+
+// Five petals spread like a fan. amount is how big it is.
+part hand_fan(amount) {
+  grow shown(amount)
+  reshape { grow (0.35, 0.06, 0.9) }
+  repeat 5 as k {
+    branch {
+      yaw (k - 2) * 18
+      forward 0.45
+      colour hsv(skirt_hue + hem_shift + 6 * k, petal_sat, 1)
+      shine 0.6
+      shape cone
+      lay
+    }
+  }
+}
+
+// The head, with its face to the front, a crown of petals and two antennae.
+part headpiece {
+  forward 0.15 + head_size * 0.5
+  rotate -sway * swing * 0.3 around (0, 0, 1) // the head turns into the sway
+  colour hsv(stem_hue + 30, 0.4, 0.95)
+  shine 0.6
+  sharpness 0.7
+  shape ball
+  lay { grow head_size }
+
+  // the eyes
+  symmetric x {
+    branch {
+      move (0.17, -0.4, 0.08) * head_size
+      colour hsv(stem_hue + 30, 0.3, 0.08)
+      shine 1
+      shape ball
+      lay { grow 0.16 * head_size }
+    }
+  }
+
+  // the crown: petal k has grown in once crown passes k
+  repeat 8 as k {
+    let grown_in = shown(clamp(crown - k, 0, 1))
+    branch {
+      roll 360 * order[k] / 8
+      forward head_size * 0.3
+      pitch 40
+      forward head_size * 0.35 * grown_in
+      colour hsv(skirt_hue - 20 + 5 * order[k], petal_sat, 1)
+      shine 0.5
+      shape cone
+      lay { grow (0.4, 0.12, 0.8) * head_size * grown_in }
+    }
+  }
+
+  // the antennae, flicking outwards on the hi-hats
+  symmetric x {
+    branch {
+      forward head_size * 0.35
+      yaw 25
+      stroke {
+        repeat 7 as i {
+          colour hsv(skirt_hue + hem_shift, petal_sat, 0.9)
+          shine 0.5
+          lay { grow 0.07 * head_size * (1 - i / 9) }
+          if i < 6 {
+            forward max(antennae, 0.02) / 6
+            yaw 5 + flick * flicking / 6
+            pitch -2
+          }
+        }
+      }
+      colour hsv(skirt_hue + hem_shift, petal_sat, 1)
+      shine 0.9
+      shape ball
+      lay { grow 0.18 * head_size }
+    }
+  }
+}
+
+// --- The bodice's sequins ---
+
+pattern Sequins {
+  gene rows = 12 in 4..30 // how many rows of sequins cover the picture
+  gene glint = 0.7 in 0..1 // how bright the middle of each sequin is, against the cloth between them
+
+  let cloth = clouds(4, 3)
+  value picture {
+    let across = (x + 1) * rows / 2
+    let down = (y + 1) * rows / 2
+    // every other row is shifted half a sequin, like scales
+    let u = frac(across + 0.5 * (floor(down) % 2)) - 0.5
+    let v = frac(down) - 0.5
+    let spot = clamp(1 - 2.2 * sqrt(u * u + v * v), 0, 1)
+    value max(0.35 * cloth, glint * spot ^ 0.6)
+  }
+}
+
+// --- The stage ---
+
+background {
+  gene hue = 285 in 0..360 // the colour of the stage lights
+  gene glow = 30 in 0..90 // how far the lights' colour shifts with the bass
+
+  fill pattern(aurora, hue + glow * music.bass, 21, dusk, satin)
+}
+
+dance {
+  gene drive = 0.8 in 0.2..2.5 // how fast the music moves it from dancer to dancer, in dancers a second
+  gene top_spin = 140 in 40..300 // how fast it spins when the music is loudest, in degrees a second
+
+  morph follows music.mid speed drive settle 3
+  zoom follows music.bass_hit amount 0.35 settle 4
+  spin follows music.level from 15 to top_spin smooth 1.5 upright
+  turn on music.mid changes by 0.6
+  reverse on music.bass drops by 0.5 on 8 off 8
+}
+
+// --- The troupe ---
+
+// A closed green bud, just starting to sway.
+variant Bud {
+  height = 0.7
+  tiers = 0.3
+  skirt_length = 1.4
+  flare = 6
+  bell = -4
+  crown = 0.5
+  antennae = 0.3
+  arm.reach = 1.2
+  arm.raise = -30
+  arm.fan = 0.1
+  skirt_hue = 95
+  hem_shift = 25
+  petal_sat = 0.6
+  glitter = 0.1
+  sway = 6
+  hop_height = 0.1
+}
+
+// A pale tutu standing straight out, arms high, bouncing on its toes.
+variant Ballerina {
+  waist = 0.42
+  chest = (0.9, 0.7, 1.4)
+  lean = -4
+  crown = 8
+  tiers = 3
+  skirt_length = 1.5
+  flare = 78
+  bell = -2
+  frill = 1.1
+  ruffle = 4
+  skirt_hue = 345
+  hem_shift = 10
+  petal_sat = 0.35
+  arm.raise = 85
+  arm.ripple = 20
+  arm.fan = 0.4
+  sway = 8
+  hop_height = 0.5
+  kick = 12
+}
+
+// A long, ruffled red skirt that whips round, and big fans in the hands.
+variant Flamenco {
+  crown = 3
+  tiers = 3
+  skirt_length = 4.2
+  flare = 22
+  bell = 11
+  frill = 1.2
+  ruffle = 38
+  skirt_hue = 358
+  hem_shift = -25
+  petal_sat = 1
+  arm.raise = 65
+  arm.ripple = 55
+  arm.fan = 1.5
+  sway = 20
+  kick = 45
+  twirl = 80
+}
+
+// A short, sparkling skirt in cool colours, long antennae and big bounces.
+variant Disco {
+  crown = 4
+  antennae = 2.4
+  tiers = 1.6
+  skirt_length = 2
+  flare = 50
+  skirt_hue = 200
+  hem_shift = 90
+  stem_hue = 170
+  glitter = 1
+  arm.raise = 10
+  arm.ripple = 70
+  sway = 30
+  hop_height = 0.7
+  flick = 60
+}
+
+// A tall dancer in a long violet gown, leaning back and gliding round.
+variant Waltz {
+  height = 1.5
+  lean = -14
+  crown = 7
+  tiers = 2
+  skirt_length = 4.4
+  flare = 18
+  bell = 2
+  frill = 0.9
+  ruffle = 6
+  skirt_hue = 265
+  hem_shift = 30
+  arm.reach = 3.2
+  arm.raise = 20
+  arm.ripple = 15
+  sway = 10
+  twirl = 60
+}
