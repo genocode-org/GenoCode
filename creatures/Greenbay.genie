@@ -2,8 +2,9 @@ creature Greenbay
 // A frond of leaves and buds, curling and growing segment by segment.
 // Inspired by Greenbay, a DancerDNA creature.
 
+gene frond_size = 1 in 0.25..4 log // how big the whole frond is
 gene tilt = 106 in 45..135 // how far the frond tips up
-gene segments = 20.72 in 1..50 // how many segments it has; the last is cut short to fit
+gene segments = 20.72 in 1..50 // how many segments it has; part of one is a segment coming out from behind the last
 gene growth = (1.074, 1.027, 1.031) in (1.01, 1.01, 1.01)..(1.1, 1.1, 1.1) // how much bigger each segment is than the last
 gene twist = 22.7 in -25..25 // how far each segment rolls from the last
 
@@ -66,55 +67,61 @@ shape ball
 shine 1
 sharpness 1
 pitch tilt
-repeat floor(segments) + 2 as k {
-  let along = k / segments
-  // The last segment is cut short by what's left of the count.
-  let size = 1
-  if k > segments {
-    size = segments % 1
-  }
+// Each segment is bigger than the last, so a frond whose segments grow fast ends up many times the
+// size of one whose segments grow slowly. Shrinking the whole frond by how much its segments grow
+// keeps every frond about the same size, so the camera frames them all while it dances.
+grow frond_size / (growth.x * growth.y * growth.z) ^ (segments / 3)
+// Every frond lays all fifty-one segments, each at full size. A segment past the count lies exactly
+// on top of the last one shown, the same size and colour, so it's hidden behind it; as the count
+// grows, it grows and rolls out from behind it to its own place. What's left of the count says how
+// far the last segment has come out. Nothing ever shrinks to a tiny speck.
+repeat 51 as k {
+  let along = min(k, segments) / segments
   branch {
     pitch lean
     branch {
       branch {
         pitch leaf_angle
         colour leaves(along)
-        lay { grow leaf_shape * size }
+        lay { grow leaf_shape }
         forward stalk
         colour buds(along)
-        lay { grow size }
+        lay
       }
       roll leaf_twist
       roll leaf_turn
       colour leaves(along)
-      lay { grow (1, 1, second_leaf) * size }
+      lay { grow (1, 1, second_leaf) }
     }
     move (1, 1, offset)
     branch {
       pitch bud_tilt
       branch {
         colour buds(along)
-        lay { grow size }
+        lay
         roll bud_turn
         branch {
           pitch far_angle
           colour leaves(along)
-          lay { grow (1, 1, bud_stretch * far_leaf) * size }
+          lay { grow (1, 1, bud_stretch * far_leaf) }
           forward far_stalk
           colour buds(along)
-          lay { grow (1, 1, bud_stretch) * size }
+          lay { grow (1, 1, bud_stretch) }
         }
       }
       move (1, 1, spine)
       colour leaves(along)
-      lay { grow size }
+      lay
     }
   }
-  grow growth
-  roll twist
+  // How far the next segment has come out from behind this one.
+  let out = clamp(segments - k, 0, 1)
+  grow (1, 1, 1) + (growth - (1, 1, 1)) * out
+  roll twist * out
 }
 
 variant member_2 {
+  frond_size = 1.6
   tilt = 128.6
   segments = 20.32
   growth = (1.086, 1.082, 1.07)
@@ -171,6 +178,7 @@ variant member_2 {
 }
 
 variant member_3 {
+  frond_size = 0.8
   tilt = 131.8
   segments = 14.21
   growth = (1.062, 1.061, 1.075)
@@ -450,6 +458,7 @@ variant member_7 {
 }
 
 variant member_8 {
+  frond_size = 0.4
   tilt = 64.56
   segments = 23.63
   growth = (1.062, 1.082, 1.09)
@@ -618,6 +627,7 @@ variant member_10 {
 }
 
 variant member_11 {
+  frond_size = 1.8
   tilt = 119.7
   segments = 20.23
   growth = (1.047, 1.056, 1.013)

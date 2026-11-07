@@ -2,6 +2,7 @@ creature Star
 // Five arms of interlocking rings, like chains, bending and swelling as they reach out.
 // Inspired by Star, a DancerDNA creature.
 
+gene overall = 1 in 0.1..4 log // how big the whole creature is
 gene twist = -29.76 in -45.84..45.84 // how far the arms twist
 gene twist_waves = 1.731 in 0.5..4 // how many half-waves the twist makes along an arm
 gene twist_start = 0.2835 in -1..1 // where along the arm the twist starts
@@ -33,6 +34,8 @@ gene upright_gaps = (0.2962, 0.3338, 0.4979) in (0.25, 0.25, 0.25)..(1, 1, 1)
 let flat = spectrum(flat_1, flat_2 at flat_gaps.x, flat_3 at flat_gaps.x + flat_gaps.y, flat_4 at flat_gaps.x + flat_gaps.y + flat_gaps.z)
 let upright = spectrum(upright_1, upright_2 at upright_gaps.x, upright_3 at upright_gaps.x + upright_gaps.y, upright_4 at upright_gaps.x + upright_gaps.y + upright_gaps.z)
 
+// Stars whose arms reach far, or hardly at all, are scaled with `overall`, so the camera frames the whole family.
+grow overall
 shine 1
 sharpness 1
 repeat 5 as arm {
@@ -220,6 +223,7 @@ variant member_7 {
 }
 
 variant member_8 {
+  overall = 0.5
   twist = 16.42
   twist_waves = 1
   twist_start = 0
@@ -295,6 +299,7 @@ variant member_10 {
 }
 
 variant member_11 {
+  overall = 0.2
   twist = -3.176
   twist_waves = 3.578
   twist_start = 0.61
@@ -318,6 +323,7 @@ variant member_11 {
 }
 
 variant member_12 {
+  overall = 0.45
   twist = -29.25
   twist_waves = 1.631
   twist_start = -0.4702
