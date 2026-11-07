@@ -1,0 +1,309 @@
+creature Stained_Glass_Bloom
+// A flower of stained glass: rings of puffy glass petals, each edged in black leading with a white
+// shine mark, round a domed centre, with small gems in the gaps at the petals' tips. The colours run
+// in rings, from the centre out. Every ring has the same number of petals, and the variants only
+// change how the rings are shaped, cupped and coloured: a lotus, a closed bud, a sunburst, a star
+// and a round window. So they all morph smoothly into one another.
+// It dances by opening its rings wider with the bass and popping its petals out ring by ring, from
+// the centre outwards, on each beat. Neighbouring rings turn slowly in opposite directions, and with
+// no music playing it breathes and ripples by itself.
+
+// --- The flower's shape ---
+
+gene size = 1 in 0.4..4 log // how big the whole flower is
+gene rings = 5 in 3..7 step 1 // how many rings of petals there are
+gene petals = 12 in 6..20 step 2 // how many petals are in each ring
+gene centre = 0.35 in 0.1..0.8 // how wide the domed centre is
+gene petal_length = 0.4 in 0.15..1 log // how long the petals of the first ring are, from the centre outwards
+gene growth = 1.2 in 0.8..1.6 // how much longer each ring's petals are than the ring inside it
+gene petal_width = 1 in 0.4..1.2 // how much of the way round its ring each petal fills
+gene spread = 0.85 in 0.05..1.1 // how far out each ring starts from the ring inside it, as a share of that ring's petals' length
+gene swirl = 0 in -40..40 // how far each petal is turned in its own plane, in degrees, like a pinwheel
+gene cup_inner = 15 in -30..115 // how far the inner ring's petals tilt up towards the viewer, in degrees; past 90 they curl inwards
+gene cup_outer = 10 in -30..115 // how far the outer ring's petals tilt up
+gene stagger = 1 in 0..1 // how far each ring is turned against the one inside it, in half petals
+
+// --- The glass ---
+
+gene hue_from = 170 in 0..360 // the colour of the centre, round the colour wheel
+gene hue_span = 150 in -300..300 // how far round the colour wheel the rings go, from the centre to the outside
+gene checker = 0 in -60..60 // how far every other petal's colour is turned round the colour wheel
+gene glass_sat = 0.8 in 0.3..1 // how strong the glass's colours are
+gene glass_light = 0.95 in 0.6..1 // how light the glass is
+gene leading = hsv(260, 0.4, 0.05) in hsv(200, 0, 0)..hsv(320, 0.8, 0.3) // the colour of the black edging round each petal
+gene gem = hsv(275, 0.65, 0.6) in hsv(240, 0.3, 0.3)..hsv(320, 1, 0.9) // the small gems between the petals' tips
+gene gem_size = 0.25 in 0..0.5 // how big the gems are, compared with a petal
+
+// --- Dancing ---
+
+gene open_by = 0.35 in 0..0.8 // how much wider the rings open with the bass
+gene pop = 0.3 in 0..0.8 // how far the petals pop out in the wave, compared with how wide they are
+gene turning = 6 in 0..30 // how fast neighbouring rings turn against each other, in degrees a second
+gene flow = 5 in 0..30 // how fast the colours drift round the rainbow, in degrees a second
+gene idle = 0.6 in 0..1 // how much it dances by itself when no music plays
+gene idle_tempo = 0.3 in 0.1..1 // how many breaths a second it takes when it dances by itself
+
+// --- How the music moves it ---
+
+let own_breath = frac(time * idle_tempo)
+let listening = clamp(music.level * 4, 0, 1)
+let opening = open_by * groove(0.5 * bump(own_breath), music.bass)
+
+// --- The rings' outline, from the centre out ---
+
+// Where each ring's petals grow from: every ring starts a little further out than the ring inside
+// it, and a little behind it, so the inner rings lie on top. Its petals then tilt up from there.
+let bases = []
+let rest_top = 0
+let base = centre / 2
+for k from 0 to rings - 1 {
+  bases += [base]
+  base += spread * length_of(k)
+  // How high this ring reaches at rest, with no music, to find the middle of the flower.
+  rest_top = max(rest_top, length_of(k) * sin(cup(k, 0)))
+}
+
+// --- The creature ---
+
+grow size
+// The camera looks halfway up the flower as it stands at rest, so a deep cup or a closed bud is
+// framed as well as a flat flower.
+branch {
+  move (0, 0, rest_top / 2)
+  focuspoint
+}
+
+// The domed centre.
+branch {
+  shape ball
+  colour leading
+  shine 0.2
+  lay { grow (centre * 1.1, centre * 1.1, centre * 0.3) }
+  colour hsv(hue_from + flow * time, glass_sat, glass_light)
+  shine 0.5
+  sharpness 0.7
+  lay { move (0, 0, centre * 0.05); grow (centre, centre, centre * 0.45) }
+}
+
+for k from 0 to rings - 1 {
+  let along = k / max(rings - 1, 1)
+  let reach = length_of(k)
+  let tilt = cup(k, opening)
+  // How wide each petal is: its share of the way round the ring, halfway along the petal.
+  let wide = max(360 / petals * petal_width * pi / 180 * (bases[k] + reach / 2 * cos(tilt)), reach * 0.15)
+  // Neighbouring rings turn opposite ways.
+  let spin = stagger * 180 / petals * k + turning * time * (1 - 2 * (k % 2))
+  let lift = pop * groove(crest(along, own_breath), (0.3 + 0.7 * music.bass) * crest(along, beat))
+  for i from 0 to petals - 1 {
+    branch {
+      roll i * 360 / petals + spin
+      move (0, bases[k], -0.03 * k * petal_length)
+      pitch tilt
+      move (0, reach / 2, lift * min(wide, reach))
+      petal(wide, reach, hue_from + hue_span * along + checker * (i % 2) + flow * time)
+    }
+    // A gem in the gap between each two neighbouring petals, near their tips.
+    branch {
+      roll (i + 0.5) * 360 / petals + spin
+      move (0, bases[k], -0.03 * k * petal_length)
+      pitch tilt
+      move (0, reach * 0.8, 0)
+      shape ball
+      colour gem
+      shine 0.6
+      sharpness 0.5
+      lay { grow gem_size * min(wide, reach) }
+    }
+  }
+}
+
+// The beat it dances to: the music's when there is some, its own when there isn't. Blending the
+// two by how loud the music is lets it slip from one to the other without a jerk.
+function groove(by_itself, to_music) {
+  return mix(idle * by_itself, to_music, listening)
+}
+
+// How high the wave is at ring `along` (0 the inner ring, 1 the outer), when it has run `run` of the
+// way out (0 to 1). It starts and ends off the flower, so nothing is lifted as it starts again.
+function crest(along, run) {
+  let away = (along - (-0.4 + 1.8 * run)) / 0.35
+  return max(1 - away * away, 0) ^ 2
+}
+
+// How far ring `k` tilts up towards the viewer, opened by `open`.
+function cup(k, open) {
+  return mix(cup_inner, cup_outer, k / max(rings - 1, 1)) * (1 - open)
+}
+
+// How long ring `k`'s petals are.
+function length_of(k) {
+  return petal_length * growth ^ k
+}
+
+// How high a dome is at a point across it (each from -1 to 1 at its edges), as a share of its top.
+function on_dome(x, y) {
+  return sqrt(max(1 - x * x - y * y, 0))
+}
+
+// --- Parts ---
+
+// One glass petal, `wide` across and `reach` long, lying across the turtle's side and up axes,
+// with its tip along up.
+part petal(wide, reach, hue) {
+  gene filled = 0.9 in 0.6..0.95 // how much of its leading each petal's glass fills
+  gene corners = 0.5 in 0.1..0.95 // how rounded the petals' corners are
+  gene dome = 0.3 in 0..1 // how high the glass is domed
+  gene thickness = 0.12 in 0.05..0.3 // how thick the petals are, compared with how wide
+  gene gloss = 1 in 0..1.5 // how big the white shine marks are
+
+  let thick = thickness * min(wide, reach)
+  // Each petal is turned a little in its own plane; `fit` shrinks it to keep it off its neighbours.
+  let fit = 1 / (cos(swirl) + 0.5 * sin(abs(swirl)))
+  reshape { roll swirl; grow (wide, reach, 1) }
+
+  // A block with rounded corners, `across` wide and `deep` thick: two crossed blocks and a tube at
+  // each corner.
+  let r = corners * fit / 2
+
+  // The leading: a thin black edge showing round the glass.
+  colour leading
+  shine 0.1
+  sharpness 0.2
+  rounded(fit, r, thick * 0.6)
+
+  // The glass: a rounded block, domed on both faces, each face with its shine mark.
+  let g = fit * filled
+  let dome_high = thick * dome
+  let x1 = -g * 0.3
+  let y1 = g * 0.1
+  let x2 = -g * 0.12
+  let y2 = g * 0.3
+  let mark = gloss * g
+  // The glass is nearly flat, so its faces point almost one way: a strong shine would turn a whole
+  // petal white when it faces the light. A faint, soft shine keeps its colour; the white marks
+  // give it its gloss.
+  colour hsv(hue, glass_sat, glass_light)
+  shine 0.15
+  sharpness 0
+  rounded(g, r * filled, thick)
+  symmetric z {
+    shape ball
+    colour hsv(hue, glass_sat, glass_light)
+    lay { move (0, 0, thick * 0.2); grow (g * 0.96, g * 0.96, 2 * (thick * 0.3 + dome_high)) }
+    colour white
+    shine 0
+    let top = thick * 0.2
+    let high = thick * 0.3 + dome_high
+    lay {
+      move (x1, y1, top + high * on_dome(x1 / (g * 0.48), y1 / (g * 0.48)))
+      grow (mark * 0.07, mark * 0.25, thick * 0.3)
+    }
+    lay {
+      move (x2, y2, top + high * on_dome(x2 / (g * 0.48), y2 / (g * 0.48)))
+      grow (mark * 0.22, mark * 0.07, thick * 0.3)
+    }
+  }
+}
+
+// A block with rounded corners, `across` wide each way, `deep` thick and corners `r` round: two
+// crossed blocks and a tube at each corner.
+part rounded(across, r, deep) {
+  shape cube
+  lay { grow (across - 2 * r, across, deep) }
+  lay { grow (across, across - 2 * r, deep) }
+  shape tube
+  for k from 0 to 3 {
+    let x = (across / 2 - r) * (1 - 2 * (k % 2))
+    let y = (across / 2 - r) * (1 - 2 * floor(k / 2))
+    lay { move (x, y, 0); grow (2 * r, 2 * r, deep) }
+  }
+}
+
+// --- The stage ---
+
+background {
+  gene hue = 9 in 0..360 // the colour of the light behind the flower
+
+  fill pattern(aurora, hue, 61, dusk, satin)
+}
+
+dance {
+  gene drive = 0.6 in 0.2..2.5 // how fast the music moves it from flower to flower, in flowers a second
+
+  morph follows music.mid speed drive settle 3
+  zoom follows music.bass_hit amount 0.2 settle 4
+  spin follows music.level from 15 to 90 smooth 1.5
+  turn on music.mid changes by 0.7
+  reverse on music.bass drops by 0.5 on 8 off 8
+  flat on music.level drops by 0.6 on 16 off 16
+}
+
+// --- The family ---
+
+// A lotus: pointed petals cupped round a golden heart, opening out to pink.
+variant Lotus {
+  size = 1.75
+  cup_inner = 80
+  cup_outer = 50
+  spread = 0.3
+  petal_length = 0.5
+  growth = 1.18
+  petal_width = 0.95
+  swirl = 12
+  hue_from = 55
+  hue_span = -95
+  glass_sat = 0.6
+}
+
+// A closed bud: every ring folded up and curling in over the centre, green inside, red and pink outside.
+variant Bud {
+  size = 3.3
+  cup_inner = 92
+  cup_outer = 108
+  spread = 0.15
+  petal_length = 0.5
+  growth = 1.15
+  petal_width = 1.15
+  hue_from = 100
+  hue_span = -120
+}
+
+// A sunburst: long thin rays fanning flat, yellow at the heart, orange and red at the ends.
+variant Sunburst {
+  size = 0.8
+  cup_inner = 0
+  cup_outer = -5
+  growth = 1.5
+  petal_length = 0.3
+  petal_width = 0.6
+  hue_from = 55
+  hue_span = -55
+  checker = 15
+}
+
+// An ice star: the rings lined up into straight arms, bent back, in pale cyan and blue.
+variant Star {
+  size = 0.74
+  cup_inner = -20
+  cup_outer = -20
+  petal_width = 0.45
+  growth = 1.35
+  spread = 1
+  stagger = 0
+  hue_from = 180
+  hue_span = 60
+  glass_sat = 0.5
+}
+
+// A round window: flat rings of rounded squares in every colour of the rainbow, every other one
+// shifted.
+variant Rose_Window {
+  size = 0.9
+  cup_inner = 0
+  cup_outer = 0
+  petal_width = 1.1
+  spread = 0.95
+  checker = 40
+  hue_from = 200
+  hue_span = 300
+}
