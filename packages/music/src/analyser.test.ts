@@ -55,6 +55,19 @@ describe("MusicAnalyser", () => {
     expect(quiet.music.level).toBeCloseTo(loud.music.level, 1);
   });
 
+  it("keeps the loudness up through a short gap, and lets it fall when the music stops", () => {
+    const a = new MusicAnalyser(RATE);
+    play(a, 2, tone(200, 0.5));
+    expect(a.music.level).toBeGreaterThan(0.9);
+    // The bands drop at once in a 50 ms gap, as between notes; the loudness only dips.
+    play(a, 0.05, () => 0, 2);
+    expect(a.music.mid).toBe(0);
+    expect(a.music.level).toBeGreaterThan(0.5);
+    // A second of silence is the music stopping.
+    play(a, 1, () => 0, 2.05);
+    expect(a.music.level).toBeLessThan(0.01);
+  });
+
   it("jumps on each kick and falls back between them", () => {
     const a = new MusicAnalyser(RATE);
     play(a, 4, kicks(120, 0.8));
