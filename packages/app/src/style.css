@@ -2467,6 +2467,11 @@ dialog.ask input[type="text"]:focus {
   border-color: var(--error);
 }
 
+.ask-buttons button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,12 +1,18 @@
 // The app's own dialogs, in place of the browser's alert, confirm and prompt: they match the page,
 // don't block it, and work in full screen. Each one is a modal <dialog> that's removed when closed.
 
-interface Choice {
+export interface Choice {
   label: string;
   /** The button Enter presses. */
   main?: boolean;
   /** Marks a choice that loses something. */
   danger?: boolean;
+  /**
+   * Work to do before the dialog closes, started by the click itself (so it can open the
+   * browser's own dialogs). Meanwhile the dialog stays open and its buttons can't be pressed;
+   * `busy` changes this button's label to say what's happening.
+   */
+  act?: ((busy: (label: string) => void) => Promise<unknown>) | undefined;
 }
 
 /** What a text field's check says about the text in it. */
@@ -42,6 +48,7 @@ export function choose(message: string, choices: Choice[], field?: Field): Promi
 
   return new Promise((resolve) => {
     let answer = -1;
+    let working = false;
     choices.forEach((c, i) => {
       const b = document.createElement("button");
       b.type = "button";
@@ -49,8 +56,20 @@ export function choose(message: string, choices: Choice[], field?: Field): Promi
       if (c.main) b.classList.add("main");
       if (c.danger) b.classList.add("danger");
       b.addEventListener("click", () => {
+        if (working) return;
         answer = i;
-        dialog.close();
+        if (!c.act) {
+          dialog.close();
+          return;
+        }
+        working = true;
+        for (const other of buttons.children)
+          if (other !== b) (other as HTMLButtonElement).disabled = true;
+        b.setAttribute("aria-busy", "true");
+        void c
+          .act((label) => (b.textContent = label))
+          .catch(() => undefined)
+          .finally(() => dialog.close());
       });
       buttons.append(b);
     });
@@ -72,9 +91,12 @@ export function choose(message: string, choices: Choice[], field?: Field): Promi
       const usable = mainButton !== undefined && !mainButton.disabled;
       if (e.key === "Enter" && usable && !(e.target instanceof HTMLButtonElement)) {
         e.preventDefault();
-        answer = main;
-        dialog.close();
+        mainButton.click();
       }
+    });
+    // Escape can't close it while a button's work is going on.
+    dialog.addEventListener("cancel", (e) => {
+      if (working) e.preventDefault();
     });
     dialog.addEventListener("close", () => {
       dialog.remove();
