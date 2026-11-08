@@ -1358,6 +1358,9 @@ recorder.onReframe = () => {
 recorder.onTick = (seconds) => {
   $("record-label").textContent = `Stop ${minutes(seconds)}`;
 };
+recorder.onPreparing = () => {
+  $("record-label").textContent = "Preparing…";
+};
 $("record-tools").hidden = !canRecord();
 
 /** Whether the music is a file or an address, which can be recorded from start to end. */

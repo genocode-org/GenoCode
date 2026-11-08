@@ -19,8 +19,10 @@
     "@genocode/music": "^0.0.0",
     "@genocode/render": "^0.13.0",
     "@lezer/highlight": "1.2.5",
+    "@mediabunny/aac-encoder": "^1.65.2",
     "blockly": "12.5.1",
-    "codemirror": "6.0.2"
+    "codemirror": "6.0.2",
+    "mediabunny": "^1.65.2"
   },
   "devDependencies": {
     "marked": "18.0.14",
