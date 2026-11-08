@@ -299,7 +299,7 @@ function fillVariantMenu(): void {
     return o;
   };
   variantSelect.replaceChildren(
-    option("", `${current?.program.file.name ?? "The creature"} itself`),
+    option("", `${current?.program.file.name.replace(/_/g, " ") ?? "The creature"} itself`),
     ...variants.map((v) => option(`:${v.name}`, v.name)),
     option(NEW_VARIANT, "New variant…"),
   );
