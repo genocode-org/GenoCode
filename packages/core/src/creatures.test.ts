@@ -31,8 +31,8 @@ describe.each(files)("%s", (file) => {
     }
   });
 
-  // These restretch a band of colours when one of its gaps passes 1, as the originals did.
-  it.skipIf(["Alien.genie", "Picstix.genie", "TwoByTwo.genie"].includes(file))(
+  // This one restretches a band of colours when one of its gaps passes 1, as the original did.
+  it.skipIf(file === "Alien.genie")(
     "keeps its colours from jumping while morphing through its family",
     () => {
       expect(colourJumps(program)).toEqual([]);
