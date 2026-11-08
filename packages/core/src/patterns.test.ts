@@ -339,6 +339,37 @@ describe("the two ways of running per-pixel code", () => {
     expect(message("javascript")[0]).toMatch(/There's no item/);
   });
 
+  it("never turn the code's own text into JavaScript", () => {
+    const g = globalThis as { pwned?: number };
+    delete g.pwned;
+    const tricks = [
+      '"); globalThis.pwned = 1; ("',
+      '\\"); globalThis.pwned = 1; //',
+      "`${globalThis.pwned = 1}`",
+      "\n}; globalThis.pwned = 1; {",
+      "</script><script>globalThis.pwned = 1</script>",
+    ];
+    for (const trick of tricks) {
+      const quoted = JSON.stringify(trick);
+      // Allowed (strings in `print`), and not allowed (strings as values): neither may run it.
+      const texts = [
+        `pattern P\nprint(${quoted})\nvalue picture {\n  print(${quoted})\n  value 1\n}\n`,
+        `pattern P\nlet s = ${quoted}\nvalue picture {\n  let t = ${quoted}\n  value 1\n}\n`,
+      ];
+      for (const text of texts) {
+        const program = check(text);
+        for (const pixels of ["javascript", "closures"] as const) {
+          buildPattern(program, "P", 1, canvas(2), { pixels });
+        }
+      }
+      const fine = check(texts[0]!);
+      expect(fine.diagnostics).toEqual([]);
+      const built = buildPattern(fine, "P", 1, canvas(2), { pixels: "javascript" });
+      expect([...built.picture!.v]).toEqual([1, 1, 1, 1]);
+    }
+    expect(g.pwned).toBeUndefined();
+  });
+
   it("stop a loop that never ends", () => {
     const program = check(
       "pattern P\nvalue picture {\n  while true {\n    let n = 1\n  }\n  value 0\n}\n",
