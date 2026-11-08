@@ -31,15 +31,10 @@ describe.each(files)("%s", (file) => {
     }
   });
 
-  // This one restretches a band of colours when one of its gaps passes 1, as the original did.
-  it.skipIf(file === "Alien.genie")(
-    "keeps its colours from jumping while morphing through its family",
-    () => {
-      expect(colourJumps(program)).toEqual([]);
-    },
-    // Building a creature hundreds of times takes several seconds on a slow machine.
-    60_000,
-  );
+  // Building a creature hundreds of times takes several seconds on a slow machine.
+  it("keeps its colours from jumping while morphing through its family", () => {
+    expect(colourJumps(program)).toEqual([]);
+  }, 60_000);
 });
 
 const danceDir = new URL("../../../dances/", import.meta.url);
