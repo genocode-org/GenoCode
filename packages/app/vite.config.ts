@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,6 +50,33 @@ function blocklyMedia(): Plugin {
           source: readFileSync(join(media, name)),
         });
       }
+    },
+  };
+}
+
+/**
+ * FFmpeg's licence, added to licenses.txt. The AAC encoder (used to make a recorded video's sound
+ * play on phones) is FFmpeg built to WebAssembly, under the LGPL, and its licence sits in a folder
+ * of its package that the licence list doesn't read.
+ */
+function ffmpegLicence(): Plugin {
+  const require = createRequire(import.meta.url);
+  const name = "@mediabunny/aac-encoder";
+  const main = require.resolve(name);
+  const root = main.slice(0, main.indexOf(name) + name.length);
+  const folder = join(root, "licenses", "ffmpeg");
+  return {
+    name: "ffmpeg-licence",
+    apply: "build",
+    // Vite writes licenses.txt after every plugin's generateBundle, so this adds to the written file.
+    writeBundle(options) {
+      const list = join(options.dir ?? "dist", "licenses.txt");
+      if (!existsSync(list)) return;
+      const text = ["LICENSE.md", "COPYING.LGPLv2.1"]
+        .map((name) => readFileSync(join(folder, name), "utf8").trim())
+        .join("\n\n");
+      const head = "## FFmpeg (in @mediabunny/aac-encoder) (LGPL-2.1-or-later)";
+      writeFileSync(list, `${readFileSync(list, "utf8").trimEnd()}\n\n${head}\n\n${text}\n`);
     },
   };
 }
@@ -146,7 +173,7 @@ function site(): Plugin {
 
 export default defineConfig({
   base: "./",
-  plugins: [blocklyMedia(), site(), analytics()],
+  plugins: [blocklyMedia(), site(), analytics(), ffmpegLicence()],
   resolve: {
     // Use the other packages' sources directly, so changes show up without rebuilding them.
     alias: {

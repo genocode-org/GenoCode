@@ -5,6 +5,7 @@
 
 import type { MusicPlayer } from "@genocode/music";
 import type { CreatureView } from "@genocode/render";
+import { aacSound, soundIsAac } from "./aacsound.js";
 import { evenSound } from "./mp4sound.js";
 
 export type VideoShape = "tall" | "square" | "wide";
@@ -27,9 +28,13 @@ const MARK = "genocode.piorek.co.za";
 /** The space round the picture on the stage while recording, in pixels. */
 const GAP = 16;
 
-/** The formats to try, best first: MP4 plays everywhere; Firefox only makes WebM. */
+/**
+ * The formats to try, best first: MP4 plays everywhere; Firefox only makes WebM. A browser that
+ * can't make AAC sound still makes H.264 pictures, and the sound is made AAC afterwards.
+ */
 const FORMATS = [
   "video/mp4;codecs=avc1.640028,mp4a.40.2",
+  "video/mp4;codecs=avc1.640028,opus",
   "video/mp4",
   "video/webm;codecs=vp9,opus",
   "video/webm;codecs=vp8,opus",
@@ -81,6 +86,8 @@ export class VideoRecorder {
   onTick: ((seconds: number) => void) | undefined;
   /** Called when the picture changes shape, so the camera can frame the creature again. */
   onReframe: (() => void) | undefined;
+  /** Called when the video's sound is being made playable on phones, which takes a moment. */
+  onPreparing: (() => void) | undefined;
 
   /**
    * `reserve` gives the space at the bottom of the stage that the tools cover, which the picture
@@ -132,7 +139,7 @@ export class VideoRecorder {
       if (e.data.size > 0) this.chunks.push(e.data);
     });
     const done = new Promise<Video | undefined>((resolve) =>
-      recorder.addEventListener("stop", () => resolve(this.finish(type))),
+      recorder.addEventListener("stop", () => resolve(this.finish(type, options.sound))),
     );
 
     this.stage.classList.add("recording");
@@ -201,7 +208,7 @@ export class VideoRecorder {
   }
 
   /** Puts the stage back as it was, and gathers the video. */
-  private async finish(type: string): Promise<Video | undefined> {
+  private async finish(type: string, sound: boolean): Promise<Video | undefined> {
     const seconds = (performance.now() - this.started) / 1000;
     this.recorder?.stream.getVideoTracks().forEach((t) => t.stop());
     this.recorder = undefined;
@@ -229,6 +236,15 @@ export class VideoRecorder {
         blob = new Blob([even as Uint8Array<ArrayBuffer>], { type: base });
       } catch {
         // A file it can't read is kept as the browser made it.
+      }
+      // Many phones can't play an MP4's sound unless it's AAC.
+      if (sound && !soundIsAac(type)) {
+        this.onPreparing?.();
+        try {
+          blob = (await aacSound(blob)) ?? blob;
+        } catch {
+          // Kept as the browser made it: it still plays on computers.
+        }
       }
     }
     return {
