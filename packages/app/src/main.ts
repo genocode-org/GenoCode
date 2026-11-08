@@ -1092,7 +1092,7 @@ function fillStyleMenu(keep = false): void {
   const before = keep && styleSelect.value !== OWN_STYLE ? styleSelect.value : undefined;
   const own = current?.program.dance !== undefined;
   const options = [
-    ...(own ? [[OWN_STYLE, `Its own (${current!.program.file.name})`]] : []),
+    ...(own ? [[OWN_STYLE, `Its own (${current!.program.file.name.replace(/_/g, " ")})`]] : []),
     ...styleNames.map((n) => [n, n.replace(/_/g, " ")]),
     ...[...yourStyles.keys()].map((k) => [k, `${k.slice(5).replace(/_/g, " ")} (yours)`]),
   ].map(([value, label]) => {
