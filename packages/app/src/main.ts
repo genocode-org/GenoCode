@@ -64,9 +64,17 @@ import {
 import { CreaturePicker, type PickerEntry } from "./picker.js";
 import { canRecord, LONGEST, VideoRecorder, type Video, type VideoShape } from "./recorder.js";
 import { dropdown, Shell, type Mode } from "./shell.js";
+import { canShare, shareWithCommunity } from "./sharing.js";
 
 // The starter creatures in the repository's creatures/ folder.
 const examples = import.meta.glob("../../../creatures/*.genie", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+// The creatures shared by the community, in the repository's community/ folder.
+const communityFiles = import.meta.glob("../../../community/*.genie", {
   query: "?raw",
   import: "default",
   eager: true,
@@ -111,8 +119,9 @@ let mode: Mode = "view";
 /** The turtle's path is drawn over the creature in the View. */
 let showingPath = false;
 
-/** Where the code came from: an example, a creature saved in this browser, or elsewhere. */
-type Source = { kind: "example" | "mine"; name: string } | { kind: "other" };
+/** Where the code came from: a starter, the community, one saved in this browser, or elsewhere. */
+type Source = { kind: Listed; name: string } | { kind: "other" };
+type Listed = "example" | "community" | "mine";
 let source: Source = { kind: "other" };
 /** The text as last opened or saved, to tell whether there are changes to lose. */
 let savedAs = "";
@@ -616,26 +625,35 @@ function showSource(): void {
   showSaved();
   const url = new URL(location.href);
   url.searchParams.delete("example");
+  url.searchParams.delete("community");
   url.searchParams.delete("mine");
   if (source.kind !== "other") url.searchParams.set(source.kind, source.name);
   history.replaceState(null, "", url);
 }
 
-const exampleNames = Object.keys(examples)
-  .map((path) =>
-    path
-      .split("/")
-      .pop()!
-      .replace(/\.genie$/, ""),
-  )
-  .sort();
+/** The files' names without `.genie`, sorted. */
+const namesOf = (files: Record<string, string>) =>
+  Object.keys(files)
+    .map((path) =>
+      path
+        .split("/")
+        .pop()!
+        .replace(/\.genie$/, ""),
+    )
+    .sort();
 
-function exampleText(name: string): string | undefined {
-  const path = Object.keys(examples).find((p) => p.endsWith(`/${name}.genie`));
-  return path ? examples[path] : undefined;
+const exampleNames = namesOf(examples);
+const communityNames = namesOf(communityFiles);
+
+function fileText(files: Record<string, string>, name: string): string | undefined {
+  const path = Object.keys(files).find((p) => p.endsWith(`/${name}.genie`));
+  return path ? files[path] : undefined;
 }
 
-/** What the creature menu offers: those kept in this browser, then the starters. */
+const exampleText = (name: string) => fileText(examples, name);
+const communityText = (name: string) => fileText(communityFiles, name);
+
+/** What the creature menu offers: those kept in this browser, the starters, then the community's. */
 function pickerEntries(): PickerEntry[] {
   const mine = savedNames().map((name) => {
     const text = savedText(name)!;
@@ -645,7 +663,11 @@ function pickerEntries(): PickerEntry[] {
     const text = exampleText(name)!;
     return { kind: "example" as const, name, text, what: kindOf(text) };
   });
-  return [...mine, ...starters];
+  const shared = communityNames.map((name) => {
+    const text = communityText(name)!;
+    return { kind: "community" as const, name, text, what: kindOf(text) };
+  });
+  return [...mine, ...starters, ...shared];
 }
 
 const picker = new CreaturePicker({
@@ -654,15 +676,20 @@ const picker = new CreaturePicker({
   library: () => setMode("library"),
 });
 
-function openListed(kind: "example" | "mine", name: string): boolean {
-  const text = kind === "example" ? exampleText(name) : savedText(name);
+function openListed(kind: Listed, name: string): boolean {
+  const text =
+    kind === "example"
+      ? exampleText(name)
+      : kind === "community"
+        ? communityText(name)
+        : savedText(name);
   if (text === undefined) return false;
   load(text, { kind, name });
   return true;
 }
 
 /** Opens a creature picked from the menu, unless that would lose changes. */
-async function openPicked(kind: "example" | "mine", name: string): Promise<void> {
+async function openPicked(kind: Listed, name: string): Promise<void> {
   if (await mayDiscard()) openListed(kind, name);
 }
 
@@ -976,9 +1003,11 @@ const library = new LibraryView(librarySection, {
     if (!(await mayDiscard())) return;
     const from: Source = entry.yours
       ? { kind: "mine", name: entry.name }
-      : entry.kind === "creature"
-        ? { kind: "example", name: entry.name }
-        : { kind: "other" };
+      : entry.community
+        ? { kind: "community", name: entry.name }
+        : entry.kind === "creature"
+          ? { kind: "example", name: entry.name }
+          : { kind: "other" };
     load(entry.text, from);
     setMode("view");
   },
@@ -1022,6 +1051,10 @@ function libraryEntries(): LibraryEntry[] {
     const text = exampleText(name)!;
     return { kind: kindOf(text), name, text, yours: false };
   });
+  const shared = communityNames.map((name) => {
+    const text = communityText(name)!;
+    return { kind: kindOf(text), name, text, yours: false, community: true };
+  });
   const styles = Object.entries(danceFiles)
     .map(([path, text]) => ({
       kind: "dance" as const,
@@ -1041,7 +1074,7 @@ function libraryEntries(): LibraryEntry[] {
       yours: false,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  return [...yours, ...starters, ...patterns, ...styles];
+  return [...yours, ...starters, ...shared, ...patterns, ...styles];
 }
 
 // ---------- dancing ----------
@@ -1514,6 +1547,23 @@ $("save").addEventListener("click", async () => {
   showSource();
 });
 
+// Sharing needs the share relay, which only the website's build is given.
+$("share").hidden = !canShare();
+$("share").addEventListener("click", async () => {
+  const program = checkText(editor.text);
+  if (program.file.kind !== "creature") {
+    await tell(
+      "Only creatures can be shared with the community, not backgrounds, patterns or dances.",
+    );
+    return;
+  }
+  if (!program.ok) {
+    await tell("This creature has problems in its code. Fix them first, then share it.");
+    return;
+  }
+  await shareWithCommunity(program.file.name, editor.text);
+});
+
 $("delete").addEventListener("click", async () => {
   if (source.kind !== "mine") return;
   if (!(await ask(`Delete ${source.name} from this browser?`, "Delete", { danger: true }))) return;
@@ -1837,8 +1887,13 @@ window.addEventListener("keydown", (e) => {
 const params = new URL(location.href).searchParams;
 const mine = params.get("mine");
 const example = params.get("example");
+const shared = params.get("community");
 // Without one asked for in the address, the app opens with Geno, the logo come to life.
-if (!(mine && openListed("mine", mine)) && !(example && openListed("example", example))) {
+if (
+  !(mine && openListed("mine", mine)) &&
+  !(example && openListed("example", example)) &&
+  !(shared && openListed("community", shared))
+) {
   if (!openListed("example", "Geno")) openListed("example", exampleNames[0] ?? "");
 }
 setMode("view");

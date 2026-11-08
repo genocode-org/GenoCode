@@ -5,8 +5,8 @@ import { dropdown } from "./shell.js";
 import { drawPicturesIn, pictureOf } from "./pictures.js";
 
 export interface PickerEntry {
-  /** `mine` for one kept in this browser, `example` for a starter. */
-  kind: "mine" | "example";
+  /** `mine` for one kept in this browser, `example` for a starter, `community` for a shared one. */
+  kind: "mine" | "example" | "community";
   name: string;
   text: string;
   /** What it is, when it isn't a creature: background, pattern or dance. */
@@ -45,6 +45,7 @@ export class CreaturePicker {
     const entries = this.actions.entries();
     const yours = entries.filter((e) => e.kind === "mine");
     const starters = entries.filter((e) => e.kind === "example");
+    const shared = entries.filter((e) => e.kind === "community");
     const head = (text: string) => {
       const h = document.createElement("div");
       h.className = "menu-head";
@@ -90,6 +91,7 @@ export class CreaturePicker {
       ...(yours.length > 0 ? [head("Yours"), grid(yours)] : []),
       head("Starter creatures"),
       grid(starters),
+      ...(shared.length > 0 ? [head("Shared by the community"), grid(shared)] : []),
       document.createElement("hr"),
       library,
     );
