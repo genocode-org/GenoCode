@@ -151,10 +151,28 @@ export function creditLine(share: Share, issueUrl: string): string {
   return `// Shared by ${share.author} under ${LICENCE} (${LICENCE_URL}): ${issueUrl}`;
 }
 
-/** The creature's file text once approved: the credit line, then its code. */
+/** The creature's file text once approved: the credit line and what the sharer said, then its code. */
 export function approvedText(share: Share, issueUrl: string): string {
   const code = share.code.endsWith("\n") ? share.code : `${share.code}\n`;
-  return `${creditLine(share, issueUrl)}\n${code}`;
+  const about = share.description.replace(/\s+/g, " ").trim();
+  return `${creditLine(share, issueUrl)}\n${about ? `// About it: ${about}\n` : ""}${code}`;
+}
+
+export interface Credit {
+  author: string;
+  /** The issue it was shared in. */
+  url: string;
+  /** What the sharer said about it, if anything. */
+  about: string;
+}
+
+/** Who shared an approved creature, read back from the lines `approvedText` put above its code. */
+export function readCredit(text: string): Credit | undefined {
+  const lines = text.split("\n");
+  const m = lines[0]?.match(/^\/\/ Shared by (.+) under CC BY 4\.0 \([^)]*\): (https:\/\/\S+)$/);
+  if (!m) return undefined;
+  const about = lines[1]?.match(/^\/\/ About it: (.*)$/)?.[1] ?? "";
+  return { author: m[1]!, url: m[2]!, about };
 }
 
 /** The file name for a creature called `name`, not one of `taken` (names without `.genie`). */

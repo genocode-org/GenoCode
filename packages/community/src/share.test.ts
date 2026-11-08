@@ -5,6 +5,7 @@ import {
   issueBody,
   LIMITS,
   problems,
+  readCredit,
   readIssue,
   type Share,
 } from "./share.js";
@@ -63,6 +64,15 @@ describe("the approved file", () => {
       "// Shared by Sam under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/o/r/issues/7",
     );
     expect(text.endsWith("ball()\n")).toBe(true);
+  });
+
+  it("says what the sharer said about it, and gives both back", () => {
+    const url = "https://github.com/o/r/issues/7";
+    const text = approvedText({ ...share, description: "A worm.\nIt dances." }, url);
+    expect(text.split("\n")[1]).toBe("// About it: A worm. It dances.");
+    expect(readCredit(text)).toEqual({ author: "Sam", url, about: "A worm. It dances." });
+    expect(readCredit(approvedText({ ...share, description: "" }, url))?.about).toBe("");
+    expect(readCredit(share.code)).toBeUndefined();
   });
 
   it("gets a name of its own", () => {

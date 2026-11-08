@@ -39,6 +39,12 @@ describe("the website", () => {
     for (const f of names) expect(paths).toContain(`creatures/${f.replace(/\.genie$/, ".html")}`);
   });
 
+  it("has the community's page, and a page for every creature shared with it", () => {
+    expect(paths).toContain("community/index.html");
+    const names = readdirSync(new URL("../../community/", app)).filter((f) => f.endsWith(".genie"));
+    for (const f of names) expect(paths).toContain(`community/${f.replace(/\.genie$/, ".html")}`);
+  });
+
   it("links only to what it publishes", () => {
     const broken: string[] = [];
     for (const page of pages) {

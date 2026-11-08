@@ -121,11 +121,15 @@ export function shell(page: {
     ["docs/language.html", "The language"],
     ["docs/reference.html", "Reference"],
     ["creatures/index.html", "Creatures"],
+    ["community/index.html", "Community"],
   ];
   const nav = links
     .map(([to, text]) => {
       const here =
-        to === page.path || (to === "creatures/index.html" && page.path.startsWith("creatures/"));
+        to === page.path ||
+        // A gallery's own creature pages are part of it.
+        ((to === "creatures/index.html" || to === "community/index.html") &&
+          page.path.startsWith(to.replace(/index\.html$/, "")));
       return `<a href="${up}${to.replace(/index\.html$/, "")}"${here ? ' aria-current="page"' : ""}>${text}</a>`;
     })
     .join("");
