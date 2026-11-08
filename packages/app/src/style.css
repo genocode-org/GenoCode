@@ -8,7 +8,8 @@
   --surface: #0d111c;
   --panel: #10141f;
   --raised: #171c2b;
-  --glass: rgb(20 25 40 / 0.74);
+  --glass: rgb(20 25 40 / 0.9);
+  --glass-solid: rgb(20 25 40 / 0.97);
   --line: rgb(255 255 255 / 0.08);
   --line-strong: rgb(255 255 255 / 0.15);
   --text: #e6eaf4;
@@ -166,6 +167,12 @@ select optgroup {
   box-shadow:
     0 12px 40px rgb(0 0 0 / 0.45),
     inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Menus hold text to read, and inside a bar their blur can't reach the creature, so they are
+   almost solid. */
+.menu.glass {
+  background: var(--glass-solid);
 }
 
 /* ---------- buttons ---------- */
