@@ -149,8 +149,9 @@ inside unclosed `(` `)` or `[` `]`, or ends with an operator, a comma, `..` or `
 hold braces, so a `{` or `}` ends any brackets left open before it. Blocks are
 written with `{` `}`. An opening `{` must be on the same line as the statement it belongs to.
 
-**Spaces** between things on a line don't matter: `gene hue = 200` and `gene hue    = 200` are the
-same. Code the tools write or change, and code pasted into the app, has one space between things.
+**Spaces** between things on a line don't matter: `gene hue = 200` and `gene hue    = 200` mean the
+same. Where GenoCode writes code itself (formatting, the gene sliders, pasting into the app), it puts
+one space between things; spaces you type stay as you typed them.
 
 **Comments** are `//` to the end of the line, or `/* … */`, which may span lines but doesn't nest.
 A `//` comment at the end of a `gene` line is that gene's **description**.
