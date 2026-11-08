@@ -40,7 +40,7 @@ part frond {
         pitch turn.x * wave(turn_waves.x * (along - turn_start.x))
         yaw turn.y * wave(turn_waves.y * (along - turn_start.y))
         roll turn.z * wave(turn_waves.z * (along - turn_start.z))
-        colour hsv(hue + hue_spread * abs(place.y / reach.y), saturation, 1 - fade * abs(place.z / reach.z))
+        colour hsv(hue + hue_spread * abs(place.y / reach.y), 0.35 + 0.65 * saturation, 1 - 0.45 * fade * abs(place.z / reach.z))
         lay
       }
     }
