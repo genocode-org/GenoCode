@@ -1,0 +1,22 @@
+{
+  "name": "@genocode/community",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sharing creatures with the GenoCode community: the share format, the relay that files them and the checks run on them.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/share.d.ts",
+      "default": "./dist/share.js"
+    },
+    "./png": {
+      "types": "./dist/png.d.ts",
+      "default": "./dist/png.js"
+    }
+  },
+  "dependencies": {
+    "@genocode/core": "^0.11.0",
+    "@genocode/render": "^0.13.0"
+  }
+}

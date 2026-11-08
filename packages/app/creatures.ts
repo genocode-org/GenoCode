@@ -15,8 +15,8 @@ import {
   type CheckResult,
   type Value,
 } from "@genocode/core";
+import { encodePng } from "@genocode/community/png";
 import { rasterize } from "@genocode/render";
-import { encodePng } from "./png.js";
 import { escape, shell, type SiteFile } from "./site.js";
 
 const folder = new URL("../../creatures/", import.meta.url);

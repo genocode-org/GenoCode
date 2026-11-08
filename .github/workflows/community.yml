@@ -1,0 +1,105 @@
+# Creatures shared from the app arrive as issues labelled `community` (filed by the share relay,
+# packages/community/src/relay.ts). This checks each one and comments a picture of it. When a
+# maintainer adds the label `approved`, it opens a pull request adding the creature to community/.
+#
+# The issue's text is untrusted: it reaches the scripts only through environment variables, never
+# inside a `run:` line, and the creature's code is only ever run by the GenoCode interpreter.
+name: Community
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions: {}
+
+concurrency:
+  group: community-${{ github.event.issue.number }}
+
+jobs:
+  review:
+    if: >-
+      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'community'))
+      || (github.event.action == 'labeled' && github.event.label.name == 'community')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the pictures branch
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run prepare -w @genocode/core && npx tsc -b packages/community
+      - name: Check the creature
+        run: node packages/community/dist/cli.js review "$RUNNER_TEMP/review"
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          PICTURE_URL: https://raw.githubusercontent.com/${{ github.repository }}/community-pictures/${{ github.event.issue.number }}.png
+      - name: Put its picture on the pictures branch
+        if: hashFiles(format('{0}/review/picture.png', runner.temp)) != ''
+        run: |
+          cd "$RUNNER_TEMP"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if ! git clone --quiet --depth 1 --branch community-pictures "$remote" pictures; then
+            git init --quiet -b community-pictures pictures
+            git -C pictures remote add origin "$remote"
+          fi
+          cp review/picture.png "pictures/${NUMBER}.png"
+          cd pictures
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${NUMBER}.png"
+          git commit --quiet -m "Picture of the creature in #${NUMBER}"
+          git push --quiet origin community-pictures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+      - name: Comment on the issue
+        run: gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/review/comment.md"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+
+  approve:
+    if: >-
+      github.event.action == 'labeled' && github.event.label.name == 'approved'
+      && contains(github.event.issue.labels.*.name, 'community')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # to start CI on the new pull request
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run prepare -w @genocode/core && npx tsc -b packages/community
+      - name: Add the creature on a new branch and open a pull request
+        run: |
+          file=$(node packages/community/dist/cli.js approve)
+          branch="community/issue-${NUMBER}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --quiet -c "$branch"
+          git add "$file"
+          git commit --quiet -m "Add $(basename "$file" .genie) to the community gallery (#${NUMBER})"
+          git push --quiet --force origin "$branch"
+          url=$(gh pr create --head "$branch" --base main \
+            --title "Add $(basename "$file" .genie) to the community gallery" \
+            --body "Adds \`$file\`, shared from the app and approved in #${NUMBER}. Closes #${NUMBER}.")
+          # Pull requests opened with this token don't start CI by themselves, so start it.
+          gh workflow run ci.yml --ref "$branch"
+          gh issue comment "$NUMBER" --body "Approved: $url"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          NUMBER: ${{ github.event.issue.number }}

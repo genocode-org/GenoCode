@@ -10,5 +10,5 @@
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },
-  "include": ["src", "vite.config.ts", "docs.ts", "site.ts", "creatures.ts", "png.ts"]
+  "include": ["src", "vite.config.ts", "docs.ts", "site.ts", "creatures.ts"]
 }
