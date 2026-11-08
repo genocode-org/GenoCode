@@ -663,12 +663,17 @@ type SaveWindow = Window & {
   }>;
 };
 
-/** Saves a file: with the browser's save dialog where there is one, or else as a download. */
+/**
+ * Saves a file: with the browser's save dialog where there is one, or else as a download. `make`,
+ * when given, gives the file to save in place of `blob`, once the place to save it is known: the
+ * dialog has to open straight after a click, before any slow work.
+ */
 export async function saveBlob(
   blob: Blob,
   name: string,
   description: string,
   ext: string,
+  make?: () => Promise<Blob>,
 ): Promise<void> {
   const picker = (window as SaveWindow).showSaveFilePicker;
   if (picker) {
@@ -677,8 +682,9 @@ export async function saveBlob(
         suggestedName: name,
         types: [{ description, accept: { [blob.type]: [ext] } }],
       });
+      const data = make ? await make() : blob;
       const out = await handle.createWritable();
-      await out.write(blob);
+      await out.write(data);
       await out.close();
     } catch {
       // The dialog was closed.
@@ -686,7 +692,7 @@ export async function saveBlob(
     return;
   }
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
+  link.href = URL.createObjectURL(make ? await make() : blob);
   link.download = name;
   link.click();
   URL.revokeObjectURL(link.href);
