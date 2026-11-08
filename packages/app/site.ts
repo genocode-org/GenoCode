@@ -82,6 +82,8 @@ footer { border-top: 1px solid var(--line); padding: 12px 16px 24px; text-align:
 a { color: #6bc8f2; }
 img { max-width: 100%; height: auto; }
 code { font-family: ui-monospace, monospace; font-size: 0.92em; color: #f2a66b; }
+/* Spaces in code show as typed (an example may be about them), and long code still wraps. */
+:not(pre) > code { white-space: break-spaces; }
 pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px;
   overflow-x: auto; }
 pre code { color: var(--text); }
