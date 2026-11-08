@@ -1358,9 +1358,6 @@ recorder.onReframe = () => {
 recorder.onTick = (seconds) => {
   $("record-label").textContent = `Stop ${minutes(seconds)}`;
 };
-recorder.onPreparing = () => {
-  $("record-label").textContent = "Preparing…";
-};
 $("record-tools").hidden = !canRecord();
 
 /** Whether the music is a file or an address, which can be recorded from start to end. */
@@ -1419,15 +1416,41 @@ async function keepVideo(video: Video, name: string): Promise<void> {
     { label: "Save…", main: true },
   ]);
   if (choice <= 0) return;
+  // Makes the sound playable on phones, if it needs it, only now that the video is kept.
+  const prepare = video.prepare && preparing(video.prepare);
   if (share && choice === 1) {
+    let shared = file;
+    if (prepare) {
+      shared = new File([await prepare()], file.name, { type: file.type });
+      // The share sheet only opens straight after a tap, and preparing took a moment.
+      const go = await choose("Your video is ready to share.", [
+        { label: "Cancel" },
+        { label: "Share…", main: true },
+      ]);
+      if (go !== 1) return;
+    }
     try {
-      await navigator.share({ files: [file], title: name.replace(/_/g, " ") });
+      await navigator.share({ files: [shared], title: name.replace(/_/g, " ") });
     } catch {
       // The share sheet was closed.
     }
     return;
   }
-  await saveBlob(video.blob, file.name, "Videos", video.ext);
+  await saveBlob(video.blob, file.name, "Videos", video.ext, prepare);
+}
+
+/** Runs `make`, with the Video button saying so while it does. */
+function preparing(make: () => Promise<Blob>): () => Promise<Blob> {
+  return async () => {
+    const label = $("record-label");
+    const before = label.textContent;
+    label.textContent = "Preparing…";
+    try {
+      return await make();
+    } finally {
+      label.textContent = before;
+    }
+  };
 }
 
 // ---------- saving ----------

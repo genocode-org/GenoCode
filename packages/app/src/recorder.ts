@@ -46,6 +46,11 @@ export interface Video {
   /** The file name's ending: `.mp4` or `.webm`. */
   ext: string;
   seconds: number;
+  /**
+   * Gives the video with its sound made playable on phones, when the browser couldn't record it
+   * that way. It takes a moment, so it's only done when the video is kept.
+   */
+  prepare?: (() => Promise<Blob>) | undefined;
 }
 
 export interface RecordOptions {
@@ -86,8 +91,6 @@ export class VideoRecorder {
   onTick: ((seconds: number) => void) | undefined;
   /** Called when the picture changes shape, so the camera can frame the creature again. */
   onReframe: (() => void) | undefined;
-  /** Called when the video's sound is being made playable on phones, which takes a moment. */
-  onPreparing: (() => void) | undefined;
 
   /**
    * `reserve` gives the space at the bottom of the stage that the tools cover, which the picture
@@ -237,20 +240,14 @@ export class VideoRecorder {
       } catch {
         // A file it can't read is kept as the browser made it.
       }
-      // Many phones can't play an MP4's sound unless it's AAC.
-      if (sound && !soundIsAac(type)) {
-        this.onPreparing?.();
-        try {
-          blob = (await aacSound(blob)) ?? blob;
-        } catch {
-          // Kept as the browser made it: it still plays on computers.
-        }
-      }
     }
-    return {
-      blob,
-      ext: base === "video/mp4" ? ".mp4" : ".webm",
-      seconds,
-    };
+    // Many phones can't play an MP4's sound unless it's AAC. If making it fails, the video is
+    // kept as the browser made it: it still plays on computers.
+    const made = blob;
+    const prepare =
+      base === "video/mp4" && sound && !soundIsAac(type)
+        ? async () => (await aacSound(made).catch(() => undefined)) ?? made
+        : undefined;
+    return { blob, ext: base === "video/mp4" ? ".mp4" : ".webm", seconds, prepare };
   }
 }
