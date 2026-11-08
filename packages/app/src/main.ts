@@ -39,7 +39,7 @@ import {
 } from "./creature.js";
 import { DanceFloor, type DanceFrame } from "./dance.js";
 import { RecentSongs, songLabel } from "./recent.js";
-import { ask, askText, choose, tell } from "./dialog.js";
+import { ask, askText, choose, tell, type Choice } from "./dialog.js";
 import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
 import { kindOf, LibraryView, type LibraryEntry } from "./libraryview.js";
@@ -1410,47 +1410,49 @@ async function keepVideo(video: Video, name: string): Promise<void> {
   const file = new File([video.blob], `${name}${video.ext}`, { type: video.blob.type });
   const share = navigator.canShare?.({ files: [file] }) ?? false;
   const size = `${Math.max(1, Math.round(video.blob.size / 1e6))} MB`;
-  const choice = await choose(`Your video is ready: ${minutes(video.seconds)}, ${size}.`, [
-    { label: "Throw away", danger: true },
-    ...(share ? [{ label: "Share…" }] : []),
-    { label: "Save…", main: true },
-  ]);
-  if (choice <= 0) return;
-  // Makes the sound playable on phones, if it needs it, only now that the video is kept.
-  const prepare = video.prepare && preparing(video.prepare);
-  if (share && choice === 1) {
-    let shared = file;
-    if (prepare) {
-      shared = new File([await prepare()], file.name, { type: file.type });
-      // The share sheet only opens straight after a tap, and preparing took a moment.
-      const go = await choose("Your video is ready to share.", [
-        { label: "Cancel" },
-        { label: "Share…", main: true },
-      ]);
-      if (go !== 1) return;
-    }
-    try {
-      await navigator.share({ files: [shared], title: name.replace(/_/g, " ") });
-    } catch {
-      // The share sheet was closed.
-    }
-    return;
+  // The sound is made playable on phones, if it needs it, only once the video is kept: the popup
+  // stays open meanwhile, with the button saying so.
+  const { prepare } = video;
+  const preparing = prepare
+    ? (busy: (label: string) => void) => {
+        busy("Preparing…");
+        return prepare();
+      }
+    : undefined;
+  let shared: File | undefined;
+  const choices: Choice[] = [{ label: "Throw away", danger: true }];
+  if (share) {
+    choices.push({
+      label: "Share…",
+      act: preparing
+        ? async (busy) => {
+            shared = new File([await preparing(busy)], file.name, { type: file.type });
+          }
+        : undefined,
+    });
   }
-  await saveBlob(video.blob, file.name, "Videos", video.ext, prepare);
-}
-
-/** Runs `make`, with the Video button saying so while it does. */
-function preparing(make: () => Promise<Blob>): () => Promise<Blob> {
-  return async () => {
-    const label = $("record-label");
-    const before = label.textContent;
-    label.textContent = "Preparing…";
-    try {
-      return await make();
-    } finally {
-      label.textContent = before;
-    }
-  };
+  choices.push({
+    label: "Save…",
+    main: true,
+    // The save dialog opens straight after the click; preparing waits until it's answered.
+    act: (busy) =>
+      saveBlob(video.blob, file.name, "Videos", video.ext, preparing && (() => preparing(busy))),
+  });
+  const choice = await choose(`Your video is ready: ${minutes(video.seconds)}, ${size}.`, choices);
+  if (!share || choice !== 1) return;
+  if (shared) {
+    // The share sheet only opens straight after a tap, and preparing took a moment.
+    const go = await choose("Your video is ready to share.", [
+      { label: "Cancel" },
+      { label: "Share…", main: true },
+    ]);
+    if (go !== 1) return;
+  }
+  try {
+    await navigator.share({ files: [shared ?? file], title: name.replace(/_/g, " ") });
+  } catch {
+    // The share sheet was closed.
+  }
 }
 
 // ---------- saving ----------
