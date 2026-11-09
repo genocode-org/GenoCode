@@ -71,7 +71,6 @@ jobs:
       && contains(github.event.issue.labels.*.name, 'community')
     runs-on: ubuntu-latest
     permissions:
-      actions: write # to start CI on the new pull request
       contents: write
       issues: write
       pull-requests: write
@@ -96,8 +95,6 @@ jobs:
           url=$(gh pr create --head "$branch" --base main \
             --title "Add $(basename "$file" .genie) to the community gallery" \
             --body "Adds \`$file\`, shared from the app and approved in #${NUMBER}. Closes #${NUMBER}.")
-          # Pull requests opened with this token don't start CI by themselves, so start it.
-          gh workflow run ci.yml --ref "$branch"
           gh issue comment "$NUMBER" --body "Approved: $url"
         env:
           GH_TOKEN: ${{ github.token }}

@@ -11,7 +11,8 @@ creatures.
 2. It arrives as an issue labelled `community`. A check runs on it and comments a picture of it,
    and anything wrong with its code.
 3. A maintainer looks at it and adds the label `approved`, which opens a pull request adding it
-   here. Merging the pull request puts it on the website.
+   here. GitHub asks a maintainer to approve that pull request's checks ("Approve workflows to
+   run"), as it was opened by a bot. Merging it puts the creature on the website.
 
 ## What gets approved
 
