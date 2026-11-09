@@ -1,5 +1,6 @@
-// A page for each starter creature, and one listing them all: its picture, its family of
-// variants, its genes and its code, with a link that opens it in the app. Pictures are drawn by
+// A page for each creature, and one listing them all: its picture, its family of variants, its
+// genes and its code, with a link that opens it in the app. The starter creatures and those the
+// community shared each get such a gallery. Pictures are drawn by
 // the software renderer when the website is built, so they always match the creatures.
 
 import { createHash } from "node:crypto";
@@ -15,33 +16,57 @@ import {
   type CheckResult,
   type Value,
 } from "@genocode/core";
+import { LICENCE, LICENCE_URL, readCredit, type Credit } from "@genocode/community";
+import { encodePng } from "@genocode/community/png";
 import { rasterize } from "@genocode/render";
-import { encodePng } from "./png.js";
 import { escape, shell, type SiteFile } from "./site.js";
 
-const folder = new URL("../../creatures/", import.meta.url);
+/** A gallery: where its files are, and where its pages go. */
+interface Shelf {
+  /** The folder in the repository, and in the website. */
+  dir: "creatures" | "community";
+  /** What the app's address takes to open one, as in `?example=Geno`. */
+  open: "example" | "community";
+  heading: string;
+}
+
+const STARTERS: Shelf = { dir: "creatures", open: "example", heading: "Creatures" };
+const COMMUNITY: Shelf = { dir: "community", open: "community", heading: "Community" };
 
 /** The picture sizes: the creature's own, and each of its variants'. */
 const BIG = 480;
 const SMALL = 200;
 
 interface Creature {
-  /** The file's name without `.genie`, as the app's `?example=` takes it. */
+  /** The file's name without `.genie`, as the app's `?example=` or `?community=` takes it. */
   name: string;
+  shelf: Shelf;
+  /** Who shared it, for the community's creatures. */
+  credit?: Credit;
   text: string;
   program: CheckResult;
   about: string;
 }
 
-function creatures(): Creature[] {
+function creatures(shelf: Shelf): Creature[] {
+  const folder = new URL(`../../${shelf.dir}/`, import.meta.url);
   return readdirSync(folder)
     .filter((f) => f.endsWith(".genie"))
     .sort()
     .map((f) => {
       const text = readFileSync(new URL(f, folder), "utf8");
       const program = check(text);
-      const about = program.file.description.map((c) => c.text.replace(/^\/\/\s?/, "")).join(" ");
-      return { name: f.replace(/\.genie$/, ""), text, program, about };
+      const credit = shelf === COMMUNITY ? readCredit(text) : undefined;
+      const own = program.file.description.map((c) => c.text.replace(/^\/\/\s?/, "")).join(" ");
+      const about = own || credit?.about || "";
+      return {
+        name: f.replace(/\.genie$/, ""),
+        shelf,
+        text,
+        program,
+        about,
+        ...(credit ? { credit } : {}),
+      };
     });
 }
 
@@ -182,42 +207,50 @@ ${p.genes
   const i = all.indexOf(c);
   const before = all[(i + all.length - 1) % all.length]!;
   const after = all[(i + 1) % all.length]!;
-  const body = `<p class="crumbs"><a href="./">Creatures</a> › ${escape(c.name)}</p>
+  const byline = c.credit
+    ? `<p class="muted">Shared by ${escape(c.credit.author)} under <a href="${LICENCE_URL}">${LICENCE}</a> · <a href="${escape(c.credit.url)}">where it was shared</a></p>`
+    : "";
+  const body = `<p class="crumbs"><a href="./">${c.shelf.heading}</a> › ${escape(c.name)}</p>
 <section class="intro">
 <img src="pictures/${fileName(c.name)}.png" width="${BIG}" height="${BIG}" alt="${escape(`${c.name}: ${c.about}`)}">
 <div>
 <h1>${escape(c.name)}</h1>
+${byline}
 <p>${escape(c.about)}</p>
 <p class="muted">${escape(facts.join(" · "))}</p>
-<p class="actions"><a class="button primary" href="../app/?example=${encodeURIComponent(c.name)}">Open in GenoCode</a><a class="button" href="${encodeURIComponent(c.name)}.genie" download>Download ${escape(c.name)}.genie</a></p>
+<p class="actions"><a class="button primary" href="../app/?${c.shelf.open}=${encodeURIComponent(c.name)}">Open in GenoCode</a><a class="button" href="${encodeURIComponent(c.name)}.genie" download>Download ${escape(c.name)}.genie</a></p>
 </div>
 </section>
 ${family}
 ${genes}
 <h2>The code</h2>
 <pre><code>${highlight(c.text)}</code></pre>
-<p class="others"><a href="${encodeURIComponent(before.name)}.html">← ${escape(before.name)}</a><a href="./">All creatures</a><a href="${encodeURIComponent(after.name)}.html">${escape(after.name)} →</a></p>`;
+<p class="others"><a href="${encodeURIComponent(before.name)}.html">← ${escape(before.name)}</a><a href="./">${c.shelf === COMMUNITY ? "All the community's creatures" : "All creatures"}</a><a href="${encodeURIComponent(after.name)}.html">${escape(after.name)} →</a></p>`;
   return shell({
-    path: `creatures/${c.name}.html`,
-    title: `${c.name} – a GenoCode creature`,
-    description: short(c.about),
-    image: `creatures/pictures/${fileName(c.name)}.png`,
+    path: `${c.shelf.dir}/${c.name}.html`,
+    title: c.credit
+      ? `${c.name} by ${c.credit.author} – a GenoCode creature`
+      : `${c.name} – a GenoCode creature`,
+    description: short(
+      c.about || `A GenoCode creature shared by ${c.credit?.author ?? "the community"}.`,
+    ),
+    image: `${c.shelf.dir}/pictures/${fileName(c.name)}.png`,
     head: STYLE,
     wide: true,
     body,
   });
 }
 
+function card(c: Creature): string {
+  const by = c.credit ? `<p class="muted">by ${escape(c.credit.author)}</p>` : "";
+  return `<a class="card" href="${encodeURIComponent(c.name)}.html"><img src="pictures/${fileName(c.name)}.png" width="${BIG}" height="${BIG}" loading="lazy" alt=""><div><h2>${escape(c.name)}</h2>${by}<p>${escape(short(c.about, 120))}</p></div></a>`;
+}
+
 function listPage(all: Creature[]): string {
   const body = `<h1>Creatures</h1>
-<p>The creatures that come with GenoCode. Each one is a short program you can open in the app, read, change and breed. Many are rewritten from DancerDNA's creatures and name the one they were inspired by.</p>
+<p>The creatures that come with GenoCode. Each one is a short program you can open in the app, read, change and breed. Many are rewritten from DancerDNA's creatures and name the one they were inspired by. More are shared by people in <a href="../community/">the community</a>.</p>
 <div class="cards">
-${all
-  .map(
-    (c) =>
-      `<a class="card" href="${encodeURIComponent(c.name)}.html"><img src="pictures/${fileName(c.name)}.png" width="${BIG}" height="${BIG}" loading="lazy" alt=""><div><h2>${escape(c.name)}</h2><p>${escape(short(c.about, 120))}</p></div></a>`,
-  )
-  .join("\n")}
+${all.map(card).join("\n")}
 </div>`;
   return shell({
     path: "creatures/index.html",
@@ -229,29 +262,56 @@ ${all
   });
 }
 
+function communityPage(all: Creature[]): string {
+  const how = `<p>To share one of yours, open it in <a href="../app/">the app</a> and choose <strong>Share with the community</strong>. Each creature is looked at before it appears here. Creatures here are shared under <a href="${LICENCE_URL}">${LICENCE}</a>: you may use and change them, as long as you credit whoever made them.</p>`;
+  const cards = all.length
+    ? `<div class="cards">
+${all.map(card).join("\n")}
+</div>`
+    : `<p class="muted">Nothing has been shared yet. Yours could be the first.</p>`;
+  const body = `<h1>Community</h1>
+<p>Creatures made and shared by people who use GenoCode. Open any of them in the app to read its code, change it, breed it or watch it dance.</p>
+${how}
+${cards}`;
+  return shell({
+    path: "community/index.html",
+    title: "Community creatures · GenoCode",
+    description:
+      "Creatures shared by the GenoCode community, each with its picture, its genes and its code, ready to open, breed and dance.",
+    head: STYLE,
+    wide: true,
+    body,
+  });
+}
+
 /** The creature pages, their pictures and their files. */
 export function creatureFiles(): SiteFile[] {
-  const all = creatures().filter((c) => c.program.ok && c.program.file.kind === "creature");
+  return [...shelfFiles(STARTERS, listPage), ...shelfFiles(COMMUNITY, communityPage)];
+}
+
+function shelfFiles(shelf: Shelf, list: (all: Creature[]) => string): SiteFile[] {
+  const all = creatures(shelf).filter((c) => c.program.ok && c.program.file.kind === "creature");
   const html = "text/html; charset=utf-8";
+  const dir = shelf.dir;
   const files: SiteFile[] = [
-    { path: "creatures/index.html", type: html, source: "creatures", make: () => listPage(all) },
+    { path: `${dir}/index.html`, type: html, source: dir, make: () => list(all) },
   ];
   for (const c of all) {
     files.push(
       {
-        path: `creatures/${c.name}.html`,
+        path: `${dir}/${c.name}.html`,
         type: html,
-        source: `creatures/${c.name}.genie`,
+        source: `${dir}/${c.name}.genie`,
         make: () => creaturePage(c, all),
       },
-      { path: `creatures/${c.name}.genie`, type: "text/plain; charset=utf-8", make: () => c.text },
+      { path: `${dir}/${c.name}.genie`, type: "text/plain; charset=utf-8", make: () => c.text },
       {
-        path: `creatures/pictures/${fileName(c.name)}.png`,
+        path: `${dir}/pictures/${fileName(c.name)}.png`,
         type: "image/png",
         make: () => picture(c, BIG),
       },
       ...c.program.variants.map((v) => ({
-        path: `creatures/pictures/${fileName(c.name)}/${fileName(v.name)}.png`,
+        path: `${dir}/pictures/${fileName(c.name)}/${fileName(v.name)}.png`,
         type: "image/png",
         make: () => picture(c, SMALL, v.name),
       })),

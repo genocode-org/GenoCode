@@ -181,6 +181,8 @@ export default defineConfig({
       "@genocode/render/patterns": fileURLToPath(
         new URL("../render/src/patterns.ts", import.meta.url),
       ),
+      "@genocode/community/png": fileURLToPath(new URL("../community/src/png.ts", import.meta.url)),
+      "@genocode/community": fileURLToPath(new URL("../community/src/share.ts", import.meta.url)),
       "@genocode/core": src("core"),
       "@genocode/render": src("render"),
       "@genocode/controls": src("controls"),

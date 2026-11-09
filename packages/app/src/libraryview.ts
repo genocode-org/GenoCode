@@ -14,6 +14,8 @@ export interface LibraryEntry {
   text: string;
   /** Kept in this browser, or one that comes with GenoCode. */
   yours: boolean;
+  /** Shared by someone in the community, and approved. */
+  community?: boolean;
 }
 
 export interface LibraryActions {
@@ -32,7 +34,7 @@ export function kindOf(text: string): EntryKind {
   return checkText(text).file.kind;
 }
 
-type Shelf = "yours" | "creatures" | "backgrounds" | "patterns" | "dances";
+type Shelf = "yours" | "creatures" | "community" | "backgrounds" | "patterns" | "dances";
 
 export class LibraryView {
   private shelf: Shelf | undefined;
@@ -52,7 +54,7 @@ export class LibraryView {
     this.entries = entries;
     const creature = this.actions.creature();
     const into = creature ? `, or put it into ${creature}` : "";
-    const starters = entries.filter((e) => !e.yours);
+    const starters = entries.filter((e) => !e.yours && !e.community);
     const shelves: { id: Shelf; label: string; hint: string; list: LibraryEntry[] }[] = [
       {
         id: "yours",
@@ -65,6 +67,12 @@ export class LibraryView {
         label: "Starter creatures",
         hint: "The creatures that come with GenoCode. Click one to open it.",
         list: starters.filter((e) => e.kind === "creature"),
+      },
+      {
+        id: "community",
+        label: "Community",
+        hint: "Creatures shared by people who use GenoCode. Click one to open it.",
+        list: entries.filter((e) => e.community && e.kind === "creature"),
       },
       {
         id: "backgrounds",

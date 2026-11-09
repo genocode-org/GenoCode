@@ -1,4 +1,5 @@
-// Encodes pictures as PNG files, for the creature pages' pictures (made in Node, at build time).
+// Encodes pictures as PNG files, for the creature pages and for shared creatures' reviews (made
+// in Node).
 
 import { deflateSync } from "node:zlib";
 

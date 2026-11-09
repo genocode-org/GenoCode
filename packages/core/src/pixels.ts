@@ -573,7 +573,7 @@ class Generator {
         if (s.kind === "Let" || s.op === "=") {
           lines.push(`${pad}${name} = ${value.js};`);
         } else {
-          const op = s.op[0] as "+" | "-" | "*" | "/";
+          const op = safeOp(s.op[0]!, ["+", "-", "*", "/"]);
           lines.push(
             slot.number && value.kind === "n"
               ? `${pad}${name} ${op}= ${value.js};`
@@ -656,7 +656,7 @@ class Generator {
   private exprJs(e: Expr, kind: Kind): string {
     switch (e.kind) {
       case "Number":
-        return `(${String(e.value)})`;
+        return `(${numberJs(e.value)})`;
       case "Bool":
         return e.value ? "true" : "false";
       case "String":
@@ -691,7 +691,13 @@ class Generator {
         const r = this.expr(e.right);
         if (kind !== "?") {
           const op =
-            e.op === "==" ? "===" : e.op === "!=" ? "!==" : e.op === "^" ? undefined : e.op;
+            e.op === "=="
+              ? "==="
+              : e.op === "!="
+                ? "!=="
+                : e.op === "^"
+                  ? undefined
+                  : safeOp(e.op, JS_OPS);
           return op === undefined ? `Math.pow(${l.js}, ${r.js})` : `(${l.js} ${op} ${r.js})`;
         }
         return `rt.bin(${JSON.stringify(e.op)}, ${l.js}, ${r.js}, ${this.span(e.opSpan)})`;
@@ -746,6 +752,22 @@ class Generator {
     }
     return `rt.sampleValue(${this.expr(callee).js}, [${args.map((a) => a.js).join(", ")}], ${this.span(callee.span)}, ${this.span(e.span)})`;
   }
+}
+
+// Only numbers, quoted strings, names this file makes up (v1, t2, k3) and the operators below go
+// into the JavaScript, never the code's own text, so a shared creature can't slip JavaScript in.
+// These two checks keep it that way if the parser ever lets something else through.
+
+const JS_OPS = ["+", "-", "*", "/", "%", "<", "<=", ">", ">="] as const;
+
+function numberJs(v: unknown): string {
+  if (typeof v !== "number") throw new Error(`A number was expected, not ${typeof v}.`);
+  return String(v);
+}
+
+function safeOp<T extends string>(op: string, allowed: readonly T[]): T {
+  if (!(allowed as readonly string[]).includes(op)) throw new Error(`Unknown operator ${op}.`);
+  return op as T;
 }
 
 /** The block as a JavaScript function of the canvas, or undefined if the page forbids making one. */

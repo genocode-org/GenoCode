@@ -2429,6 +2429,55 @@ dialog.ask input[type="text"]:focus {
   border-color: var(--accent);
 }
 
+/* Sharing with the community (sharing.ts): labelled fields, the licence box and Turnstile. */
+
+.share-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+.share-label input,
+.share-label textarea {
+  display: block;
+  margin-top: 4px;
+}
+
+dialog.ask textarea {
+  width: 100%;
+  padding: 9px 11px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  resize: vertical;
+}
+
+dialog.ask textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.share-agree {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0 12px;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.share-agree input {
+  flex: none;
+  margin-top: 3px;
+}
+
+.share-check {
+  min-height: 65px;
+}
+
 .ask-note {
   min-height: 1.45em;
   font-size: 0.9em;

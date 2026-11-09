@@ -33,6 +33,10 @@ jobs:
       - run: npm run build
         env:
           GENOCODE_ANALYTICS: "1"
+          # Where the app sends creatures shared with the community (packages/community). Until
+          # these repository variables are set, the app doesn't offer sharing.
+          VITE_SHARE_RELAY: ${{ vars.SHARE_RELAY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
