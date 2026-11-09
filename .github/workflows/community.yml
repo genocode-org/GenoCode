@@ -8,7 +8,7 @@ name: Community
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
 
 permissions: {}
 
@@ -17,9 +17,9 @@ concurrency:
 
 jobs:
   review:
-    if: >-
-      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'community'))
-      || (github.event.action == 'labeled' && github.event.label.name == 'community')
+    # An issue filed with the label sends `labeled` too, so each share is checked once, and
+    # adding the label again by hand checks it again.
+    if: github.event.action == 'labeled' && github.event.label.name == 'community'
     runs-on: ubuntu-latest
     permissions:
       contents: write # the pictures branch
@@ -40,9 +40,10 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           PICTURE_URL: https://raw.githubusercontent.com/${{ github.repository }}/community-pictures/${{ github.event.issue.number }}.png
       - name: Put its picture on the pictures branch
-        if: hashFiles(format('{0}/review/picture.png', runner.temp)) != ''
         run: |
           cd "$RUNNER_TEMP"
+          # A creature that failed its checks has no picture.
+          [ -f review/picture.png ] || exit 0
           remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           if ! git clone --quiet --depth 1 --branch community-pictures "$remote" pictures; then
             git init --quiet -b community-pictures pictures
