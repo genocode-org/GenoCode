@@ -4,7 +4,7 @@
 // creature, a style opened to edit it, and your own deleted.
 
 import { checkText } from "./creature.js";
-import { drawPicturesIn, onPicturesStale } from "./pictures.js";
+import { drawPicturesWhenSeen, onPicturesStale } from "./pictures.js";
 
 export type EntryKind = "creature" | "background" | "dance" | "pattern";
 
@@ -34,12 +34,13 @@ export function kindOf(text: string): EntryKind {
   return checkText(text).file.kind;
 }
 
-type Shelf = "yours" | "creatures" | "community" | "backgrounds" | "patterns" | "dances";
+export type Shelf = "yours" | "creatures" | "community" | "backgrounds" | "patterns" | "dances";
 
 export class LibraryView {
   private shelf: Shelf | undefined;
   private entries: LibraryEntry[] = [];
-  private drawing = 0;
+  /** Stops drawing the pictures of the shelf shown before. */
+  private stopDrawing = () => {};
 
   constructor(
     private readonly root: HTMLElement,
@@ -48,6 +49,11 @@ export class LibraryView {
     onPicturesStale(() => {
       if (!this.root.hidden) this.drawPictures();
     });
+  }
+
+  /** Makes `shelf` the one shown next. */
+  choose(shelf: Shelf): void {
+    this.shelf = shelf;
   }
 
   show(entries: LibraryEntry[]): void {
@@ -213,7 +219,7 @@ export class LibraryView {
   }
 
   private drawPictures(): void {
-    const run = ++this.drawing;
-    drawPicturesIn(this.root, () => run === this.drawing && !this.root.hidden);
+    this.stopDrawing();
+    this.stopDrawing = drawPicturesWhenSeen(this.root);
   }
 }

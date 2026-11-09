@@ -41,6 +41,52 @@ export function pictureOf(text: string, width = 200, height = 150): string | und
 }
 
 /**
+ * Draws the pictures of `root`'s elements that carry `data-text` as they come into view, so a long
+ * shelf costs nothing until it's scrolled through. Gives a function that stops it.
+ */
+export function drawPicturesWhenSeen(root: HTMLElement): () => void {
+  const targets = [...root.querySelectorAll<HTMLElement>("[data-text]")];
+  if (typeof IntersectionObserver === "undefined") {
+    let wanted = true;
+    drawPicturesIn(root, () => wanted);
+    return () => (wanted = false);
+  }
+  const waiting: HTMLElement[] = [];
+  let scheduled = 0;
+  const step = () => {
+    scheduled = 0;
+    const started = performance.now();
+    while (waiting.length > 0 && performance.now() - started < 30) {
+      const el = waiting.shift()!;
+      const src = pictureOf(el.dataset["text"]!);
+      if (src) el.style.backgroundImage = `url(${src})`;
+    }
+    if (waiting.length > 0) scheduled = requestAnimationFrame(step);
+  };
+  const seen = new IntersectionObserver(
+    (changes) => {
+      for (const c of changes) {
+        if (!c.isIntersecting) continue;
+        const el = c.target as HTMLElement;
+        seen.unobserve(el);
+        const known = pictures.get(el.dataset["text"]!);
+        if (known) el.style.backgroundImage = `url(${known})`;
+        else waiting.push(el);
+      }
+      if (waiting.length > 0 && !scheduled) scheduled = requestAnimationFrame(step);
+    },
+    // Start a little before they scroll into view, so they're ready when they arrive.
+    { rootMargin: "300px 0px" },
+  );
+  for (const el of targets) seen.observe(el);
+  return () => {
+    seen.disconnect();
+    cancelAnimationFrame(scheduled);
+    waiting.length = 0;
+  };
+}
+
+/**
  * Draws the pictures of `root`'s elements that carry `data-text`, as their background images, a
  * few at a time so the page stays responsive. Stops when `stillWanted` turns false.
  */
