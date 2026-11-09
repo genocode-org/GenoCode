@@ -2338,15 +2338,47 @@ select.gene-control {
     align-content: start;
   }
 
-  /* Patterns: the picture, then the card under it. */
+  /* Patterns: the picture stays pinned at the top while the page scrolls, with the controls right
+     under it, so a change can be seen without scrolling back up. Mutate, Breed and the
+     variations come after. */
   .patterns {
     flex-direction: column;
-    padding: 12px;
+    padding: 0 12px 12px;
+  }
+
+  .pattern-main {
+    display: contents;
+  }
+
+  .pattern-stage {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    order: 1;
+    margin: 0 -12px;
+    padding: 10px 12px;
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: 0 8px 16px rgb(0 0 0 / 0.45);
+  }
+
+  .pattern-preview {
+    width: min(100%, 34vh);
+    box-shadow: none;
   }
 
   .pattern-side {
+    order: 2;
     width: auto;
     align-self: stretch;
+  }
+
+  .pattern-main > .pattern-actions {
+    order: 3;
+  }
+
+  .pattern-variations {
+    order: 4;
   }
 
   .library {
