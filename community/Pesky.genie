@@ -1,0 +1,475 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/91
+// About it: A spiky blob with four curling tentacles, holding on to a butterfly it has caught. Inspired by Pesky, a DancerDNA creature.
+creature Pesky
+// A spiky blob with four curling tentacles, holding on to a butterfly it has caught.
+// Inspired by Pesky, a DancerDNA creature.
+
+gene blob_size = 1.245 in 1..6 // how big the blob is
+gene blob_stretch = (0.9827, 1.094, 0.8774) in (0.8, 0.8, 0.8)..(1.2, 1.2, 1.2) // how it's squashed or stretched
+gene blob_turn = (-257.9, 167.2, 296.6) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8) // how it's turned: up, sideways and round
+
+gene spike_reach = -3.307 in -15..15 // how far out the spikes are; they never sink into the blob
+gene spike_length = 1.453 in 0.5..2
+gene spike_spin = -673 in -687.5..687.5 // how far each spike turns round its length
+
+gene leg_tilt = -10.13 in -45.84..45.84 // how far the tentacles tip up or down
+gene leg_stride = 0.8957 in 0.7..1.1 // how long their segments are
+gene curl = (-59.41, -8.595, 33.61) in (-74.48, -74.48, -74.48)..(74.48, 74.48, 74.48) // how far they curl: up, sideways and round
+gene curl_waves = (2.818, 2.798, 2.786) in (1, 1, 1)..(3, 3, 3) // how many half-waves the curling makes along a tentacle
+gene swell = (-0.2434, 0.03443, -0.4275) in (-0.7, -0.7, -0.5)..(0.7, 0.7, 0.5) // how much the segments grow and shrink: across, up and along
+gene swell_waves = (7.589, 4.477, 5.267) in (0.5, 0.5, 0.5)..(10, 10, 15)
+gene swell_start = (0.04555, 0.1333, 0.605) in (0, 0, 0)..(1, 1, 1)
+
+// The blob's colours, from its middle to the tentacles' tips, and the gaps between them.
+gene skin_1 = hsv(0.7, 1, 1) in hsv(0, 1, 1)..hsv(252, 1, 1)
+gene skin_2 = hsv(216.3, 0.71, 0.42) in hsv(0, 0.6, 0.4)..hsv(252, 1, 1)
+gene skin_3 = hsv(91, 0.69, 0.36) in hsv(0, 0.6, 0.1)..hsv(252, 1, 1)
+gene skin_4 = hsv(63, 0.74, 0.59) in hsv(0, 0.6, 0.1)..hsv(252, 1, 1)
+gene skin_gaps = (0.3973, 0.3537, 0.575) in (0.25, 0.25, 0.25)..(1, 1, 1)
+
+gene victim_reach = 1.14 in 0..12 // how far beyond the spikes the butterfly is
+gene victim_turn = (6.431, 40.78, -23.88) in (-343.8, -343.8, -343.8)..(343.8, 343.8, 343.8) // which way it is from the blob
+gene victim_body = hsv(37.3, 0.4, 0.65) in hsv(21.6, 0, 0.4)..hsv(54, 1, 1)
+gene wing_colour = hsv(24.4, 0.84, 0.98) in hsv(21.6, 0, 0.4)..hsv(54, 1, 1)
+gene wing_pattern = hsv(302.8, 1, 1) in hsv(0, 1, 1)..hsv(360, 1, 1)
+gene flap = 0.8071 in 0..10 // where the wings are in their beat
+
+let skin = spectrum(skin_1, skin_2 at skin_gaps.x, skin_3 at skin_gaps.x + skin_gaps.y, skin_4 at skin_gaps.x + skin_gaps.y + skin_gaps.z)
+
+let spike_radius = max(spike_reach, blob_size / 2 + spike_length / 3)
+let victim_radius = victim_reach + spike_radius + spike_length
+
+pitch 90
+yaw 45
+blob
+spikes
+symmetric x {
+  branch {
+    if side < 0 {
+      yaw 90
+    }
+    legs(leg_tilt * side)
+  }
+}
+victim
+
+part blob {
+  branch {
+    sharpness 1
+    shine 1
+    shape ball
+    grow blob_size
+    reshape { roll blob_turn.z; yaw blob_turn.y; pitch blob_turn.x }
+    grow blob_stretch
+    pitch -blob_turn.x
+    yaw -blob_turn.y
+    roll -blob_turn.z
+    colour skin_1
+    lay
+  }
+}
+
+part spikes {
+  branch {
+    sharpness 1
+    shine 1
+    shape cone
+    colour skin_1
+    repeat 20 as k {
+      branch {
+        // Scattered round the blob, in the original's pseudo-random way.
+        yaw degrees(k * 312.129)
+        pitch degrees(k * 330.5463)
+        forward spike_radius
+        roll spike_spin
+        grow (1, 1, spike_length)
+        lay
+      }
+    }
+  }
+}
+
+// Two tentacles, one turned right round from the other.
+part legs(tilt) {
+  branch {
+    tentacle(tilt)
+    grow (-1, 1, -1)
+    tentacle(tilt)
+  }
+}
+
+part tentacle(tilt) {
+  branch {
+    forward blob_size / 2
+    pitch tilt
+    shape ball
+    repeat 15 as k {
+      let along = k / 14
+      colour skin(along)
+      sharpness 1 - along
+      shine 1 - along
+      lay
+      forward leg_stride / 2
+      yaw curl.y * sin(180 * curl_waves.y * along) ^ 3
+      pitch curl.x * sin(180 * curl_waves.x * along) ^ 3
+      roll curl.z * sin(180 * curl_waves.z * (along - 1)) ^ 3
+      grow (1 + swell.x * sin(180 * swell_waves.x * (along - swell_start.x)) ^ 3, 1 + swell.y * sin(180 * swell_waves.y * (along - swell_start.y)) ^ 3, 1 + swell.z * sin(180 * swell_waves.z * (along - swell_start.z)) ^ 3)
+      forward leg_stride / 2
+    }
+  }
+}
+
+part victim {
+  branch {
+    sharpness 1
+    shine 1
+    colour victim_body
+    shape ball
+    pitch victim_turn.x
+    yaw victim_turn.y
+    roll victim_turn.z
+    forward victim_radius
+    pitch 90
+    lay { grow (0.8, 1, 2) }
+    symmetric x {
+      wing
+    }
+  }
+}
+
+part wing {
+  branch {
+    yaw -90
+    forward 0.4
+    pitch 60 * sin(180 * flap)
+    grow (1.3, 0.0001, 2.25)
+    forward 0.4
+    branch {
+      colour wing_colour
+      lay
+    }
+    sharpness 0
+    shine 1
+    colour wing_pattern
+    shape ring
+    grow (0.7, 2, 0.7)
+    lay { pitch 90 }
+  }
+}
+
+variant member_2 {
+  blob_size = 3.153
+  blob_stretch = (1.039, 0.8112, 1.033)
+  blob_turn = (258, 270.2, -248.3)
+  spike_reach = -9.847
+  spike_length = 1.024
+  spike_spin = -614.5
+  leg_tilt = -18.5
+  leg_stride = 0.7309
+  curl = (-22.04, -25.81, -65.51)
+  curl_waves = (2.616, 2.136, 1.969)
+  swell = (-0.1044, 0.4281, -0.294)
+  swell_waves = (7.538, 5.442, 1.066)
+  swell_start = (0.3775, 0.4531, 0.4921)
+  skin_1 = hsv(50.8, 1, 1)
+  skin_2 = hsv(241.5, 0.84, 0.64)
+  skin_3 = hsv(43.6, 0.8, 0.17)
+  skin_4 = hsv(116.4, 0.74, 0.67)
+  skin_gaps = (0.5583, 0.6567, 0.9832)
+  victim_reach = 4.506
+  victim_turn = (14.69, -218.6, -144)
+  victim_body = hsv(24.4, 0.56, 0.47)
+  wing_colour = hsv(27.2, 0.8, 0.47)
+  wing_pattern = hsv(228.2, 1, 1)
+  flap = 6.551
+}
+
+variant member_3 {
+  blob_size = 5.555
+  blob_stretch = (1, 1.058, 0.809)
+  blob_turn = (26.85, -302.8, 0)
+  spike_spin = 522.5
+  leg_tilt = -32.91
+  leg_stride = 0.7068
+  curl = (5.699, 36.1, 5.73)
+  curl_waves = (1.941, 2.117, 2.873)
+  swell = (0.4395, -0.5389, 0.1)
+  swell_waves = (7.589, 8.17, 5.267)
+  swell_start = (0.6457, 0.1042, 0.605)
+  skin_1 = hsv(240.9, 1, 1)
+  skin_2 = hsv(12.4, 0.63, 0.55)
+  skin_3 = hsv(77.3, 0.95, 0.86)
+  skin_4 = hsv(184.1, 0.64, 0.91)
+  skin_gaps = (0.7714, 0.9448, 0.367)
+  victim_reach = 8.496
+  victim_turn = (32.14, 141.2, -23.88)
+  victim_body = hsv(31, 0.82, 0.55)
+  wing_colour = hsv(28.1, 0.31, 0.79)
+  flap = 6.551
+}
+
+variant member_4 {
+  blob_size = 4.64
+  blob_stretch = (1.181, 1.2, 0.9567)
+  blob_turn = (-271, 40.61, 219.1)
+  spike_reach = -12.18
+  spike_length = 1.399
+  spike_spin = -151.5
+  leg_tilt = 42.84
+  leg_stride = 0.7309
+  curl = (30.69, 21.99, -73.83)
+  curl_waves = (1.702, 2.263, 1.445)
+  swell = (-0.2947, 0.189, -0.3424)
+  swell_waves = (7.589, 3.065, 9.696)
+  swell_start = (0.3923, 0.2721, 0.6071)
+  skin_1 = hsv(109.2, 1, 1)
+  skin_3 = hsv(166.2, 0.72, 0.19)
+  skin_4 = hsv(116.4, 0.74, 0.67)
+  skin_gaps = (0.9385, 0.6007, 0.8216)
+  victim_reach = 9.884
+  victim_turn = (180.9, -212.3, -318.2)
+  victim_body = hsv(26.3, 0.37, 0.51)
+  wing_colour = hsv(29.4, 0.16, 0.81)
+  flap = 2.932
+}
+
+variant member_5 {
+  blob_size = 1.246
+  blob_stretch = (1.181, 1.2, 0.9567)
+  blob_turn = (-193.9, -208.6, -23.25)
+  spike_reach = -12.26
+  spike_length = 0.8617
+  spike_spin = -614.5
+  leg_tilt = 42.84
+  leg_stride = 0.7309
+  curl = (30.69, -8.595, -28.76)
+  curl_waves = (2.411, 2.782, 2.215)
+  swell = (0.01628, -0.693, 0.346)
+  swell_waves = (2.342, 3.065, 7.338)
+  swell_start = (0.08626, 0.8295, 0.371)
+  skin_1 = hsv(212.9, 1, 1)
+  skin_2 = hsv(61.5, 0.65, 0.98)
+  skin_3 = hsv(11, 0.71, 0.51)
+  skin_4 = hsv(116.4, 0.74, 0.67)
+  skin_gaps = (0.4113, 0.2745, 0.4313)
+  victim_reach = 11.37
+  victim_turn = (-32.38, -292.6, 6.811)
+  victim_body = hsv(32.7, 0.45, 0.46)
+  wing_colour = hsv(26.5, 0.56, 0.86)
+  wing_pattern = hsv(16.4, 1, 1)
+  flap = 7.753
+}
+
+variant member_6 {
+  blob_size = 4.235
+  blob_stretch = (1.181, 1.2, 0.9567)
+  blob_turn = (-200.3, 270.2, -23.25)
+  spike_reach = -12.26
+  spike_length = 0.5547
+  spike_spin = -614.5
+  leg_tilt = -36.12
+  leg_stride = 0.7309
+  curl = (30.69, -8.595, 4.959)
+  curl_waves = (1.364, 2.09, 2.215)
+  swell = (-0.6568, 0.5367, 0.2912)
+  swell_waves = (4.693, 8.981, 1.998)
+  swell_start = (0.9629, 0.08442, 0.4921)
+  skin_1 = hsv(26.7, 1, 1)
+  skin_2 = hsv(248.3, 0.76, 0.52)
+  skin_3 = hsv(11, 0.71, 0.51)
+  skin_4 = hsv(118, 0.61, 0.32)
+  skin_gaps = (0.6262, 0.6207, 0.598)
+  victim_reach = 2.979
+  victim_turn = (-145.9, -256, 6.811)
+  victim_body = hsv(22.4, 0.7, 0.89)
+  wing_colour = hsv(45.2, 0.33, 0.69)
+  wing_pattern = hsv(240, 1, 1)
+  flap = 6.551
+}
+
+variant member_7 {
+  blob_size = 5.273
+  blob_stretch = (1.069, 1.174, 1.043)
+  blob_turn = (323.5, 325.5, 61.68)
+  spike_reach = 10.66
+  spike_length = 1.366
+  spike_spin = 382.3
+  leg_tilt = 14.46
+  leg_stride = 0.7099
+  curl = (21.89, -42.79, -37.17)
+  curl_waves = (2.393, 1.828, 1.116)
+  swell = (-0.3545, 0.5404, -0.2671)
+  swell_waves = (1.262, 5.54, 2.316)
+  swell_start = (0.6669, 0.002231, 0.797)
+  skin_1 = hsv(213.1, 1, 1)
+  skin_2 = hsv(75.8, 0.99, 0.82)
+  skin_3 = hsv(88.4, 0.69, 0.34)
+  skin_4 = hsv(120.6, 0.69, 0.12)
+  skin_gaps = (0.954, 0.5196, 0.8816)
+  victim_reach = 4.973
+  victim_turn = (-288.7, 320.2, -193.2)
+  victim_body = hsv(23.6, 0.67, 0.58)
+  wing_colour = hsv(50.2, 0.74, 0.69)
+  wing_pattern = hsv(42.9, 1, 1)
+  flap = 8.855
+}
+
+variant member_8 {
+  blob_size = 4.063
+  blob_stretch = (1.069, 1.174, 1.043)
+  blob_turn = (323.5, 305.1, 201.9)
+  spike_reach = 8.96
+  spike_length = 0.6457
+  spike_spin = -410.7
+  leg_tilt = -28.56
+  leg_stride = 0.8956
+  curl = (-56.26, -17.37, -38.4)
+  curl_waves = (1.389, 2.903, 1.338)
+  swell = (-0.3545, -0.5441, -0.02495)
+  swell_waves = (1.262, 9.096, 11.13)
+  swell_start = (0.9419, 0.7611, 0.8465)
+  skin_1 = hsv(25.4, 1, 1)
+  skin_2 = hsv(30.3, 0.84, 0.99)
+  skin_3 = hsv(151.2, 0.71, 0.23)
+  skin_4 = hsv(199.1, 0.61, 0.87)
+  skin_gaps = (0.3289, 0.3929, 0.3219)
+  victim_reach = 5.625
+  victim_turn = (2.289, 35.69, -193.2)
+  victim_body = hsv(23.2, 0.18, 0.93)
+  wing_colour = hsv(25.2, 0.49, 0.91)
+  wing_pattern = hsv(170.9, 1, 1)
+  flap = 7.629
+}
+
+variant member_9 {
+  blob_size = 4.068
+  blob_stretch = (1.08, 0.9381, 1.05)
+  blob_turn = (26.85, 139.3, 0)
+  spike_reach = 9.306
+  spike_length = 1.777
+  spike_spin = 522.5
+  leg_tilt = 45.18
+  leg_stride = 0.7309
+  curl = (36.59, -28.12, 5.73)
+  curl_waves = (1.435, 2.774, 1.227)
+  swell = (0.1179, 0.3901, 0.1)
+  swell_waves = (1.16, 0.575, 9.776)
+  swell_start = (0.7884, 0.03137, 0.1621)
+  skin_1 = hsv(1.1, 1, 1)
+  skin_3 = hsv(216.2, 0.96, 0.81)
+  skin_4 = hsv(197.6, 0.71, 0.55)
+  skin_gaps = (0.8054, 0.8868, 0.367)
+  victim_reach = 7.38
+  victim_turn = (121, -129.8, -25.85)
+  victim_body = hsv(23.2, 0.89, 0.88)
+  wing_pattern = hsv(72, 1, 1)
+  flap = 8.893
+}
+
+variant member_10 {
+  blob_size = 4.442
+  blob_stretch = (0.8979, 0.8275, 1.133)
+  blob_turn = (264, -225.2, 132.3)
+  spike_reach = 6.104
+  spike_length = 1.577
+  spike_spin = 258.6
+  leg_tilt = -6.042
+  leg_stride = 0.9268
+  curl = (-20.46, -1.723, 61.76)
+  curl_waves = (2.808, 2.613, 1.993)
+  swell = (0.2002, 0.5518, -0.3256)
+  swell_waves = (6.744, 3.444, 5.238)
+  swell_start = (0.9636, 0.6874, 0.1942)
+  skin_1 = hsv(226.2, 1, 1)
+  skin_2 = hsv(87.3, 0.66, 0.91)
+  skin_3 = hsv(114.5, 0.69, 0.98)
+  skin_4 = hsv(188.7, 0.78, 0.24)
+  skin_gaps = (0.3289, 0.3434, 0.7357)
+  victim_reach = 10.1
+  victim_turn = (219.5, -172.7, -136.5)
+  victim_body = hsv(32.9, 0.52, 0.76)
+  wing_colour = hsv(45.1, 0.2, 0.71)
+  wing_pattern = hsv(237.3, 1, 1)
+  flap = 1.488
+}
+
+variant member_11 {
+  blob_size = 1.158
+  blob_stretch = (1.181, 1.2, 0.9567)
+  blob_turn = (30.12, 270.2, 51.98)
+  spike_reach = 5.347
+  spike_length = 1.485
+  spike_spin = -614.5
+  leg_tilt = 35.79
+  leg_stride = 0.8161
+  curl = (0.5918, 71.25, -65.51)
+  curl_waves = (2.823, 2.09, 2.383)
+  swell = (-0.1044, 0.4281, -0.3046)
+  swell_waves = (4.183, 5.022, 9.998)
+  swell_start = (0.06648, 0.6418, 0.655)
+  skin_1 = hsv(11, 1, 1)
+  skin_2 = hsv(130.8, 0.77, 0.84)
+  skin_3 = hsv(8, 0.71, 0.97)
+  skin_4 = hsv(23.4, 0.66, 0.58)
+  skin_gaps = (0.6262, 0.4024, 0.6362)
+  victim_reach = 2.493
+  victim_turn = (256.9, -254.1, 223.5)
+  victim_body = hsv(24.6, 0.05, 0.51)
+  wing_colour = hsv(31.4, 0.67, 0.57)
+  wing_pattern = hsv(122.6, 1, 1)
+  flap = 6.551
+}
+
+variant member_12 {
+  blob_size = 1.749
+  blob_stretch = (1.069, 1.174, 1.043)
+  blob_turn = (323.5, 325.5, 293.9)
+  spike_reach = -5.935
+  spike_length = 0.5718
+  spike_spin = 382.3
+  leg_tilt = 14.46
+  leg_stride = 0.8774
+  curl = (21.89, -42.79, -5.632)
+  curl_waves = (2.393, 1.828, 1.116)
+  swell = (-0.3545, 0.5404, -0.2682)
+  swell_waves = (1.262, 2.619, 2.316)
+  swell_start = (0.9419, 0.7611, 0.797)
+  skin_1 = hsv(244.4, 1, 1)
+  skin_2 = hsv(75.8, 0.99, 0.82)
+  skin_3 = hsv(88.4, 0.69, 0.34)
+  skin_4 = hsv(231.8, 0.6, 0.69)
+  skin_gaps = (0.3289, 0.7549, 0.8816)
+  victim_reach = 10.1
+  victim_turn = (2.289, 320.2, -193.2)
+  victim_body = hsv(43.1, 0.62, 0.6)
+  wing_colour = hsv(23, 0.74, 0.94)
+  wing_pattern = hsv(175.6, 1, 1)
+  flap = 0.004361
+}
+
+variant member_13 {
+  blob_size = 2.147
+  blob_stretch = (0.8024, 1.092, 1.163)
+  blob_turn = (323.5, 325.5, 293.9)
+  spike_reach = -1.778
+  spike_length = 1.424
+  spike_spin = 382.3
+  leg_tilt = 14.46
+  leg_stride = 0.81
+  curl = (-19.68, -29.89, 58.63)
+  curl_waves = (1.696, 1.828, 2.115)
+  swell = (0.6271, -0.3941, -0.3945)
+  swell_waves = (1.061, 2.619, 2.316)
+  swell_start = (0.9419, 0.3925, 0.797)
+  skin_1 = hsv(230, 1, 1)
+  skin_2 = hsv(36.1, 0.94, 0.71)
+  skin_3 = hsv(88.4, 0.69, 0.34)
+  skin_4 = hsv(231.8, 0.6, 0.69)
+  skin_gaps = (0.3289, 0.7549, 0.6868)
+  victim_reach = 7.685
+  victim_turn = (156.8, 320.2, -193.2)
+  victim_body = hsv(30.6, 0.21, 0.43)
+  wing_colour = hsv(26.2, 0.49, 0.67)
+  wing_pattern = hsv(238, 1, 1)
+  flap = 0.004361
+}
