@@ -390,7 +390,7 @@ export class PatternDesigner {
     this.mutateButton.addEventListener("click", () => this.mutate());
     this.breedButton.addEventListener("click", () => this.breed());
     // The picture and its variations on the left; what it's made of, and what to do with it, in a
-    // card on the right (below, on a phone).
+    // card on the right (on a phone, the card sits under the pinned picture, above the variations).
     root.append(
       element(
         "div",
