@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-  # Started by the community workflow for the pull requests it opens.
+  # To run it by hand, such as after GitHub had trouble starting it.
   workflow_dispatch:
 
 jobs:
