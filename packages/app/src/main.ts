@@ -65,6 +65,7 @@ import { CreaturePicker, type PickerEntry } from "./picker.js";
 import { canRecord, LONGEST, VideoRecorder, type Video, type VideoShape } from "./recorder.js";
 import { dropdown, Shell, type Mode } from "./shell.js";
 import { canShare, shareWithCommunity } from "./sharing.js";
+import { readCredit } from "@genocode/community";
 
 // The starter creatures in the repository's creatures/ folder.
 const examples = import.meta.glob("../../../creatures/*.genie", {
@@ -643,15 +644,27 @@ const namesOf = (files: Record<string, string>) =>
     .sort();
 
 const exampleNames = namesOf(examples);
-const communityNames = namesOf(communityFiles);
+
+/** The issue a shared creature came from: a later one is a newer creature. */
+const sharedIn = (text: string) => Number(readCredit(text)?.url.match(/\/(\d+)$/)?.[1] ?? 0);
+
+/** The community's creatures, newest first. */
+const communityNames = namesOf(communityFiles).sort(
+  (a, b) => sharedIn(communityText(b)!) - sharedIn(communityText(a)!) || a.localeCompare(b),
+);
 
 function fileText(files: Record<string, string>, name: string): string | undefined {
   const path = Object.keys(files).find((p) => p.endsWith(`/${name}.genie`));
   return path ? files[path] : undefined;
 }
 
-const exampleText = (name: string) => fileText(examples, name);
-const communityText = (name: string) => fileText(communityFiles, name);
+function exampleText(name: string): string | undefined {
+  return fileText(examples, name);
+}
+
+function communityText(name: string): string | undefined {
+  return fileText(communityFiles, name);
+}
 
 /** What the creature menu offers: those kept in this browser, the starters, then the community's. */
 function pickerEntries(): PickerEntry[] {
@@ -673,7 +686,10 @@ function pickerEntries(): PickerEntry[] {
 const picker = new CreaturePicker({
   entries: pickerEntries,
   open: (e) => void openPicked(e.kind, e.name),
-  library: () => setMode("library"),
+  library: (shelf) => {
+    if (shelf) library.choose(shelf);
+    setMode("library");
+  },
 });
 
 function openListed(kind: Listed, name: string): boolean {

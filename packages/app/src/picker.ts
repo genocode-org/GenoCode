@@ -14,10 +14,15 @@ export interface PickerEntry {
 }
 
 export interface PickerActions {
+  /** Everything to offer; the community's creatures newest first. */
   entries(): PickerEntry[];
   open(entry: PickerEntry): void;
-  library(): void;
+  /** Opens the library, on the community's shelf when asked. */
+  library(shelf?: "community"): void;
 }
+
+/** How many of the community's creatures the menu shows; the library has them all. */
+const NEWEST = 6;
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -87,11 +92,25 @@ export class CreaturePicker {
     library.innerHTML =
       '<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 4.6l3.8 1-3.9 14.8-3.8-1z"/></svg>Patterns, dances and more in the Library';
     library.addEventListener("click", () => this.actions.library());
+    // Past the newest few, the rest wait in the library, so the menu stays short.
+    const allShared = (list: PickerEntry[]) => {
+      if (list.length <= NEWEST) return [];
+      const more = document.createElement("button");
+      more.type = "button";
+      more.setAttribute("role", "menuitem");
+      more.className = "menu-more";
+      more.textContent = `See all ${list.length} in the Library`;
+      more.title = "Every creature the community has shared, in the Library";
+      more.addEventListener("click", () => this.actions.library("community"));
+      return [more];
+    };
     this.menu.replaceChildren(
       ...(yours.length > 0 ? [head("Yours"), grid(yours)] : []),
       head("Starter creatures"),
       grid(starters),
-      ...(shared.length > 0 ? [head("Shared by the community"), grid(shared)] : []),
+      ...(shared.length > 0
+        ? [head("Shared by the community"), grid(shared.slice(0, NEWEST)), ...allShared(shared)]
+        : []),
       document.createElement("hr"),
       library,
     );

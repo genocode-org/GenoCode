@@ -514,6 +514,12 @@ input[type="range"] {
   color: var(--text);
 }
 
+/* The creature menu's way to the community's other creatures, in the library (picker.ts). */
+.menu > button.menu-more {
+  justify-content: center;
+  color: var(--accent);
+}
+
 .menu hr {
   height: 1px;
   margin: 6px 4px;
