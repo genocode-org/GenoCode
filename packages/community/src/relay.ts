@@ -68,6 +68,10 @@ export async function handle(request: Request, env: Env, http: Http): Promise<Re
     return fail(429, "That's a lot of sharing. Please wait a few minutes and try again.");
   }
 
+  // What says it's too big is turned away before it's read; what doesn't say is measured after.
+  if (Number(request.headers.get("Content-Length") ?? 0) > MOST_BYTES) {
+    return fail(413, "This creature is too big to share.");
+  }
   const text = await request.text();
   if (text.length > MOST_BYTES) return fail(413, "This creature is too big to share.");
   let sent: unknown;
