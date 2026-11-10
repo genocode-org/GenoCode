@@ -3,7 +3,7 @@
 // do nothing but write issues. Turnstile (Cloudflare's check that a person is there) and a limit
 // per visitor keep robots out; the creature is checked properly once it's an issue.
 
-import { asShare, issueBody, issueTitle, LABEL, LIMITS, problems } from "./share.js";
+import { asShare, fitsIssue, issueBody, issueTitle, LABEL, LIMITS, problems } from "./share.js";
 
 /** A Workers rate-limit binding. */
 export interface RateLimit {
@@ -83,6 +83,7 @@ export async function handle(request: Request, env: Env, http: Http): Promise<Re
   const wrong = problems(sent);
   if (wrong.length > 0) return answer(400, { error: wrong.join(" "), problems: wrong });
   const share = asShare(sent)!;
+  if (!fitsIssue(share)) return fail(413, "This creature is too big to share.");
 
   const token = (sent as { turnstile?: unknown }).turnstile;
   if (typeof token !== "string" || !(await isPerson(token, visitor, env, http))) {
@@ -100,7 +101,12 @@ export async function handle(request: Request, env: Env, http: Http): Promise<Re
     },
     body: JSON.stringify({ title: issueTitle(share), body: issueBody(share), labels: [LABEL] }),
   });
-  if (!filed.ok) return fail(502, "Sharing isn't working just now. Please try again later.");
+  if (!filed.ok) {
+    // GitHub's reason goes to the Worker's log (it never holds the token), not to the visitor.
+    const why = (await filed.text().catch(() => "")).slice(0, 500);
+    console.error(`GitHub didn't file the share: ${filed.status} ${why}`);
+    return fail(502, "Sharing isn't working just now. Please try again later.");
+  }
   const issue = (await filed.json()) as { number: number; html_url: string };
   return answer(201, { issue: issue.number, url: issue.html_url });
 }

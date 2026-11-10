@@ -57,6 +57,17 @@ describe("the relay", () => {
     expect((github.init!.headers as Record<string, string>).Authorization).toBe("Bearer secret");
   });
 
+  it("files a long creature, which fits in an issue only once", async () => {
+    const { calls, http } = world();
+    const long = { ...share, code: "creature Wiggle\n" + "ball()\n".repeat(4000) };
+    const r = await handle(post(long), env, http);
+    expect(r.status).toBe(201);
+    const github = calls.find((c) => c.url.includes("api.github.com"))!;
+    const sent = JSON.parse(github.init!.body as string) as { body: string };
+    expect(sent.body.length).toBeLessThanOrEqual(65_536);
+    expect(readIssue(sent.body)?.code).toBe(long.code);
+  });
+
   it("answers the browser's question before a share", async () => {
     const r = await handle(
       new Request("https://share.example/share", {
