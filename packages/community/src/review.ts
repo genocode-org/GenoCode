@@ -26,8 +26,11 @@ export interface Review {
   picture?: Uint8Array;
 }
 
-/** Reviews the share in an issue's text; `taken` holds the file names already in use. */
-export function review(issueBody: string, taken: ReadonlySet<string>): Review {
+/**
+ * Reviews the share in an issue's text; `taken` holds the file names already in use. Without
+ * `picture`, the creature is checked and built but not drawn.
+ */
+export function review(issueBody: string, taken: ReadonlySet<string>, picture = true): Review {
   const share = readIssue(issueBody);
   if (!share) {
     return {
@@ -62,7 +65,7 @@ export function review(issueBody: string, taken: ReadonlySet<string>): Review {
     notes.push(`A creature called ${share.name} is already there, so it becomes ${fileName}.`);
   }
 
-  let picture: Uint8Array | undefined;
+  let drawn: Uint8Array | undefined;
   if (problems.length === 0) {
     const inputs = { time: 0 };
     const built = build(program, { inputs });
@@ -70,20 +73,22 @@ export function review(issueBody: string, taken: ReadonlySet<string>): Review {
     const failed = built.diagnostics;
     problems.push(...listed(failed.map((d) => `When built: ${d.message}`)));
     if (failed.length === 0) {
-      const image = rasterize(built.shapes, {
-        width: SIZE,
-        height: SIZE,
-        background: buildBackground(program, { inputs }).fill,
-        focus: built.focus,
-      });
-      picture = encodePng(image.width, image.height, image.data);
+      if (picture) {
+        const image = rasterize(built.shapes, {
+          width: SIZE,
+          height: SIZE,
+          background: buildBackground(program, { inputs }).fill,
+          focus: built.focus,
+        });
+        drawn = encodePng(image.width, image.height, image.data);
+      }
       const variants = program.variants.length;
       notes.push(
         `It has ${built.shapes.length.toLocaleString("en")} shapes and ${variants} variant${variants === 1 ? "" : "s"}.`,
       );
     }
   }
-  return { share, problems, notes, fileName, ...(picture ? { picture } : {}) };
+  return { share, problems, notes, fileName, ...(drawn ? { picture: drawn } : {}) };
 }
 
 /** The comment put on the issue: what was found, the picture, and what to do next. */

@@ -4,6 +4,7 @@
 //     writes comment.md (and picture.png when there's a picture) for the issue in ISSUE_BODY.
 //   node packages/community/dist/cli.js approve
 //     writes community/<name>.genie for the issue in ISSUE_BODY, and prints the file's path.
+//     The creature is checked again but not drawn.
 //
 // The issue arrives in environment variables, never on the command line, so nothing in it is
 // read by a shell. PICTURE_URL is where picture.png will be put, for the comment to show.
@@ -29,7 +30,7 @@ function taken(): Set<string> {
 }
 
 const [command, out] = process.argv.slice(2);
-const r = review(body, taken());
+const r = review(body, taken(), command !== "approve");
 
 if (command === "review" && out) {
   mkdirSync(out, { recursive: true });

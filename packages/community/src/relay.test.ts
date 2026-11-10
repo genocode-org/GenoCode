@@ -77,6 +77,14 @@ describe("the relay", () => {
       { request: post({ ...share, author: "@octocat" }), status: 400 },
       { request: post({ ...share, turnstile: undefined }), status: 403 },
       { request: post("x".repeat(200_000)), status: 413 },
+      {
+        request: new Request("https://share.example/share", {
+          method: "POST",
+          headers: { Origin: "https://genocode.piorek.co.za", "Content-Length": "5000000" },
+          body: JSON.stringify(share),
+        }),
+        status: 413,
+      },
       { request: new Request("https://share.example/other"), status: 404 },
     ];
     for (const { request, status } of cases) {

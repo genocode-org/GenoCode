@@ -24,6 +24,13 @@ describe("reviewing a shared creature", () => {
     expect(comment).toContain("add the label `approved`");
   });
 
+  it("checks a creature without drawing it, as approving does", () => {
+    const r = review(issueBody(share(geno)), new Set(), false);
+    expect(r.problems).toEqual([]);
+    expect(r.picture).toBeUndefined();
+    expect(r.notes.join(" ")).toMatch(/shapes/);
+  });
+
   it("gives a creature whose name is taken a file name of its own", () => {
     const r = review(issueBody(share(geno)), new Set(["Geno"]));
     expect(r.fileName).toBe("Geno_2");

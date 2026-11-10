@@ -7,6 +7,9 @@ on:
   # To run it by hand, such as after GitHub had trouble starting it.
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

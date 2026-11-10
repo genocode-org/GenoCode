@@ -3,7 +3,8 @@
 # maintainer adds the label `approved`, it opens a pull request adding the creature to community/.
 #
 # The issue's text is untrusted: it reaches the scripts only through environment variables, never
-# inside a `run:` line, and the creature's code is only ever run by the GenoCode interpreter.
+# inside a `run:` line, and the creature's code is only ever run by the GenoCode interpreter, in
+# a step that is given no token. Each job has a time limit, as a creature can be slow to build.
 name: Community
 
 on:
@@ -21,6 +22,7 @@ jobs:
     # adding the label again by hand checks it again.
     if: github.event.action == 'labeled' && github.event.label.name == 'community'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write # the pictures branch
       issues: write
@@ -55,7 +57,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${NUMBER}.png"
           git commit --quiet -m "Picture of the creature in #${NUMBER}"
-          git push --quiet origin community-pictures
+          # Another share's picture may have been put there meanwhile: add this one after it.
+          for try in 1 2 3 4 5; do
+            git push --quiet origin community-pictures && exit 0
+            sleep $((try * 3))
+            git pull --quiet --rebase origin community-pictures
+          done
+          exit 1
         env:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ github.event.issue.number }}
@@ -65,39 +73,71 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ github.event.issue.number }}
 
-  approve:
+  # Approving is done in two jobs, so the creature's code never runs where the token that can
+  # write to the repository is. This one checks the creature again and hands its file on.
+  approve-check:
     if: >-
       github.event.action == 'labeled' && github.event.label.name == 'approved'
       && contains(github.event.issue.labels.*.name, 'community')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
+    outputs:
+      file: ${{ steps.add.outputs.file }}
+      text: ${{ steps.add.outputs.text }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run prepare -w @genocode/core && npx tsc -b packages/community
-      - name: Add the creature on a new branch and open a pull request
+      - name: Check the creature and write its file
+        id: add
         run: |
           file=$(node packages/community/dist/cli.js approve)
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "text=$(gzip -c "$file" | base64 -w0)" >> "$GITHUB_OUTPUT"
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+
+  # What the first job hands on is only ever written to a file in community/, under a name made
+  # of letters, digits and `_`. A maintainer then reads the pull request before merging it.
+  approve:
+    needs: approve-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Add the creature on a new branch and open a pull request
+        run: |
+          name=$(basename "$FILE" .genie)
+          [[ "$FILE" == "community/$name.genie" && "$name" =~ ^[A-Za-z][A-Za-z0-9_]*$ ]] || exit 1
+          file="community/$name.genie"
+          mkdir -p community
+          printf '%s' "$TEXT" | base64 -d | gunzip > "$file"
           branch="community/issue-${NUMBER}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --quiet -c "$branch"
           git add "$file"
-          git commit --quiet -m "Add $(basename "$file" .genie) to the community gallery (#${NUMBER})"
+          git commit --quiet -m "Add $name to the community gallery (#${NUMBER})"
           git push --quiet --force origin "$branch"
           url=$(gh pr create --head "$branch" --base main \
-            --title "Add $(basename "$file" .genie) to the community gallery" \
+            --title "Add $name to the community gallery" \
             --body "Adds \`$file\`, shared from the app and approved in #${NUMBER}. Closes #${NUMBER}.")
           gh issue comment "$NUMBER" --body "Approved: $url"
         env:
           GH_TOKEN: ${{ github.token }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
+          FILE: ${{ needs.approve-check.outputs.file }}
+          TEXT: ${{ needs.approve-check.outputs.text }}
           NUMBER: ${{ github.event.issue.number }}
