@@ -37,8 +37,23 @@ class Recent<V> {
 const fields = new Recent<Field>(48);
 const palettes = new Recent<Float32Array>(256);
 
+/**
+ * The keys of patterns asked for before, at the usual size. A creature's shapes share a few
+ * patterns, and a key can be long (a pattern written in GenoCode carries its code), so each
+ * pattern's keys are made once. Patterns are never changed once made.
+ */
+const fieldKeys = new WeakMap<Pattern, string>();
+const textureKeys = new WeakMap<Pattern, string>();
+
 /** What decides a pattern's grey picture: its kind, seed and second pattern. */
 export function fieldKey(p: Pattern, size = TEXTURE_SIZE): string {
+  if (size !== TEXTURE_SIZE) return makeFieldKey(p, size);
+  let key = fieldKeys.get(p);
+  if (key === undefined) fieldKeys.set(p, (key = makeFieldKey(p, size)));
+  return key;
+}
+
+function makeFieldKey(p: Pattern, size: number): string {
   const m = p.mix;
   return `${p.kind}/${p.seed}/${m ? `${m.way}/${m.kind}/${m.amount}${sourceKey(m.source)}` : ""}/${size}${sourceKey(p.source)}`;
 }
@@ -50,7 +65,12 @@ function sourceKey(s: PatternSource | undefined): string {
 
 /** What decides everything about a texture's look. */
 export function textureKey(p: Pattern, size = TEXTURE_SIZE): string {
-  return `${fieldKey(p, size)}/${p.hue}/${p.scheme}/${p.finish}`;
+  if (size !== TEXTURE_SIZE) return `${makeFieldKey(p, size)}/${p.hue}/${p.scheme}/${p.finish}`;
+  let key = textureKeys.get(p);
+  if (key === undefined) {
+    textureKeys.set(p, (key = `${fieldKey(p)}/${p.hue}/${p.scheme}/${p.finish}`));
+  }
+  return key;
 }
 
 /** A pattern's grey picture. The pattern must have a kind (not be `none`). */
