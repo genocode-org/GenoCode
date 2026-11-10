@@ -22,12 +22,11 @@ import {
   Color,
   DataTexture,
   DirectionalLight,
+  DynamicDrawUsage,
   Group,
   InstancedBufferAttribute,
   InstancedMesh,
   LinearMipmapLinearFilter,
-  Matrix4,
-  Mesh,
   MeshPhongMaterial,
   PerspectiveCamera,
   Quaternion,
@@ -245,6 +244,52 @@ interface Textured {
   previous?: { texture: DataTexture; since: number } | undefined;
 }
 
+/**
+ * A mesh of shapes kept from frame to frame, with room for `room` of them. Its geometry shares the
+ * shape's corners with every other mesh of that shape and owns only what each shape carries.
+ */
+interface Pooled {
+  mesh: InstancedMesh;
+  room: number;
+  look: InstancedBufferAttribute;
+  wear: InstancedBufferAttribute;
+  /** How many creatures in a row it has gone unused. */
+  idle: number;
+}
+
+/** How many creatures in a row a kept mesh may go unused before it's let go. */
+const LONGEST_IDLE = 120;
+
+function pooledMesh(base: BufferGeometry, material: MeshPhongMaterial, room: number): Pooled {
+  const geometry = new BufferGeometry();
+  geometry.setIndex(base.getIndex());
+  for (const name of Object.keys(base.attributes)) {
+    geometry.setAttribute(name, base.getAttribute(name));
+  }
+  const look = new InstancedBufferAttribute(new Float32Array(room * 4), 4);
+  const wear = new InstancedBufferAttribute(new Float32Array(room), 1);
+  look.setUsage(DynamicDrawUsage);
+  wear.setUsage(DynamicDrawUsage);
+  geometry.setAttribute("instanceLook", look);
+  geometry.setAttribute("instanceWear", wear);
+  const mesh = new InstancedMesh(geometry, material, room);
+  mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+  // The camera is framed on the creature, so nothing is gained by working out what's in view.
+  mesh.frustumCulled = false;
+  return { mesh, room, look, wear, idle: 0 };
+}
+
+/** Lets a kept mesh go, leaving the shape's shared corners on the graphics card for the others. */
+function release(p: Pooled): void {
+  const geometry = p.mesh.geometry;
+  for (const name of Object.keys(geometry.attributes)) {
+    if (name !== "instanceLook" && name !== "instanceWear") geometry.deleteAttribute(name);
+  }
+  geometry.setIndex(null);
+  geometry.dispose();
+  p.mesh.dispose();
+}
+
 /** How see-through the shapes are while the turtle's path is drawn over them: their alpha's share. */
 const FADED = 0.25;
 
@@ -275,6 +320,10 @@ class CreatureScene {
    * its place among the groups of that kind.
    */
   private worn = new Map<string, Textured>();
+  /** The shapes' meshes, kept to be filled again: by kind of shape, in the order they're used. */
+  private readonly pool = new Map<string, Pooled[]>();
+  /** The plain background on show (a colour or a gradient), so the same one isn't made again. */
+  private plainFill: string | undefined;
   /** The background asked for last, to show again once its picture is ready. */
   fill: Value | undefined;
   /** The pattern background, kept so a new hue only recolours it. */
@@ -322,14 +371,7 @@ class CreatureScene {
     detail: Detail,
     focus?: readonly [number, number, number],
   ): void {
-    for (const child of [...this.creature.children]) {
-      this.creature.remove(child);
-      // The strokes' meshes are kept, to be filled again.
-      if (child === this.opaqueTubes.mesh || child === this.seeThroughTubes.mesh) continue;
-      const mesh = child as Mesh;
-      mesh.geometry.dispose(); // each mesh has its own copy, carrying its instance attributes
-      if (mesh instanceof InstancedMesh) mesh.dispose();
-    }
+    this.creature.clear();
     this.shapes = shapes;
     this.focus = focus;
     const groups = new Map<string, LaidShape[]>();
@@ -355,7 +397,7 @@ class CreatureScene {
     this.textured = new Map();
     this.worn = new Map();
     const places = new Map<string, number>();
-    const matrix = new Matrix4();
+    const taken = new Map<string, number>();
     const colour = new Color();
     for (const [key, members] of groups) {
       const [shape, mirrored, transparent] = key.split("|");
@@ -372,29 +414,57 @@ class CreatureScene {
         material = t.material;
       }
       const sheen = pattern ? patternSheen(pattern) : 0;
-      const wear = new Float32Array(members.map((s) => s.wear));
-      const mesh = new InstancedMesh(
-        shapeGeometry(shape as ShapeName, mirrored === "true", detail),
-        material,
-        members.length,
-      );
-      const look = new Float32Array(members.length * 4);
-      members.forEach((s, i) => {
-        matrix.fromArray(s.matrix);
-        mesh.setMatrixAt(i, matrix);
+      const n = members.length;
+      const kind = `${shape}|${mirrored}|${detail}`;
+      const used = taken.get(kind) ?? 0;
+      taken.set(kind, used + 1);
+      let kept = this.pool.get(kind);
+      if (kept === undefined) this.pool.set(kind, (kept = []));
+      let p = kept[used];
+      if (p === undefined || p.room < n) {
+        if (p) release(p);
+        const base = shapeGeometry(shape as ShapeName, mirrored === "true", detail);
+        // Room to spare, so a creature that grows a little keeps its meshes.
+        p = pooledMesh(base, material, Math.max(16, Math.ceil(n * 1.25)));
+        kept[used] = p;
+      }
+      p.idle = 0;
+      const mesh = p.mesh;
+      mesh.material = material;
+      mesh.count = n;
+      const matrices = mesh.instanceMatrix.array;
+      const look = p.look.array;
+      const wear = p.wear.array;
+      const fade = this.faded ? FADED : 1;
+      for (let i = 0; i < n; i++) {
+        const s = members[i]!;
+        matrices.set(s.matrix, i * 16);
         const [r, g, b] = toRgb(s.colour);
         mesh.setColorAt(i, colour.setRGB(r, g, b, SRGBColorSpace));
         look[i * 4] = s.shine;
         look[i * 4 + 1] = s.sharpness;
-        look[i * 4 + 2] = s.colour.a * (this.faded ? FADED : 1);
+        look[i * 4 + 2] = s.colour.a * fade;
         // The finish's sheen comes and goes with the texture.
         look[i * 4 + 3] = sheen * s.wear;
-      });
-      mesh.geometry = mesh.geometry.clone();
-      mesh.geometry.setAttribute("instanceLook", new InstancedBufferAttribute(look, 4));
-      mesh.geometry.setAttribute("instanceWear", new InstancedBufferAttribute(wear, 1));
-      mesh.computeBoundingSphere();
+        wear[i] = s.wear;
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.instanceColor!.needsUpdate = true;
+      p.look.needsUpdate = true;
+      p.wear.needsUpdate = true;
+      // See-through meshes are drawn from the back to the front, by where their shapes are now.
+      if (seeThrough) mesh.computeBoundingSphere();
       this.creature.add(mesh);
+    }
+    // Meshes no creature has needed for a while are let go.
+    for (const [kind, kept] of this.pool) {
+      const used = taken.get(kind) ?? 0;
+      for (let k = kept.length - 1; k >= used; k--) {
+        const p = kept[k]!;
+        if (++p.idle <= LONGEST_IDLE) continue;
+        release(p);
+        kept.splice(k, 1);
+      }
     }
     for (const seeThrough of [false, true]) {
       const these = strokes.filter((s) => s.seeThrough === seeThrough).map((s) => s.tube);
@@ -502,6 +572,10 @@ class CreatureScene {
       this.setPatternBackground(fill);
       return;
     }
+    // The same colour or gradient as is on show: a dance asks for it again every frame.
+    const plain = JSON.stringify(fill) ?? "";
+    if (plain === this.plainFill) return;
+    this.plainFill = plain;
     this.backgroundPattern = undefined;
     const rows = 256;
     const ramp = backgroundRamp(fill, rows);
@@ -542,6 +616,7 @@ class CreatureScene {
     texture.minFilter = texture.magFilter;
     const old = this.scene.background;
     this.scene.background = texture;
+    this.plainFill = undefined;
     if (old && "dispose" in old) old.dispose();
     this.backgroundPattern = { texture, field, look };
     this.coverBackground();
@@ -586,6 +661,8 @@ class CreatureScene {
 
   dispose(): void {
     this.setCreature([], "low");
+    for (const kept of this.pool.values()) kept.forEach(release);
+    this.pool.clear();
     this.path.dispose();
     const background = this.scene.background;
     if (background && "dispose" in background) background.dispose();
@@ -656,7 +733,9 @@ export class CreatureView {
     keepView: boolean | "unless-inside" = false,
     focus?: readonly [number, number, number],
   ): void {
-    const wasInside = this.cameraInside(this.look.shapes, this.look.focus);
+    // Only asked when it matters: finding a creature's bounds looks at every shape.
+    const wasInside =
+      keepView === "unless-inside" && this.cameraInside(this.look.shapes, this.look.focus);
     this.look.setCreature(shapes, "high", focus);
     const swallowed =
       keepView === "unless-inside" && !wasInside && this.cameraInside(shapes, focus);
