@@ -1,0 +1,1149 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/104
+// About it: Filigree is a jewelled mandala with 18 variants,
+creature Filigree
+// A jewelled mandala. Arms of hoops, beads and paired petals step round a heart, each arm beside
+// its own mirror image, in two tiers laid one over the other; where the arms curl across one
+// another they weave lace, stars, flowers and whirlpools, and colour runs along every arm.
+// It ripples and flaps to the music, its hoops swell with the bass, its beads flash on the high
+// notes and its colours flow outwards; with no music it sways to a slow beat of its own.
+// Its nineteen variants are other patterns from the same weave: Snowflake, Peacock, Lace, Orchid,
+// Lotus, Coral, Sunflower, Crown, Dreamcatcher, Compass, Firework, Rosette, Gyroscope, Anemone,
+// Urchin, Pinwheel, Harlequin, Galaxy and Nebula.
+
+// --- The weave: how the arms are laid out ---
+
+gene overall = 1.164 in 0.2..5 log // how big the whole creature is
+gene folds = 6 in 3..12 // how many arms the outer tier has; between whole numbers, arms slide out of one another
+gene twin_gap = 0.5 in 0..1 // how far each arm stands from its mirror image: 0 on top of it, 0.5 evenly between
+gene hub = 0.5 in 0..3 // how far from the heart the arms start
+gene sink = -0.48 in -5..5 // how far in front of the point the camera looks at the heart sits (behind it, below 0), to centre a cupped mandala
+gene stride = 0.8 in 0.3..2 log // how far apart the links of an arm are
+gene taper = 0.6 in 0.25..2.5 log // how big the last link is compared with the first
+gene swell = 0.2 in 0..0.7 // how much the links grow and shrink in waves along an arm
+gene swell_waves = 1.5 in 0..4 // how many of those waves an arm has
+gene swell_start = 0 in 0..1 // where along the arm they start
+gene bend = (12, 7, 0) in (-40, -40, -40)..(40, 40, 40) // how far each link turns from the last: curling in the plane, rising out of it, twisting round the arm
+gene wander = (0, 0, 0) in (-40, -40, -40)..(40, 40, 40) // how far the links turn back and forth in waves: curl, rise and twist
+gene wander_waves = (1.5, 1, 1) in (0, 0, 0)..(4, 4, 4) // how many of those waves an arm has
+gene wander_start = (0, 0, 0) in (0, 0, 0)..(1, 1, 1) // where along the arm they start
+
+// --- The inner tier: a second mandala laid over the first ---
+
+gene inner_folds = 6 in 3..12 // how many arms the inner tier has
+gene inner_size = 0.55 in 0.2..1.2 log // how big it is beside the outer tier
+gene inner_turn = 30 in -90..90 // how far it is turned from the outer tier
+gene inner_phase = 0.25 in 0..1 // how far its waves are shifted along its arms
+gene inner_cup = -1 in -1.5..1.5 // how its arms rise compared with the outer tier's: -1 cups the other way
+gene inner_lift = 0 in -2..2 // how far in front of the outer tier it floats
+
+// --- The links: a hoop, a bead and two petals each ---
+
+gene hoop_shape = ring from [ring, donut, tube]
+gene hoop_size = (1, 1, 1) in (0.02, 0.02, 0.02)..(2.5, 2.5, 2.5) log // the hoops' size: across, up and through
+gene hoop_tilt = 90 in 0..90 // how far the hoops lie back: 0 stands them across the arm, 90 lays them flat
+gene hoop_flip = 0 in -90..90 // how much further every other hoop turns
+gene bead_shape = ball from [ball, cube, donut]
+gene bead_size = 0.3 in 0..1.2 // how big the beads in the hoops are
+gene petal_shape = cone from [cone, ball, cube, tube]
+gene petal_size = (0.3, 0.1, 1) in (0, 0.02, 0)..(1.2, 0.6, 3) // the petals' width, thickness and length
+gene petal_flare = 50 in 0..150 // how far the petals spread from the arm
+gene petal_lift = 0 in -80..80 // how far they tip out of the plane
+gene petal_stalk = 0.3 in 0..1.5 // how far from the link they start
+gene heart = 0.8 in 0..2.5 // how big the heart in the middle is
+
+// --- Colour ---
+
+gene hue = 190 in 0..360 // the hoops' hue next to the heart
+gene hue_sweep = 120 in -360..360 // how far the hue travels from the heart to the tips
+gene shimmer = 20 in 0..90 // how far the hue ripples to and fro along an arm
+gene shimmer_bands = 2 in 0..5 // how many ripples
+gene stripe = 0 in -180..180 // how far every other link's hue is shifted
+gene saturation = 0.9 in 0.4..1 // how rich the colours are
+gene shade = 0.3 in 0..0.95 // how dark the dark bands along an arm are
+gene shade_bands = 1 in 0..4 // how many dark bands
+gene shade_start = 0 in 0..1 // where the dark bands start: 0 leaves the heart end bright, 0.5 darkens it
+gene petal_hue = 150 in -180..180 // the petals' hue, away from their hoop's
+gene petal_shade = 0.2 in 0..0.9 // how much darker the petals are
+gene bead_hue = 60 in -180..180 // the beads' and heart's hue, away from their hoop's
+gene bead_white = 0.3 in 0..1 // how pale the beads are: 1 is pearl white
+gene twin_hue = 0 in -180..180 // the mirror-image arms' hue, away from their twins'
+gene inner_hue = 40 in -180..180 // the inner tier's hue, away from the outer tier's
+gene gloss = 0.8 in 0..1 // how strong the highlights are
+gene focus = 0.7 in 0..1 // how tight the highlights are
+
+// --- Dancing ---
+
+gene ripple = 0.06 in 0..0.15 // how far the arms' waves slide to and fro with the music
+gene pulse = 0.35 in 0..0.6 // how much the hoops swell with the bass
+gene flap = 22 in 0..45 // how far the petals flap with the middle of the music
+gene rock = 12 in 0..30 // how far the inner tier rocks round against the outer
+gene sparkle = 0.5 in 0..1 // how much the beads swell on the high notes
+gene colour_drift = 0.12 in 0..0.5 // how fast the colour ripples flow outwards, in ripples a second
+gene idle = 0.5 in 0..1 // how much it dances by itself when no music plays
+gene idle_tempo = 0.5 in 0.2..1.5 // its own beats a second, when it dances by itself
+
+// --- How the music moves it ---
+
+let own_beat = frac(time * idle_tempo)
+let listening = clamp(music.level * 4, 0, 1)
+let swing = groove(wave(own_beat), wave(beat) * (0.4 + 0.6 * music.mid))
+let pump = groove(0.5 * bump(own_beat), music.bass)
+let glint = groove(0.4 * bump(frac(own_beat * 2)), music.high_hit)
+let flow = time * colour_drift
+
+// The beat it dances to: the music's when there is some, its own when there isn't, blended by how
+// loud the music is so it slips from one to the other without a jerk.
+function groove(by_itself, to_music) {
+  return mix(idle * by_itself, to_music, listening)
+}
+
+// A size that has shrunk to nothing is kept a millionth above zero, so the shape stays in place
+// but is far too small to see.
+function shown(amount) {
+  return max(amount, 0.000001)
+}
+
+// The colour at a place along an arm, with its hue shifted: the hue sweeps from the heart to the
+// tip and ripples on the way, and dark bands cross it; beads are paler. The hue is worked out as a number, so it
+// never leaps across the colour wheel while the creature morphs.
+function tint(along, shift, darker, paler) {
+  let ripples = shimmer * wave(shimmer_bands * along - flow)
+  let band = 0.5 - 0.5 * cos(360 * (shade_bands * along + shade_start))
+  return hsv(hue + shift + hue_sweep * along + ripples, saturation * (1 - paler), (1 - shade * band * (1 - paler)) * (1 - darker))
+}
+
+// --- The creature ---
+
+grow overall
+// The camera looks at this point. A flat mandala has its heart here; one whose arms rise into a
+// cup or a ball sits back by `sink`, so the point stays in its middle.
+focuspoint
+move (0, 0, sink)
+
+shape bead_shape
+shine gloss
+sharpness focus
+colour hsv(hue + bead_hue, saturation * (1 - bead_white), 1)
+lay { grow shown(heart * (1 + sparkle * glint)) }
+
+branch {
+  tier(folds, 0, 0, 1)
+}
+branch {
+  move (0, 0, inner_lift)
+  roll inner_turn + rock * swing
+  grow inner_size
+  tier(inner_folds, inner_hue, inner_phase, inner_cup)
+}
+
+// One mandala: thirteen places for arms, each arm beside its mirror image. The places step round
+// both ways from the top, one gap at a time. With a whole number of arms they land exactly on one
+// another, so a tier of five shows five; in between, the hidden arms slide out of the ones in front
+// of them at full size, the same on the left as on the right, so the mandala is never lopsided.
+part tier(count, shift, phase, cup) {
+  for j from -6 to 6 {
+    branch {
+      roll j * 360 / count
+      symmetric x {
+        roll twin_gap * 180 / count
+        pitch -90
+        forward hub
+        arm(shift + twin_hue * (1 - side) / 2, phase, cup)
+      }
+    }
+  }
+}
+
+// One arm: eight links, each turned from the last by the bend and the wander.
+part arm(shift, phase, cup) {
+  for k from 0 to 7 {
+    let along = k / 7
+    let big = taper ^ along * (1 + swell * wave(swell_waves * along + swell_start + phase))
+    let slide = phase + ripple * swing
+    branch {
+      grow big
+      link(along, k % 2, shift)
+    }
+    forward stride * big
+    yaw bend.x + wander.x * wave(wander_waves.x * along + wander_start.x + slide)
+    pitch cup * (bend.y + wander.y * wave(wander_waves.y * along + wander_start.y + slide))
+    roll bend.z + wander.z * wave(wander_waves.z * along + wander_start.z + slide)
+  }
+}
+
+// One link: a hoop with a bead in it and a petal on each side.
+part link(along, odd, shift) {
+  let here = shift + stripe * odd
+  // The bass swells the hoops in a wave that runs out along the arm.
+  let throb = 1 + pulse * pump * (0.6 + 0.4 * wave(along - own_beat - beat))
+
+  shine gloss
+  sharpness focus
+  shape hoop_shape
+  colour tint(along, here, 0, 0)
+  lay { pitch hoop_tilt + hoop_flip * odd; grow hoop_size * throb }
+
+  shape bead_shape
+  colour tint(along, here + bead_hue, 0, bead_white)
+  lay { grow shown(bead_size * (1 + sparkle * glint)) }
+
+  // Petals are flat, so they have no shine: a flat face would flash white in the light.
+  shine 0
+  shape petal_shape
+  colour tint(along, here + petal_hue, petal_shade, 0)
+  symmetric x {
+    yaw petal_flare + flap * swing
+    pitch petal_lift
+    forward petal_stalk + petal_size.z / 2
+    lay { grow petal_size + (0.000001, 0.000001, 0.000001) }
+  }
+}
+
+
+
+// A mandala is at its best seen face-on, so it often turns flat to the viewer and spins like a
+// wheel, then tumbles again; the middle of the music carries it from one pattern to the next.
+dance {
+  gene drive = 0.6 in 0.1..2.5 // how fast the music moves it from pattern to pattern, in patterns a second
+  gene top_spin = 110 in 30..300 // how fast it spins when the music is loudest, in degrees a second
+
+  morph follows music.mid speed drive settle 3
+  zoom follows music.bass_hit amount 0.3 settle 5
+  spin follows music.level from 12 to top_spin smooth 1.2
+  turn on music.mid changes by 0.6
+  reverse on music.bass drops by 0.5 on 8 off 8
+  flat on music.level drops by 0.6 on 16 off 12
+}
+
+// --- The family: twenty patterns from one weave ---
+
+// An ice crystal: six straight arms with needle side-branches, in frosted blues and pearl.
+variant Snowflake {
+  overall = 1.01
+  sink = 0
+  folds = 6
+  twin_gap = 0
+  hub = 0.4
+  stride = 0.9
+  taper = 0.5
+  swell = 0.25
+  swell_waves = 2
+  swell_start = 0.25
+  bend = (0, 0, 0)
+  wander = (0, 0, 0)
+  inner_folds = 6
+  inner_size = 0.5
+  inner_turn = 30
+  inner_phase = 0.5
+  inner_cup = -1
+  inner_lift = 0.3
+  hoop_size = (0.6, 0.6, 0.6)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.22
+  petal_size = (0.16, 0.06, 1.4)
+  petal_flare = 60
+  petal_lift = 0
+  petal_stalk = 0.1
+  heart = 0.6
+  hue = 195
+  hue_sweep = 45
+  shimmer = 12
+  shimmer_bands = 2
+  stripe = 0
+  saturation = 0.78
+  shade = 0.15
+  shade_bands = 2
+  shade_start = 0
+  petal_hue = 15
+  petal_shade = 0
+  bead_hue = 0
+  bead_white = 0.8
+  twin_hue = 0
+  inner_hue = 35
+  gloss = 1
+  focus = 0.9
+}
+
+// A fanned tail: eye-spots that grow towards the tips on feathery barbs, teal to violet with gold pupils.
+variant Peacock {
+  overall = 0.72
+  sink = -1.38
+  folds = 8
+  twin_gap = 0.5
+  hub = 0.3
+  stride = 0.72
+  taper = 1.7
+  swell = 0.1
+  swell_waves = 1
+  swell_start = 0
+  bend = (0, 5, 0)
+  wander = (6, 0, 0)
+  wander_waves = (1, 1, 1)
+  wander_start = (0, 0, 0)
+  inner_folds = 8
+  inner_size = 0.5
+  inner_turn = 0
+  inner_phase = 0
+  inner_cup = 1.5
+  inner_lift = 0.4
+  hoop_size = (0.9, 0.9, 0.9)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.5
+  petal_size = (0.1, 0.05, 1.1)
+  petal_flare = 40
+  petal_lift = 0
+  petal_stalk = 0.3
+  heart = 0.9
+  hue = 165
+  hue_sweep = 100
+  shimmer = 18
+  shimmer_bands = 3
+  stripe = 0
+  saturation = 1
+  shade = 0.35
+  shade_bands = 0.5
+  shade_start = 0.5
+  petal_hue = -45
+  petal_shade = 0.25
+  bead_hue = -120
+  bead_white = 0
+  twin_hue = 20
+  inner_hue = 30
+  gloss = 0.9
+  focus = 0.6
+}
+
+/*
+// A doily: big overlapping hoops looping into scallops, no petals at all, turquoise running to violet.
+variant Lace {
+  overall = 1.247
+  sink = 0
+  folds = 10
+  twin_gap = 0.5
+  hub = 0.6
+  stride = 0.62
+  taper = 0.8
+  swell = 0.3
+  swell_waves = 2
+  swell_start = 0
+  bend = (8, 0, 0)
+  wander = (24, 0, 0)
+  wander_waves = (2, 1, 1)
+  wander_start = (0, 0, 0)
+  inner_folds = 10
+  inner_size = 0.55
+  inner_turn = 18
+  inner_phase = 0.5
+  inner_cup = -1
+  inner_lift = 0
+  hoop_size = (1.5, 1.5, 1.5)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.14
+  petal_size = (0, 0.02, 0)
+  petal_flare = 50
+  petal_lift = 0
+  petal_stalk = 0.3
+  heart = 0.5
+  hue = 168
+  hue_sweep = 135
+  shimmer = 25
+  shimmer_bands = 2
+  stripe = 0
+  saturation = 0.85
+  shade = 0.2
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = 150
+  petal_shade = 0.2
+  bead_hue = 90
+  bead_white = 0.8
+  twin_hue = 25
+  inner_hue = -45
+  gloss = 1
+  focus = 0.85
+}
+*/
+// A three-lobed blossom: arms looping round into ruffled rings of broad petals, violet and rose with a yellow throat.
+variant Orchid {
+  overall = 1.21
+  sink = 0.48
+  folds = 3
+  twin_gap = 0.5
+  hub = 0.2
+  stride = 0.6
+  taper = 1.3
+  swell = 0
+  swell_waves = 1
+  swell_start = 0
+  bend = (-14, -6, 0)
+  wander = (20, 0, 0)
+  inner_folds = 6
+  inner_size = 0.45
+  inner_turn = 60
+  inner_phase = 0.3
+  inner_cup = 1.3
+  inner_lift = 0.5
+  hoop_size = (0.5, 0.5, 0.5)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.3
+  petal_size = (1.1, 0.05, 1)
+  petal_flare = 95
+  petal_lift = 15
+  petal_stalk = 0
+  heart = 1
+  hue = 280
+  hue_sweep = 60
+  shimmer = 15
+  shimmer_bands = 2
+  stripe = 0
+  saturation = 0.75
+  shade = 0.2
+  shade_bands = 0.5
+  shade_start = 0.5
+  petal_hue = 12
+  petal_shade = 0
+  bead_hue = 130
+  bead_white = 0.15
+  twin_hue = -20
+  inner_hue = 25
+  gloss = 0.5
+  focus = 0.4
+  wander_waves = (1, 1, 1)
+  wander_start = (0.25, 0, 0)
+}
+
+// A water lily: eight cupped tiers of wide petals, magenta deepening to gold at the heart.
+variant Lotus {
+  overall = 1.183
+  sink = 1.63
+  folds = 8
+  twin_gap = 0
+  hub = 0.3
+  stride = 0.6
+  taper = 1.2
+  swell = 0.15
+  swell_waves = 1
+  swell_start = 0
+  bend = (0, -11, 0)
+  wander = (0, 0, 0)
+  inner_folds = 8
+  inner_size = 0.62
+  inner_turn = 22.5
+  inner_phase = 0
+  inner_cup = 1.5
+  inner_lift = 0.2
+  hoop_size = (0.3, 0.3, 0.3)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.2
+  petal_size = (0.8, 0.07, 1.5)
+  petal_flare = 32
+  petal_lift = -8
+  petal_stalk = 0
+  heart = 1.3
+  hue = 50
+  hue_sweep = -90
+  shimmer = 10
+  shimmer_bands = 1
+  stripe = 0
+  saturation = 0.85
+  shade = 0.15
+  shade_bands = 0.5
+  shade_start = 0.5
+  petal_hue = 0
+  petal_shade = 0
+  bead_hue = 0
+  bead_white = 0.6
+  twin_hue = 0
+  inner_hue = 20
+  gloss = 0.6
+  focus = 0.5
+}
+
+// A reef fan: knobbly wandering branches of linked hoops, coral red with teal polyps.
+variant Coral {
+  overall = 1.361
+  sink = -0.42
+  folds = 7
+  twin_gap = 0.5
+  hub = 0.3
+  stride = 0.7
+  taper = 0.7
+  swell = 0.5
+  swell_waves = 2.5
+  swell_start = 0.2
+  bend = (4, 6, 0)
+  wander = (30, 14, 0)
+  wander_waves = (2, 1.5, 1)
+  wander_start = (0.1, 0, 0)
+  inner_folds = 5
+  inner_size = 0.7
+  inner_turn = 20
+  inner_phase = 0.4
+  inner_cup = -1.2
+  inner_lift = 0
+  hoop_size = (0.8, 0.8, 0.8)
+  hoop_tilt = 45
+  hoop_flip = 90
+  bead_size = 0.35
+  petal_size = (0.3, 0.25, 0.7)
+  petal_flare = 75
+  petal_lift = 25
+  petal_stalk = 0.3
+  heart = 1
+  hue = 4
+  hue_sweep = 38
+  shimmer = 14
+  shimmer_bands = 3
+  stripe = 0
+  saturation = 0.9
+  shade = 0.3
+  shade_bands = 2
+  shade_start = 0
+  petal_hue = 172
+  petal_shade = 0.1
+  bead_hue = 45
+  bead_white = 0.5
+  twin_hue = -12
+  inner_hue = -30
+  gloss = 0.6
+  focus = 0.4
+}
+
+// A seed head: twelve arms and their mirror images spiralling both ways, amber seeds and yellow rays.
+variant Sunflower {
+  overall = 1.15
+  sink = 0
+  folds = 12
+  twin_gap = 0
+  hub = 0.5
+  stride = 0.5
+  taper = 1.6
+  swell = 0
+  swell_waves = 1
+  swell_start = 0
+  bend = (21, 0, 0)
+  wander = (0, 0, 0)
+  inner_folds = 12
+  inner_size = 0.45
+  inner_turn = 15
+  inner_phase = 0
+  inner_cup = -1
+  inner_lift = 0.3
+  hoop_size = (0.5, 0.5, 0.5)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.42
+  petal_size = (0.3, 0.08, 0.9)
+  petal_flare = 95
+  petal_lift = 0
+  petal_stalk = 0.2
+  heart = 1.2
+  hue = 18
+  hue_sweep = 32
+  shimmer = 8
+  shimmer_bands = 2
+  stripe = 0
+  saturation = 1
+  shade = 0.7
+  shade_bands = 0.5
+  shade_start = 0.5
+  petal_hue = 14
+  petal_shade = 0
+  bead_hue = -8
+  bead_white = 0
+  twin_hue = 10
+  inner_hue = -12
+  gloss = 0.5
+  focus = 0.5
+}
+
+// A coronet: arms that rise from a wide band, gold set with rubies and emerald leaves.
+variant Crown {
+  overall = 1.284
+  sink = 1.14
+  folds = 8
+  twin_gap = 0.5
+  hub = 1.6
+  stride = 0.7
+  taper = 0.6
+  swell = 0.3
+  swell_waves = 1.5
+  swell_start = 0.2
+  bend = (0, 3, 0)
+  wander = (0, -34, 0)
+  wander_waves = (1, 0.5, 1)
+  wander_start = (0, 0.25, 0)
+  inner_folds = 8
+  inner_size = 0.8
+  inner_turn = 22.5
+  inner_phase = 0
+  inner_cup = 1.2
+  inner_lift = 0
+  hoop_size = (1, 1, 1)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.42
+  petal_size = (0.28, 0.1, 0.6)
+  petal_flare = 60
+  petal_lift = 0
+  petal_stalk = 0.4
+  heart = 0.3
+  hue = 46
+  hue_sweep = -14
+  shimmer = 6
+  shimmer_bands = 2
+  stripe = 0
+  saturation = 0.95
+  shade = 0.3
+  shade_bands = 2
+  shade_start = 0
+  petal_hue = 95
+  petal_shade = 0.2
+  bead_hue = -48
+  bead_white = 0
+  twin_hue = 0
+  inner_hue = -10
+  gloss = 1
+  focus = 1
+}
+
+// A web of chains: standing and lying hoops linked like chain mail, curling into a net, with feathers trailing.
+variant Dreamcatcher {
+  overall = 1.805
+  sink = 0
+  folds = 8
+  twin_gap = 0.5
+  hub = 0.3
+  stride = 0.5
+  taper = 0.9
+  swell = 0.15
+  swell_waves = 2
+  swell_start = 0
+  bend = (27, 0, 0)
+  wander = (0, 0, 0)
+  inner_folds = 8
+  inner_size = 0.5
+  inner_turn = 22.5
+  inner_phase = 0
+  inner_cup = -1
+  inner_lift = 0
+  hoop_size = (1, 1, 1)
+  hoop_tilt = 0
+  hoop_flip = 90
+  bead_size = 0.18
+  petal_size = (0.2, 0.04, 1)
+  petal_flare = 150
+  petal_lift = 0
+  petal_stalk = 0.4
+  heart = 0.4
+  hue = 28
+  hue_sweep = 165
+  shimmer = 10
+  shimmer_bands = 1
+  stripe = 35
+  saturation = 0.9
+  shade = 0.2
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = -60
+  petal_shade = 0.3
+  bead_hue = 180
+  bead_white = 0.4
+  twin_hue = 0
+  inner_hue = 180
+  gloss = 0.9
+  focus = 0.8
+}
+
+// A compass rose: four bold blades over four lesser ones, deep blue pointing gold and red.
+variant Compass {
+  overall = 0.923
+  sink = 0
+  folds = 4
+  twin_gap = 0.1
+  hub = 0.2
+  stride = 1.1
+  taper = 0.45
+  swell = 0
+  swell_waves = 1
+  swell_start = 0
+  bend = (0, 0, 0)
+  wander = (0, 0, 0)
+  inner_folds = 4
+  inner_size = 0.65
+  inner_turn = 45
+  inner_phase = 0
+  inner_cup = -1
+  inner_lift = 0.3
+  hoop_size = (0.6, 0.6, 0.6)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.3
+  petal_size = (0.5, 0.1, 1.6)
+  petal_flare = 24
+  petal_lift = 0
+  petal_stalk = 0
+  heart = 1.2
+  hue = 215
+  hue_sweep = 15
+  shimmer = 0
+  shimmer_bands = 1
+  stripe = 0
+  saturation = 0.95
+  shade = 0.45
+  shade_bands = 0.5
+  shade_start = 0
+  petal_hue = 0
+  petal_shade = 0
+  bead_hue = 180
+  bead_white = 0.3
+  twin_hue = -175
+  inner_hue = 0
+  gloss = 0.8
+  focus = 0.7
+}
+
+// A burst: twenty-four straight rays of sparks, running through the whole rainbow from the middle out.
+variant Firework {
+  overall = 0.831
+  sink = 0
+  folds = 12
+  twin_gap = 0.5
+  hub = 0.8
+  stride = 1.3
+  taper = 0.35
+  swell = 0.2
+  swell_waves = 3
+  swell_start = 0
+  bend = (0, 4, 0)
+  wander = (0, 0, 0)
+  inner_folds = 12
+  inner_size = 0.5
+  inner_turn = 7.5
+  inner_phase = 0.5
+  inner_cup = -1.5
+  inner_lift = 0
+  hoop_size = (0.25, 0.25, 0.25)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.5
+  petal_size = (0.08, 0.08, 1)
+  petal_flare = 10
+  petal_lift = 0
+  petal_stalk = 0.2
+  heart = 0.5
+  hue = 0
+  hue_sweep = 300
+  shimmer = 0
+  shimmer_bands = 1
+  stripe = 0
+  saturation = 1
+  shade = 0
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = 20
+  petal_shade = 0
+  bead_hue = -20
+  bead_white = 0.25
+  twin_hue = 0
+  inner_hue = 150
+  gloss = 1
+  focus = 1
+}
+
+// A spirograph: every arm curls nearly shut into a loop of hoops bristling with rays, magenta round to green.
+variant Rosette {
+  overall = 1.544
+  sink = 0
+  folds = 6
+  twin_gap = 0
+  hub = 0.4
+  stride = 0.9
+  taper = 1
+  swell = 0
+  swell_waves = 1
+  swell_start = 0
+  bend = (40, 0, 0)
+  wander = (0, 0, 0)
+  inner_folds = 12
+  inner_size = 0.5
+  inner_turn = 0
+  inner_phase = 0
+  inner_cup = -1
+  inner_lift = 0
+  hoop_size = (0.85, 0.85, 0.85)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.3
+  petal_size = (0.15, 0.05, 0.7)
+  petal_flare = 90
+  petal_lift = 0
+  petal_stalk = 0.4
+  heart = 0.7
+  hue = 300
+  hue_sweep = 200
+  shimmer = 0
+  shimmer_bands = 1
+  stripe = 0
+  saturation = 0.95
+  shade = 0.15
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = 60
+  petal_shade = 0
+  bead_hue = 180
+  bead_white = 0.3
+  twin_hue = 0
+  inner_hue = 90
+  gloss = 0.9
+  focus = 0.7
+}
+
+// Orbits: three pairs of arms looping round and twisting out of the plane, like rings in gimbals, cyan with orange beads.
+variant Gyroscope {
+  overall = 1.434
+  sink = 0.77
+  folds = 3
+  twin_gap = 1
+  hub = 0.3
+  stride = 1
+  taper = 1
+  swell = 0
+  swell_waves = 1
+  swell_start = 0
+  bend = (36, 8, 18)
+  wander = (0, 0, 0)
+  inner_folds = 3
+  inner_size = 0.6
+  inner_turn = 60
+  inner_phase = 0
+  inner_cup = -1
+  inner_lift = 0
+  hoop_size = (1.1, 1.1, 0.5)
+  hoop_tilt = 0
+  hoop_flip = 0
+  bead_size = 0.5
+  petal_size = (0.1, 0.1, 0.5)
+  petal_flare = 90
+  petal_lift = 0
+  petal_stalk = 0.5
+  heart = 1.4
+  hue = 188
+  hue_sweep = 65
+  shimmer = 10
+  shimmer_bands = 1
+  stripe = 0
+  saturation = 0.9
+  shade = 0.2
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = 30
+  petal_shade = 0
+  bead_hue = -160
+  bead_white = 0.1
+  twin_hue = 40
+  inner_hue = 110
+  gloss = 1
+  focus = 0.9
+}
+
+// A sea anemone: eleven ribbed tentacles waving up from the heart, rose to violet with pale tips.
+variant Anemone {
+  overall = 1.735
+  sink = 0
+  folds = 11
+  twin_gap = 0.5
+  hub = 0.3
+  stride = 0.62
+  taper = 0.4
+  swell = 0.15
+  swell_waves = 3
+  swell_start = 0
+  bend = (0, -9, 0)
+  wander = (22, -16, 0)
+  wander_waves = (1.6, 1.2, 1)
+  wander_start = (0.2, 0.5, 0)
+  inner_folds = 11
+  inner_size = 0.7
+  inner_turn = 16
+  inner_phase = 0.5
+  inner_cup = 1.5
+  inner_lift = 0.3
+  hoop_size = (0.8, 0.8, 1.6)
+  hoop_tilt = 0
+  hoop_flip = 0
+  bead_size = 0.6
+  petal_size = (0, 0.02, 0)
+  petal_flare = 50
+  petal_lift = 0
+  petal_stalk = 0.3
+  heart = 1.5
+  hue = 335
+  hue_sweep = -75
+  shimmer = 15
+  shimmer_bands = 3
+  stripe = 0
+  saturation = 0.75
+  shade = 0.35
+  shade_bands = 0.5
+  shade_start = 0.5
+  petal_hue = 150
+  petal_shade = 0.2
+  bead_hue = 20
+  bead_white = 0.5
+  twin_hue = 0
+  inner_hue = -40
+  gloss = 0.7
+  focus = 0.5
+}
+
+// A spiny ball: both tiers curl right round into a cage, long spines standing out all over, violet to hot pink tips.
+variant Urchin {
+  overall = 1.538
+  sink = -1.42
+  folds = 9
+  twin_gap = 0.5
+  hub = 0.2
+  stride = 0.6
+  taper = 1
+  swell = 0
+  swell_waves = 1
+  swell_start = 0
+  bend = (0, 21, 0)
+  wander = (0, 0, 0)
+  inner_folds = 9
+  inner_size = 1
+  inner_turn = 20
+  inner_phase = 0
+  inner_cup = 1
+  inner_lift = 0
+  hoop_size = (0.3, 0.3, 0.3)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.35
+  petal_size = (0.14, 0.14, 1.8)
+  petal_flare = 18
+  petal_lift = -70
+  petal_stalk = 0
+  heart = 0.5
+  hue = 265
+  hue_sweep = 40
+  shimmer = 0
+  shimmer_bands = 1
+  stripe = 0
+  saturation = 0.9
+  shade = 0.5
+  shade_bands = 0.5
+  shade_start = 0.5
+  petal_hue = 50
+  petal_shade = 0
+  bead_hue = -110
+  bead_white = 0.2
+  twin_hue = 0
+  inner_hue = 0
+  gloss = 0.8
+  focus = 0.8
+}
+
+// A paper windmill: five curling arms in lime beside five mirror arms in purple.
+variant Pinwheel {
+  overall = 1.091
+  sink = 0.24
+  folds = 5
+  twin_gap = 0.5
+  hub = 0.3
+  stride = 0.85
+  taper = 0.75
+  swell = 0.2
+  swell_waves = 1
+  swell_start = 0.5
+  bend = (15, 0, 6)
+  wander = (0, 0, 0)
+  inner_folds = 5
+  inner_size = 0.5
+  inner_turn = 36
+  inner_phase = 0
+  inner_cup = -1
+  inner_lift = 0.4
+  hoop_size = (0.7, 0.7, 0.7)
+  hoop_tilt = 90
+  hoop_flip = 0
+  bead_size = 0.3
+  petal_size = (0.6, 0.06, 1.1)
+  petal_flare = 100
+  petal_lift = 0
+  petal_stalk = 0.1
+  heart = 1
+  hue = 75
+  hue_sweep = 30
+  shimmer = 10
+  shimmer_bands = 2
+  stripe = 0
+  saturation = 0.95
+  shade = 0.2
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = -20
+  petal_shade = 0.15
+  bead_hue = 0
+  bead_white = 0.9
+  twin_hue = 175
+  inner_hue = -90
+  gloss = 0.5
+  focus = 0.5
+}
+
+// A jester's ruff: zigzag arms of crossed hoops, every other link in the opposite colour, magenta against lime.
+variant Harlequin {
+  overall = 1.012
+  sink = 0
+  folds = 7
+  twin_gap = 0.5
+  hub = 0.5
+  stride = 0.8
+  taper = 0.8
+  swell = 0.3
+  swell_waves = 4
+  swell_start = 0
+  bend = (0, 0, 0)
+  wander = (38, 0, 0)
+  wander_waves = (3.5, 1, 1)
+  wander_start = (0.25, 0, 0)
+  inner_folds = 7
+  inner_size = 0.6
+  inner_turn = 25.7
+  inner_phase = 0.5
+  inner_cup = -1
+  inner_lift = 0.3
+  hoop_size = (0.9, 0.9, 0.9)
+  hoop_tilt = 90
+  hoop_flip = 90
+  bead_size = 0.4
+  petal_size = (0.4, 0.1, 0.8)
+  petal_flare = 90
+  petal_lift = 0
+  petal_stalk = 0.3
+  heart = 1
+  hue = 305
+  hue_sweep = 40
+  shimmer = 0
+  shimmer_bands = 1
+  stripe = 150
+  saturation = 1
+  shade = 0
+  shade_bands = 1
+  shade_start = 0
+  petal_hue = 75
+  petal_shade = 0.1
+  bead_hue = -90
+  bead_white = 0.2
+  twin_hue = 0
+  inner_hue = 30
+  gloss = 0.8
+  focus = 0.6
+}
+
+// A spiral galaxy: five arms winding out and twisting through space, deep blue and violet scattered with white stars.
+variant Galaxy {
+  overall = 1.327
+  sink = 0.27
+  folds = 5
+  twin_gap = 0.15
+  hub = 0.3
+  stride = 0.85
+  taper = 0.6
+  swell = 0.3
+  swell_waves = 2
+  swell_start = 0
+  bend = (19, 5, 14)
+  wander = (0, 8, 0)
+  wander_waves = (1, 2, 1)
+  wander_start = (0, 0, 0)
+  inner_folds = 5
+  inner_size = 0.7
+  inner_turn = 36
+  inner_phase = 0.3
+  inner_cup = -1
+  inner_lift = 0
+  hoop_size = (1.3, 1.3, 0.5)
+  hoop_tilt = 25
+  hoop_flip = 0
+  bead_size = 0.45
+  petal_size = (0.14, 0.07, 0.6)
+  petal_flare = 70
+  petal_lift = 30
+  petal_stalk = 0.5
+  heart = 1.6
+  hue = 255
+  hue_sweep = -80
+  shimmer = 30
+  shimmer_bands = 3
+  stripe = 0
+  saturation = 0.9
+  shade = 0.3
+  shade_bands = 2
+  shade_start = 0
+  petal_hue = 60
+  petal_shade = 0
+  bead_hue = 0
+  bead_white = 0.95
+  twin_hue = 25
+  inner_hue = 55
+  gloss = 1
+  focus = 1
+}
+
+// A cloud of gas: arms wandering every way at once, banded dark and bright, blue through violet to crimson.
+variant Nebula {
+  overall = 0.966
+  sink = 0.58
+  folds = 7
+  twin_gap = 0.3
+  hub = 0.4
+  stride = 0.8
+  taper = 1.1
+  swell = 0.55
+  swell_waves = 2.5
+  swell_start = 0.3
+  bend = (6, 0, 10)
+  wander = (26, 28, 30)
+  wander_waves = (1.7, 2.3, 1.2)
+  wander_start = (0.3, 0.6, 0.1)
+  inner_folds = 4
+  inner_size = 0.8
+  inner_turn = 40
+  inner_phase = 0.6
+  inner_cup = -1.3
+  inner_lift = 0
+  hoop_size = (1.2, 1.2, 0.6)
+  hoop_tilt = 60
+  hoop_flip = 40
+  bead_size = 0.5
+  petal_size = (0.35, 0.3, 0.5)
+  petal_flare = 80
+  petal_lift = 40
+  petal_stalk = 0.5
+  heart = 1.2
+  hue = 228
+  hue_sweep = 125
+  shimmer = 45
+  shimmer_bands = 4
+  stripe = 0
+  saturation = 0.85
+  shade = 0.55
+  shade_bands = 3
+  shade_start = 0.1
+  petal_hue = -40
+  petal_shade = 0.3
+  bead_hue = 180
+  bead_white = 0.7
+  twin_hue = 30
+  inner_hue = 70
+  gloss = 0.6
+  focus = 0.3
+}
