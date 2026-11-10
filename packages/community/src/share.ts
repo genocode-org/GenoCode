@@ -94,10 +94,21 @@ export function issueTitle(share: Share): string {
   return `Community creature: ${share.name} by ${share.author}`;
 }
 
+/** The most text GitHub lets one issue hold. */
+export const MOST_ISSUE = 65_536;
+
+/** How much room `text` takes in an issue, counted the careful way: in bytes. */
+function room(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
 /**
  * The issue's text. People read the fenced blocks, where GitHub shows everything as it is
  * (no links, no mentions). The checks read only the hidden copy at the end, which is base64, so
  * nothing in the share can end the comment that holds it.
+ *
+ * A long creature doesn't fit twice in one issue: then the code people read is left out, and
+ * only the hidden copy goes. `fitsIssue` tells whether even that fits.
  */
 export function issueBody(share: Share): string {
   const about = [
@@ -105,21 +116,33 @@ export function issueBody(share: Share): string {
     `author: ${share.author}`,
     `description: ${share.description}`,
   ].join("\n");
-  const json = JSON.stringify(share);
-  const hidden = toBase64(json);
-  return [
-    `A creature shared from the GenoCode app, under [${LICENCE}](${LICENCE_URL}).`,
-    "",
-    fence(about) + "text",
-    about,
-    fence(about),
-    "",
+  const hidden = toBase64(JSON.stringify(share));
+  const body = (code: string[]) =>
+    [
+      `A creature shared from the GenoCode app, under [${LICENCE}](${LICENCE_URL}).`,
+      "",
+      fence(about) + "text",
+      about,
+      fence(about),
+      "",
+      ...code,
+      "",
+      `<!-- ${MARK} ${hidden} -->`,
+    ].join("\n");
+  const whole = body([
     fence(share.code) + "genie",
     share.code.replace(/\n$/, ""),
     fence(share.code),
-    "",
-    `<!-- ${MARK} ${hidden} -->`,
-  ].join("\n");
+  ]);
+  if (room(whole) <= MOST_ISSUE) return whole;
+  return body([
+    "The code is too long to show here. The checks read it all the same, and it can be read in the pull request that approving it opens.",
+  ]);
+}
+
+/** Whether the share fits in one GitHub issue. */
+export function fitsIssue(share: Share): boolean {
+  return room(issueBody(share)) <= MOST_ISSUE;
 }
 
 /** The share an issue holds, or undefined when it holds none, or one with something wrong. */

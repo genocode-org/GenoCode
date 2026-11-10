@@ -7,6 +7,10 @@ main = "src/relay.ts"
 compatibility_date = "2026-11-01"
 workers_dev = true
 
+# Keeps the Worker's log, so a share that GitHub didn't take can be looked up afterwards.
+[observability]
+enabled = true
+
 [vars]
 REPO = "genocode-org/GenoCode"
 ALLOWED_ORIGINS = "https://genocode.piorek.co.za"

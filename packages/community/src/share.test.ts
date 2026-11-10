@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   approvedText,
+  fitsIssue,
   freeFileName,
   issueBody,
   LIMITS,
+  MOST_ISSUE,
   problems,
   readCredit,
   readIssue,
@@ -46,6 +48,22 @@ describe("the issue", () => {
   it("fences the code so nothing in it can end the block", () => {
     const body = issueBody({ ...share, code: "creature Wiggle\n// ````\nball()\n" });
     expect(body).toContain("`````genie\n");
+  });
+
+  it("leaves the code people read out of an issue it wouldn't fit in twice", () => {
+    const long = { ...share, code: "creature Wiggle\n" + "ball()\n".repeat(4000) };
+    expect(long.code.length).toBeLessThanOrEqual(LIMITS.code);
+    const body = issueBody(long);
+    expect(body.length).toBeLessThanOrEqual(MOST_ISSUE);
+    expect(body).toContain("too long to show here");
+    expect(readIssue(body)).toEqual(long);
+    expect(fitsIssue(long)).toBe(true);
+  });
+
+  it("says when a share can't fit in an issue at all", () => {
+    const huge = { ...share, code: "creature Wiggle\n// " + "🐛".repeat(15_000) + "\n" };
+    expect(huge.code.length).toBeLessThanOrEqual(LIMITS.code);
+    expect(fitsIssue(huge)).toBe(false);
   });
 
   it("holds no share when the hidden copy is missing or broken", () => {
