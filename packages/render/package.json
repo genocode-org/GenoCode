@@ -1,6 +1,6 @@
 {
   "name": "@genocode/render",
-  "version": "0.13.5",
+  "version": "0.13.6",
   "description": "Draws GenoCode creatures, textures and backgrounds with three.js.",
   "license": "MIT",
   "repository": {
