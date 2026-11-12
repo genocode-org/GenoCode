@@ -12,7 +12,7 @@ creature Filigree
 
 // --- The weave: how the arms are laid out ---
 
-gene overall = 1.164 in 0.2..5 log // how big the whole creature is
+gene overall = 1.065 in 0.2..5 log // how big the whole creature is
 gene folds = 6 in 3..12 // how many arms the outer tier has; between whole numbers, arms slide out of one another
 gene twin_gap = 0.5 in 0..1 // how far each arm stands from its mirror image: 0 on top of it, 0.5 evenly between
 gene hub = 0.5 in 0..3 // how far from the heart the arms start
@@ -154,20 +154,23 @@ part tier(count, shift, phase, cup) {
   }
 }
 
-// One arm: eight links, each turned from the last by the bend and the wander.
+// One arm: five big links, each turned from the last by the bend and the wander. The genes are
+// worked out for an arm of eight small links, so each of the five steps and turns 7/4 as far and
+// the arm keeps its length and its curl with fewer, bolder links.
 part arm(shift, phase, cup) {
-  for k from 0 to 7 {
-    let along = k / 7
+  let reach = 7 / 4
+  for k from 0 to 4 {
+    let along = k / 4
     let big = taper ^ along * (1 + swell * wave(swell_waves * along + swell_start + phase))
     let slide = phase + ripple * swing
     branch {
-      grow big
+      grow big * 1.5
       link(along, k % 2, shift)
     }
-    forward stride * big
-    yaw bend.x + wander.x * wave(wander_waves.x * along + wander_start.x + slide)
-    pitch cup * (bend.y + wander.y * wave(wander_waves.y * along + wander_start.y + slide))
-    roll bend.z + wander.z * wave(wander_waves.z * along + wander_start.z + slide)
+    forward stride * big * reach
+    yaw reach * (bend.x + wander.x * wave(wander_waves.x * along + wander_start.x + slide))
+    pitch reach * cup * (bend.y + wander.y * wave(wander_waves.y * along + wander_start.y + slide))
+    roll reach * (bend.z + wander.z * wave(wander_waves.z * along + wander_start.z + slide))
   }
 }
 
@@ -199,8 +202,6 @@ part link(along, odd, shift) {
   }
 }
 
-
-
 // A mandala is at its best seen face-on, so it often turns flat to the viewer and spins like a
 // wheel, then tumbles again; the middle of the music carries it from one pattern to the next.
 dance {
@@ -219,7 +220,7 @@ dance {
 
 // An ice crystal: six straight arms with needle side-branches, in frosted blues and pearl.
 variant Snowflake {
-  overall = 1.01
+  overall = 0.92
   sink = 0
   folds = 6
   twin_gap = 0
@@ -267,7 +268,7 @@ variant Snowflake {
 
 // A fanned tail: eye-spots that grow towards the tips on feathery barbs, teal to violet with gold pupils.
 variant Peacock {
-  overall = 0.72
+  overall = 0.65
   sink = -1.38
   folds = 8
   twin_gap = 0.5
@@ -368,7 +369,7 @@ variant Lace {
 */
 // A three-lobed blossom: arms looping round into ruffled rings of broad petals, violet and rose with a yellow throat.
 variant Orchid {
-  overall = 1.21
+  overall = 1.008
   sink = 0.48
   folds = 3
   twin_gap = 0.5
@@ -418,7 +419,7 @@ variant Orchid {
 
 // A water lily: eight cupped tiers of wide petals, magenta deepening to gold at the heart.
 variant Lotus {
-  overall = 1.183
+  overall = 1.045
   sink = 1.63
   folds = 8
   twin_gap = 0
@@ -466,7 +467,7 @@ variant Lotus {
 
 // A reef fan: knobbly wandering branches of linked hoops, coral red with teal polyps.
 variant Coral {
-  overall = 1.361
+  overall = 1.274
   sink = -0.42
   folds = 7
   twin_gap = 0.5
@@ -516,7 +517,7 @@ variant Coral {
 
 // A seed head: twelve arms and their mirror images spiralling both ways, amber seeds and yellow rays.
 variant Sunflower {
-  overall = 1.15
+  overall = 0.98
   sink = 0
   folds = 12
   twin_gap = 0
@@ -564,7 +565,7 @@ variant Sunflower {
 
 // A coronet: arms that rise from a wide band, gold set with rubies and emerald leaves.
 variant Crown {
-  overall = 1.284
+  overall = 1.331
   sink = 1.14
   folds = 8
   twin_gap = 0.5
@@ -614,7 +615,7 @@ variant Crown {
 
 // A web of chains: standing and lying hoops linked like chain mail, curling into a net, with feathers trailing.
 variant Dreamcatcher {
-  overall = 1.805
+  overall = 1.482
   sink = 0
   folds = 8
   twin_gap = 0.5
@@ -662,7 +663,7 @@ variant Dreamcatcher {
 
 // A compass rose: four bold blades over four lesser ones, deep blue pointing gold and red.
 variant Compass {
-  overall = 0.923
+  overall = 0.847
   sink = 0
   folds = 4
   twin_gap = 0.1
@@ -710,7 +711,7 @@ variant Compass {
 
 // A burst: twenty-four straight rays of sparks, running through the whole rainbow from the middle out.
 variant Firework {
-  overall = 0.831
+  overall = 0.79
   sink = 0
   folds = 12
   twin_gap = 0.5
@@ -758,7 +759,7 @@ variant Firework {
 
 // A spirograph: every arm curls nearly shut into a loop of hoops bristling with rays, magenta round to green.
 variant Rosette {
-  overall = 1.544
+  overall = 1.327
   sink = 0
   folds = 6
   twin_gap = 0
@@ -806,7 +807,7 @@ variant Rosette {
 
 // Orbits: three pairs of arms looping round and twisting out of the plane, like rings in gimbals, cyan with orange beads.
 variant Gyroscope {
-  overall = 1.434
+  overall = 1.271
   sink = 0.77
   folds = 3
   twin_gap = 1
@@ -854,7 +855,7 @@ variant Gyroscope {
 
 // A sea anemone: eleven ribbed tentacles waving up from the heart, rose to violet with pale tips.
 variant Anemone {
-  overall = 1.735
+  overall = 1.609
   sink = 0
   folds = 11
   twin_gap = 0.5
@@ -904,7 +905,7 @@ variant Anemone {
 
 // A spiny ball: both tiers curl right round into a cage, long spines standing out all over, violet to hot pink tips.
 variant Urchin {
-  overall = 1.538
+  overall = 1.214
   sink = -1.42
   folds = 9
   twin_gap = 0.5
@@ -952,7 +953,7 @@ variant Urchin {
 
 // A paper windmill: five curling arms in lime beside five mirror arms in purple.
 variant Pinwheel {
-  overall = 1.091
+  overall = 0.995
   sink = 0.24
   folds = 5
   twin_gap = 0.5
@@ -1000,7 +1001,7 @@ variant Pinwheel {
 
 // A jester's ruff: zigzag arms of crossed hoops, every other link in the opposite colour, magenta against lime.
 variant Harlequin {
-  overall = 1.012
+  overall = 0.979
   sink = 0
   folds = 7
   twin_gap = 0.5
@@ -1011,8 +1012,8 @@ variant Harlequin {
   swell_waves = 4
   swell_start = 0
   bend = (0, 0, 0)
-  wander = (38, 0, 0)
-  wander_waves = (3.5, 1, 1)
+  wander = (22, 0, 0)
+  wander_waves = (2, 1, 1)
   wander_start = (0.25, 0, 0)
   inner_folds = 7
   inner_size = 0.6
@@ -1050,7 +1051,7 @@ variant Harlequin {
 
 // A spiral galaxy: five arms winding out and twisting through space, deep blue and violet scattered with white stars.
 variant Galaxy {
-  overall = 1.327
+  overall = 1.246
   sink = 0.27
   folds = 5
   twin_gap = 0.15
@@ -1100,7 +1101,7 @@ variant Galaxy {
 
 // A cloud of gas: arms wandering every way at once, banded dark and bright, blue through violet to crimson.
 variant Nebula {
-  overall = 0.966
+  overall = 0.911
   sink = 0.58
   folds = 7
   twin_gap = 0.3
