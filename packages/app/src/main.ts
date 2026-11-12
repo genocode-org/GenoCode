@@ -202,8 +202,9 @@ hooks.exportDefinition = (kind) => {
   const blob = new Blob([text], { type: "text/plain" });
   void saveBlob(blob, `${name}.genie`, `GenoCode ${kind}s`, ".genie");
 };
-const inputs = new InputControls($("inputs-section"), () => {
-  if (mode === "view" && !inputs.running) showCurrent(true, false);
+const inputs = new InputControls($("inputs-section"), (resumed) => {
+  // While time runs every frame is drawn anyway; letting it run again has to start that off.
+  if (mode === "view" && (resumed || !inputs.running)) showCurrent(true, false);
 });
 
 // ---------- view ----------
