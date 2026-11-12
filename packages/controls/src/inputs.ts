@@ -15,10 +15,13 @@ export class InputControls {
   private readonly timeText: HTMLElement;
   private readonly run: HTMLInputElement;
 
-  /** `onChange` is called when a slider moves while time is held, so the view can be redrawn. */
+  /**
+   * `onChange` is called when a slider moves, so the view can be redrawn. `resumed` says time was
+   * just let run again, so drawing every frame has to start again too.
+   */
   constructor(
     private readonly section: HTMLElement,
-    private readonly onChange: () => void,
+    private readonly onChange: (resumed: boolean) => void,
   ) {
     const list = document.createElement("div");
     list.className = "inputs";
@@ -34,14 +37,14 @@ export class InputControls {
       } else {
         this.held = this.time;
       }
-      this.onChange();
+      this.onChange(this.run.checked);
     });
     this.timeSlider = this.range(0, MAX_TIME, 0.01, 0);
     this.timeSlider.addEventListener("input", () => {
       this.run.checked = false;
       this.held = Number(this.timeSlider.value);
       this.showTime();
-      this.onChange();
+      this.onChange(false);
     });
     this.timeText = document.createElement("span");
     this.timeText.className = "input-value";
@@ -50,14 +53,14 @@ export class InputControls {
     const beat = this.range(0, 1, 0.01, 0);
     beat.addEventListener("input", () => {
       this.beat = Number(beat.value);
-      this.onChange();
+      this.onChange(false);
     });
     list.append(this.row("beat", beat));
     for (const name of MUSIC_FIELDS) {
       const s = this.range(0, 1, 0.01, 0);
       s.addEventListener("input", () => {
         this.music[name] = Number(s.value);
-        this.onChange();
+        this.onChange(false);
       });
       list.append(this.row(`music.${name}`, s));
     }
