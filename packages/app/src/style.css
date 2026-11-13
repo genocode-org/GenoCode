@@ -1541,17 +1541,29 @@ select.gene-control {
   display: none;
 }
 
+/* One grid for all the rows, so the name column is as wide as the longest name and every slider
+   starts at the same place. */
 .inputs {
   display: grid;
+  grid-template-columns: max-content 1fr auto auto;
   gap: 6px;
   font-size: 0.92em;
 }
 
 .input-row {
   display: grid;
-  grid-template-columns: 90px 1fr auto auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 6px;
+}
+
+.input-row code {
+  white-space: nowrap;
+}
+
+/* A slider with nothing after it (only time has a value and a tick box) runs to the end. */
+.input-row input[type="range"]:last-child {
+  grid-column: 2 / -1;
 }
 
 .input-row input[type="range"] {
