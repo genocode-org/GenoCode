@@ -1062,9 +1062,15 @@ input[type="range"] {
   background: var(--good);
 }
 
+/* Where the song is going. */
+.meter.shape > div {
+  background: var(--text);
+}
+
 .meter.hit + .meter.mood,
 .meter.mood + .meter.notes,
-.meter.notes + .meter:not(.notes) {
+.meter.notes + .meter.shape,
+.meter.shape + .meter:not(.shape) {
   margin-left: 4px;
 }
 

@@ -426,7 +426,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
     "music",
     h(
       "music.bass",
-      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`), its left–right `balance` and its notes (`note`, `clear`, `key`, `major`, `pitch`). All are 0 when no music is playing.",
+      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`), its left–right `balance`, its notes (`note`, `clear`, `key`, `major`, `pitch`) and where the song is going (`quiet`, `build`, `drop`, `change`). All are 0 when no music is playing.",
       "16",
     ),
   ],
@@ -535,6 +535,38 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
         h(
           "music.pitch",
           "How high the tune is, 0–1, against where it has been lately: 0.5 its usual height.",
+          "16",
+        ),
+      ],
+      [
+        "quiet",
+        h(
+          "music.quiet",
+          "Rises in a quiet part of the song, 0–1: the music is well under the loudest it has been lately.",
+          "16",
+        ),
+      ],
+      [
+        "build",
+        h(
+          "music.build",
+          "Rises while the music builds up, 0–1: it is getting louder, brighter and busier.",
+          "16",
+        ),
+      ],
+      [
+        "drop",
+        h(
+          "music.drop",
+          "Jumps up when the bass comes in after a quiet part or a build, then falls back over a second or two, 0–1.",
+          "16",
+        ),
+      ],
+      [
+        "change",
+        h(
+          "music.change",
+          "Jumps up when a new part of the song starts, then falls back, 0–1.",
           "16",
         ),
       ],

@@ -2,12 +2,14 @@
 // at the last 2048 samples every 512 (about 86 times a second at 44.1 kHz), splits them into octaves
 // the way DancerDNA did, and groups those into bass, mid and high. Each value is measured against its
 // own recent peak, so the inputs fill 0–1 however loud the music is. The music's mood (tempo,
-// energy, bright, rough) and its left–right balance are worked out beside them.
+// energy, bright, rough) and its left–right balance are worked out beside them; its notes in
+// notes.ts and where the song is going in shape.ts.
 
 import { silence, type MusicInputs } from "@genocode/core";
 import { BeatTracker } from "./beat.js";
 import { BINS, SPECTRUM_BLOCK, spectrum } from "./fft.js";
 import { Notes } from "./notes.js";
+import { SongShape } from "./shape.js";
 import { BLOCK, OCTAVES, octaves, toInt16 } from "./octaves.js";
 
 /** Samples between analyses. */
@@ -138,6 +140,8 @@ export class MusicAnalyser {
   private hit = 0;
   private readonly beats: BeatTracker;
   private readonly notes: Notes;
+  private readonly shape = new SongShape();
+  private readonly both = new Float64Array(OCTAVES);
   // The last SPECTRUM_BLOCK samples of both sides mixed, for the spectrum.
   private readonly mono = new Float32Array(SPECTRUM_BLOCK);
   private monoNext = 0;
@@ -235,6 +239,14 @@ export class MusicAnalyser {
 
     this.struck = Math.max(rise >= BUSY_RISE ? fresh : 0, this.struck * Math.exp(-dt / HIT_FALL));
     this.mood(dt);
+    for (let j = 0; j < OCTAVES; j++) this.both[j] = (this.l[j]! + this.r[j]!) / 2;
+    this.shape.update(
+      dt,
+      this.both,
+      this.notes.strengths,
+      this.bright,
+      clamp(this.busy / BUSY, 0, 1),
+    );
 
     this.current = {
       bass: this.bass.level,
@@ -251,6 +263,7 @@ export class MusicAnalyser {
       rough: this.rough,
       balance: this.balance,
       ...this.notes.inputs,
+      ...this.shape.inputs,
     };
     // Beats are mostly carried by the drums: the low and middle rises.
     this.beats.push(this.bass.rise + 0.5 * this.mid.rise, this.time);

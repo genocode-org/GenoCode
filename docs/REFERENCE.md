@@ -2833,6 +2833,10 @@ when no music is playing.
 | `music.key`      | The key the song is in, as a hue from 0 to 360 on the same wheel. A minor key reads as the major key with the same notes. It stays the same for most of a song.                                                       |
 | `music.major`    | Whether the song's key is major or minor: 1 major, 0 minor, 0.5 unsure. It moves slowly.                                                                                                                              |
 | `music.pitch`    | How high the tune is, against where it has been lately: 0.5 is its usual height.                                                                                                                                      |
+| `music.quiet`    | Rises in a quiet part of the song.                                                                                                                                                                                    |
+| `music.build`    | Rises while the music builds up: it is getting louder, brighter and busier.                                                                                                                                           |
+| `music.drop`     | Jumps up when the bass comes in after a quiet part or a build, then falls back over a second or two.                                                                                                                  |
+| `music.change`   | Jumps up when a new part of the song starts, then falls back.                                                                                                                                                         |
 
 **Example**
 
@@ -2842,6 +2846,7 @@ gene flap = 30 in 0..70 // how hard the wings beat with the bass
 yaw 20 * music.balance // leans to the side the sound comes from
 // The colour of the note that's sounding: strong when it's clear, lighter when the tune is high.
 colour hsv(music.note, 0.3 + 0.7 * music.clear, 0.7 + 0.3 * music.pitch)
+grow 1 + 0.5 * music.drop - 0.4 * music.quiet // swells on a drop, small through a quiet part
 symmetric x {
   roll 10 + flap * music.bass
   yaw 90

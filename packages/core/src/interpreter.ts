@@ -83,6 +83,10 @@ export const MUSIC_FIELDS = [
   "key",
   "major",
   "pitch",
+  "quiet",
+  "build",
+  "drop",
+  "change",
 ] as const;
 
 export type MusicInputs = Record<(typeof MUSIC_FIELDS)[number], number>;

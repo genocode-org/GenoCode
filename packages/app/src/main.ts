@@ -1223,7 +1223,8 @@ styleSelect.addEventListener("change", () => {
 function meterKind(name: string): string {
   if (name.endsWith("hit")) return " hit";
   if (MOOD_METERS.has(name)) return " mood";
-  return NOTE_METERS.has(name) ? " notes" : "";
+  if (NOTE_METERS.has(name)) return " notes";
+  return SHAPE_METERS.has(name) ? " shape" : "";
 }
 
 // A small bar for each music input, and the beat.
@@ -1232,6 +1233,8 @@ const meterNames = [...MUSIC_FIELDS, "beat"] as const;
 const MOOD_METERS: ReadonlySet<string> = new Set(["tempo", "energy", "bright", "rough", "balance"]);
 /** The meters for the music's notes, a little apart again; the ones that are hues. */
 const NOTE_METERS: ReadonlySet<string> = new Set(["note", "clear", "key", "major", "pitch"]);
+/** The meters for where the song is going. */
+const SHAPE_METERS: ReadonlySet<string> = new Set(["quiet", "build", "drop", "change"]);
 const HUE_METERS: ReadonlySet<string> = new Set(["note", "key"]);
 const meterBars = meterNames.map((name) => {
   const meter = document.createElement("div");
