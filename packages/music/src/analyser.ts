@@ -7,6 +7,7 @@
 import { silence, type MusicInputs } from "@genocode/core";
 import { BeatTracker } from "./beat.js";
 import { BINS, SPECTRUM_BLOCK, spectrum } from "./fft.js";
+import { Notes } from "./notes.js";
 import { BLOCK, OCTAVES, octaves, toInt16 } from "./octaves.js";
 
 /** Samples between analyses. */
@@ -136,6 +137,7 @@ export class MusicAnalyser {
   private readonly allHit = new Peak(1e-3);
   private hit = 0;
   private readonly beats: BeatTracker;
+  private readonly notes: Notes;
   // The last SPECTRUM_BLOCK samples of both sides mixed, for the spectrum.
   private readonly mono = new Float32Array(SPECTRUM_BLOCK);
   private monoNext = 0;
@@ -160,6 +162,7 @@ export class MusicAnalyser {
 
   constructor(readonly sampleRate = 44100) {
     this.beats = new BeatTracker(sampleRate / HOP);
+    this.notes = new Notes(sampleRate);
   }
 
   /** Seconds of music analysed so far. */
@@ -189,6 +192,7 @@ export class MusicAnalyser {
       this.right[this.next] = right[i] ?? left[i]!;
       this.next = (this.next + 1) % BLOCK;
       this.mono[this.monoNext] = (left[i]! + (right[i] ?? left[i]!)) / 2;
+      this.notes.push(this.mono[this.monoNext]!);
       this.monoNext = (this.monoNext + 1) % SPECTRUM_BLOCK;
       this.samples++;
       if (++this.sinceSpectrum >= SPECTRUM_HOP && this.samples >= SPECTRUM_BLOCK) {
@@ -246,6 +250,7 @@ export class MusicAnalyser {
       bright: this.bright,
       rough: this.rough,
       balance: this.balance,
+      ...this.notes.inputs,
     };
     // Beats are mostly carried by the drums: the low and middle rises.
     this.beats.push(this.bass.rise + 0.5 * this.mid.rise, this.time);

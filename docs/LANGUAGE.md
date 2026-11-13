@@ -1092,23 +1092,28 @@ a background file into a creature replaces the creature's background block. Its 
 
 A creature can react to time and music through these read-only values:
 
-| Name             | Range     | Meaning                                                                                                                                                                                       |
-| ---------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `time`           | 0 upwards | seconds since the creature started being shown                                                                                                                                                |
-| `beat`           | 0 → 1     | position within the current beat: 0 on the beat, rising towards 1 just before the next                                                                                                        |
-| `music.bass`     | 0–1       | level of the low frequencies                                                                                                                                                                  |
-| `music.mid`      | 0–1       | level of the middle frequencies                                                                                                                                                               |
-| `music.high`     | 0–1       | level of the high frequencies                                                                                                                                                                 |
-| `music.level`    | 0–1       | overall loudness: rises at once and falls over a fraction of a second, so the short gaps between notes don't read as silence                                                                  |
-| `music.hit`      | 0–1       | jumps up on each onset (a drum hit, a note starting) and falls back                                                                                                                           |
-| `music.bass_hit` | 0–1       | jumps up on each low onset (a kick drum, a bass note) and falls back                                                                                                                          |
-| `music.mid_hit`  | 0–1       | jumps up on each onset in the middle (a snare, a voice) and falls back                                                                                                                        |
-| `music.high_hit` | 0–1       | jumps up on each high onset (a hi-hat, a cymbal) and falls back                                                                                                                               |
-| `music.tempo`    | 0–1       | how fast the beat is: 0 at 60 beats a minute or slower, 1 at 180 or faster. It is 0 until a beat is found, and holds through a part of the song with no beat                                  |
-| `music.energy`   | 0–1       | how intense the music has been over the last few seconds: loud and busy is high. It moves slowly, and stays low all through a quiet part of a song, where `music.level` soon reads high again |
-| `music.bright`   | 0–1       | how bright the sound is: 0 dark and bassy, 1 sparkling                                                                                                                                        |
-| `music.rough`    | 0–1       | how rough the sound is: 0 smooth, pure notes (a flute, a soft pad), 1 noise (cymbals, distortion, a crowd)                                                                                    |
-| `music.balance`  | −1 to 1   | which side the sound comes from: −1 left, 0 the middle, 1 right                                                                                                                               |
+| Name             | Range     | Meaning                                                                                                                                                                                                                                                              |
+| ---------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time`           | 0 upwards | seconds since the creature started being shown                                                                                                                                                                                                                       |
+| `beat`           | 0 → 1     | position within the current beat: 0 on the beat, rising towards 1 just before the next                                                                                                                                                                               |
+| `music.bass`     | 0–1       | level of the low frequencies                                                                                                                                                                                                                                         |
+| `music.mid`      | 0–1       | level of the middle frequencies                                                                                                                                                                                                                                      |
+| `music.high`     | 0–1       | level of the high frequencies                                                                                                                                                                                                                                        |
+| `music.level`    | 0–1       | overall loudness: rises at once and falls over a fraction of a second, so the short gaps between notes don't read as silence                                                                                                                                         |
+| `music.hit`      | 0–1       | jumps up on each onset (a drum hit, a note starting) and falls back                                                                                                                                                                                                  |
+| `music.bass_hit` | 0–1       | jumps up on each low onset (a kick drum, a bass note) and falls back                                                                                                                                                                                                 |
+| `music.mid_hit`  | 0–1       | jumps up on each onset in the middle (a snare, a voice) and falls back                                                                                                                                                                                               |
+| `music.high_hit` | 0–1       | jumps up on each high onset (a hi-hat, a cymbal) and falls back                                                                                                                                                                                                      |
+| `music.tempo`    | 0–1       | how fast the beat is: 0 at 60 beats a minute or slower, 1 at 180 or faster. It is 0 until a beat is found, and holds through a part of the song with no beat                                                                                                         |
+| `music.energy`   | 0–1       | how intense the music has been over the last few seconds: loud and busy is high. It moves slowly, and stays low all through a quiet part of a song, where `music.level` soon reads high again                                                                        |
+| `music.bright`   | 0–1       | how bright the sound is: 0 dark and bassy, 1 sparkling                                                                                                                                                                                                               |
+| `music.rough`    | 0–1       | how rough the sound is: 0 smooth, pure notes (a flute, a soft pad), 1 noise (cymbals, distortion, a crowd)                                                                                                                                                           |
+| `music.balance`  | −1 to 1   | which side the sound comes from: −1 left, 0 the middle, 1 right                                                                                                                                                                                                      |
+| `music.note`     | 0–360     | the note or chord sounding now, as a hue: C is 0 (red), then G 30, D 60, A 90, E 120, B 150, F♯ 180, C♯ 210, G♯ 240, D♯ 270, A♯ 300 and F 330, so notes that sound close have neighbouring hues. A chord reads between its notes. It glides, and wraps from 360 to 0 |
+| `music.clear`    | 0–1       | how clearly a note or chord stands out: 1 for a single note, about 0.6 for a chord, near 0 for drums alone                                                                                                                                                           |
+| `music.key`      | 0–360     | the key the song is in, on the same wheel: a song in C reads 0. A minor key reads as the major key with the same notes (A minor as C). It stays the same for most of a song                                                                                          |
+| `music.major`    | 0–1       | whether the song's key is major or minor: 1 major (often heard as happy), 0 minor (often heard as sad), 0.5 unsure. It moves slowly                                                                                                                                  |
+| `music.pitch`    | 0–1       | how high the tune is, against where it has been over the last while: 0.5 is its usual height, 1 half an octave or more above it                                                                                                                                      |
 
 ```
 gene flap = 30 in 0..70 // how hard the wings beat with the bass
@@ -1121,13 +1126,16 @@ symmetric x {
 
 part wing(side) {
   roll side * (10 + flap * music.bass)
-  // Warm colours for bright, intense music; cool ones for dark, calm music.
-  colour hsv(220 - 200 * music.bright, 0.5 + 0.5 * music.energy, 1)
+  // The colour of the note that's sounding: strong when it's clear, pale for drums alone.
+  colour hsv(music.note, 0.3 + 0.7 * music.clear, 1)
   …
 }
 ```
 
 - They can be used anywhere: in parts, functions, backgrounds and dance blocks.
+- `music.note` and `music.key` are hues, made to go straight into a colour, as the wing's colour
+  does in the example. They wrap round from 360 to 0, so averaging or smoothing them as plain
+  numbers (a dance block's `smooth`, for one) can swing through the whole wheel.
 - **When no music is playing**, `beat` and every `music` value are 0. `time` keeps running.
 - **The rest pose** is the creature with `time`, `beat` and every `music` value at 0. It is used
   wherever a still picture is wanted, such as thumbnails.

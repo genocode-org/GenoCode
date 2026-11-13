@@ -426,7 +426,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
     "music",
     h(
       "music.bass",
-      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`) and its left–right `balance`. All are 0 when no music is playing.",
+      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`), its left–right `balance` and its notes (`note`, `clear`, `key`, `major`, `pitch`). All are 0 when no music is playing.",
       "16",
     ),
   ],
@@ -495,6 +495,46 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
         h(
           "music.balance",
           "Which side the sound comes from, −1 to 1: −1 left, 0 the middle, 1 right.",
+          "16",
+        ),
+      ],
+      [
+        "note",
+        h(
+          "music.note",
+          "The note or chord sounding now, as a hue, 0–360: C is 0 (red), and notes that sound close have neighbouring hues. Use it as a colour's hue.",
+          "16",
+        ),
+      ],
+      [
+        "clear",
+        h(
+          "music.clear",
+          "How clearly a note or chord stands out, 0–1: 1 for a single note, near 0 for drums alone.",
+          "16",
+        ),
+      ],
+      [
+        "key",
+        h(
+          "music.key",
+          "The key the song is in, as a hue, 0–360, on the same wheel as `music.note`. It stays the same for most of a song.",
+          "16",
+        ),
+      ],
+      [
+        "major",
+        h(
+          "music.major",
+          "Whether the song's key is major or minor, 0–1: 1 major (often happy), 0 minor (often sad), 0.5 unsure.",
+          "16",
+        ),
+      ],
+      [
+        "pitch",
+        h(
+          "music.pitch",
+          "How high the tune is, 0–1, against where it has been lately: 0.5 its usual height.",
           "16",
         ),
       ],

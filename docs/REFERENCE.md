@@ -2813,21 +2813,26 @@ music.part
 **Type:** number, from 0 to 1 unless the table gives another range, whatever the volume. All are 0
 when no music is playing.
 
-| Part             | Description                                                                                                                      |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `music.bass`     | Level of the low frequencies.                                                                                                    |
-| `music.mid`      | Level of the middle frequencies.                                                                                                 |
-| `music.high`     | Level of the high frequencies.                                                                                                   |
-| `music.level`    | Overall loudness. It rises at once and falls over a fraction of a second, so the short gaps between notes don't read as silence. |
-| `music.hit`      | Jumps up on each onset (a drum hit, a note starting), then falls back.                                                           |
-| `music.bass_hit` | Jumps up on each low onset, such as a kick drum or bass note.                                                                    |
-| `music.mid_hit`  | Jumps up on each onset in the middle, such as a snare or a voice.                                                                |
-| `music.high_hit` | Jumps up on each high onset, such as a hi-hat or cymbal.                                                                         |
-| `music.tempo`    | How fast the beat is: 0 at 60 beats a minute or slower, 1 at 180 or faster. It is 0 until a beat is found.                       |
-| `music.energy`   | How intense the music has been over the last few seconds. It moves slowly, and stays low all through a quiet part of a song.     |
-| `music.bright`   | How bright the sound is: 0 dark and bassy, 1 sparkling.                                                                          |
-| `music.rough`    | How rough the sound is: 0 smooth, pure notes, 1 noise.                                                                           |
-| `music.balance`  | Which side the sound comes from, from −1 to 1: −1 left, 0 the middle, 1 right.                                                   |
+| Part             | Description                                                                                                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `music.bass`     | Level of the low frequencies.                                                                                                                                                                                         |
+| `music.mid`      | Level of the middle frequencies.                                                                                                                                                                                      |
+| `music.high`     | Level of the high frequencies.                                                                                                                                                                                        |
+| `music.level`    | Overall loudness. It rises at once and falls over a fraction of a second, so the short gaps between notes don't read as silence.                                                                                      |
+| `music.hit`      | Jumps up on each onset (a drum hit, a note starting), then falls back.                                                                                                                                                |
+| `music.bass_hit` | Jumps up on each low onset, such as a kick drum or bass note.                                                                                                                                                         |
+| `music.mid_hit`  | Jumps up on each onset in the middle, such as a snare or a voice.                                                                                                                                                     |
+| `music.high_hit` | Jumps up on each high onset, such as a hi-hat or cymbal.                                                                                                                                                              |
+| `music.tempo`    | How fast the beat is: 0 at 60 beats a minute or slower, 1 at 180 or faster. It is 0 until a beat is found.                                                                                                            |
+| `music.energy`   | How intense the music has been over the last few seconds. It moves slowly, and stays low all through a quiet part of a song.                                                                                          |
+| `music.bright`   | How bright the sound is: 0 dark and bassy, 1 sparkling.                                                                                                                                                               |
+| `music.rough`    | How rough the sound is: 0 smooth, pure notes, 1 noise.                                                                                                                                                                |
+| `music.balance`  | Which side the sound comes from, from −1 to 1: −1 left, 0 the middle, 1 right.                                                                                                                                        |
+| `music.note`     | The note or chord sounding now, as a hue from 0 to 360: C is 0 (red), and notes a fifth apart are 30 apart (G 30, D 60, A 90…), so notes that sound close have neighbouring hues. It glides, and wraps from 360 to 0. |
+| `music.clear`    | How clearly a note or chord stands out: 1 for a single note, near 0 for drums alone.                                                                                                                                  |
+| `music.key`      | The key the song is in, as a hue from 0 to 360 on the same wheel. A minor key reads as the major key with the same notes. It stays the same for most of a song.                                                       |
+| `music.major`    | Whether the song's key is major or minor: 1 major, 0 minor, 0.5 unsure. It moves slowly.                                                                                                                              |
+| `music.pitch`    | How high the tune is, against where it has been lately: 0.5 is its usual height.                                                                                                                                      |
 
 **Example**
 
@@ -2835,8 +2840,8 @@ when no music is playing.
 gene flap = 30 in 0..70 // how hard the wings beat with the bass
 
 yaw 20 * music.balance // leans to the side the sound comes from
-// Warm colours for bright, intense music; cool ones for dark, calm music.
-colour hsv(220 - 200 * music.bright, 0.5 + 0.5 * music.energy, 1)
+// The colour of the note that's sounding: strong when it's clear, lighter when the tune is high.
+colour hsv(music.note, 0.3 + 0.7 * music.clear, 0.7 + 0.3 * music.pitch)
 symmetric x {
   roll 10 + flap * music.bass
   yaw 90

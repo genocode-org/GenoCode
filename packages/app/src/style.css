@@ -1057,8 +1057,14 @@ input[type="range"] {
   background: var(--warning);
 }
 
+/* The music's notes. */
+.meter.notes > div {
+  background: var(--good);
+}
+
 .meter.hit + .meter.mood,
-.meter.mood + .meter:not(.mood) {
+.meter.mood + .meter.notes,
+.meter.notes + .meter:not(.notes) {
   margin-left: 4px;
 }
 

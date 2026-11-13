@@ -1219,13 +1219,23 @@ styleSelect.addEventListener("change", () => {
   floor.setStyle(chosenStyle());
 });
 
+/** The class that gives a meter its group's colour. */
+function meterKind(name: string): string {
+  if (name.endsWith("hit")) return " hit";
+  if (MOOD_METERS.has(name)) return " mood";
+  return NOTE_METERS.has(name) ? " notes" : "";
+}
+
 // A small bar for each music input, and the beat.
 const meterNames = [...MUSIC_FIELDS, "beat"] as const;
 /** The meters for the music's mood, shown in their own colour, a little apart from the rest. */
 const MOOD_METERS: ReadonlySet<string> = new Set(["tempo", "energy", "bright", "rough", "balance"]);
+/** The meters for the music's notes, a little apart again; the ones that are hues. */
+const NOTE_METERS: ReadonlySet<string> = new Set(["note", "clear", "key", "major", "pitch"]);
+const HUE_METERS: ReadonlySet<string> = new Set(["note", "key"]);
 const meterBars = meterNames.map((name) => {
   const meter = document.createElement("div");
-  meter.className = `meter${name.endsWith("hit") ? " hit" : MOOD_METERS.has(name) ? " mood" : ""}`;
+  meter.className = `meter${meterKind(name)}`;
   meter.title = name === "beat" ? "beat" : `music.${name}`;
   const bar = document.createElement("div");
   meter.append(bar);
@@ -1239,6 +1249,8 @@ const floor = new DanceFloor(view, player, (f: DanceFrame) => {
     const [min, max] = name === "beat" ? [0, 1] : musicRange(name);
     const v = name === "beat" ? f.beat : f.music[name];
     const bar = meterBars[i]!;
+    // A note's bar is drawn in the note's own colour.
+    if (HUE_METERS.has(name)) bar.style.background = `hsl(${Math.round(v)} 90% 60%)`;
     if (min < 0) {
       // A value that goes both ways grows up or down from the middle of its bar.
       const half = Math.round((Math.abs(v) / Math.max(max, -min)) * 50);

@@ -78,13 +78,18 @@ export const MUSIC_FIELDS = [
   "bright",
   "rough",
   "balance",
+  "note",
+  "clear",
+  "key",
+  "major",
+  "pitch",
 ] as const;
 
 export type MusicInputs = Record<(typeof MUSIC_FIELDS)[number], number>;
 
 /** The least and greatest value of the parts of `music` that don't run from 0 to 1. */
 export const MUSIC_RANGES: Readonly<Partial<Record<keyof MusicInputs, readonly [number, number]>>> =
-  { balance: [-1, 1] };
+  { balance: [-1, 1], note: [0, 360], key: [0, 360] };
 
 /** The least and greatest value a part of `music` takes. */
 export function musicRange(field: keyof MusicInputs): readonly [number, number] {
