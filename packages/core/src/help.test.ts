@@ -135,6 +135,11 @@ describe("completions", () => {
       "bright",
       "rough",
       "balance",
+      "note",
+      "clear",
+      "key",
+      "major",
+      "pitch",
     ]);
     expect(labels(completionsHere("creature T\nmove turtle.he|\n"))).toContain("heading");
   });
