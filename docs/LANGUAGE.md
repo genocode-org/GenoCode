@@ -1114,6 +1114,10 @@ A creature can react to time and music through these read-only values:
 | `music.key`      | 0–360     | the key the song is in, on the same wheel: a song in C reads 0. A minor key reads as the major key with the same notes (A minor as C). It stays the same for most of a song                                                                                          |
 | `music.major`    | 0–1       | whether the song's key is major or minor: 1 major (often heard as happy), 0 minor (often heard as sad), 0.5 unsure. It moves slowly                                                                                                                                  |
 | `music.pitch`    | 0–1       | how high the tune is, against where it has been over the last while: 0.5 is its usual height, 1 half an octave or more above it                                                                                                                                      |
+| `music.quiet`    | 0–1       | rises in a quiet part of the song: the music is well under the loudest it has been over the last minute or so                                                                                                                                                        |
+| `music.build`    | 0–1       | rises while the music builds up: it is getting louder, brighter and busier than a few seconds before                                                                                                                                                                 |
+| `music.drop`     | 0–1       | jumps up when the bass comes in after a quiet part or a build, and falls back over a second or two. Drops come at least 8 seconds apart                                                                                                                              |
+| `music.change`   | 0–1       | jumps up when a new part of the song starts (the sound differs much more than usual from the seconds before) and falls back                                                                                                                                          |
 
 ```
 gene flap = 30 in 0..70 // how hard the wings beat with the bass
@@ -1128,6 +1132,8 @@ part wing(side) {
   roll side * (10 + flap * music.bass)
   // The colour of the note that's sounding: strong when it's clear, pale for drums alone.
   colour hsv(music.note, 0.3 + 0.7 * music.clear, 1)
+  // The wing swells when the music drops in, and folds small through a quiet part.
+  grow 1 + 0.5 * music.drop - 0.4 * music.quiet
   …
 }
 ```
