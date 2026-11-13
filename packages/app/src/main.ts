@@ -14,6 +14,7 @@ import {
   geneEdits,
   KEYWORDS,
   MUSIC_FIELDS,
+  musicRange,
   patternsOf,
   valuesEqual,
   valuesOf,
@@ -1220,9 +1221,11 @@ styleSelect.addEventListener("change", () => {
 
 // A small bar for each music input, and the beat.
 const meterNames = [...MUSIC_FIELDS, "beat"] as const;
+/** The meters for the music's mood, shown in their own colour, a little apart from the rest. */
+const MOOD_METERS: ReadonlySet<string> = new Set(["tempo", "energy", "bright", "rough", "balance"]);
 const meterBars = meterNames.map((name) => {
   const meter = document.createElement("div");
-  meter.className = `meter${name.endsWith("hit") ? " hit" : ""}`;
+  meter.className = `meter${name.endsWith("hit") ? " hit" : MOOD_METERS.has(name) ? " mood" : ""}`;
   meter.title = name === "beat" ? "beat" : `music.${name}`;
   const bar = document.createElement("div");
   meter.append(bar);
@@ -1233,8 +1236,17 @@ const meterBars = meterNames.map((name) => {
 let lastDancePanel = 0;
 const floor = new DanceFloor(view, player, (f: DanceFrame) => {
   meterNames.forEach((name, i) => {
+    const [min, max] = name === "beat" ? [0, 1] : musicRange(name);
     const v = name === "beat" ? f.beat : f.music[name];
-    meterBars[i]!.style.height = `${Math.round(v * 100)}%`;
+    const bar = meterBars[i]!;
+    if (min < 0) {
+      // A value that goes both ways grows up or down from the middle of its bar.
+      const half = Math.round((Math.abs(v) / Math.max(max, -min)) * 50);
+      bar.style.height = `${half}%`;
+      bar.style.bottom = `${v < 0 ? 50 - half : 50}%`;
+    } else {
+      bar.style.height = `${Math.round(((v - min) / (max - min)) * 100)}%`;
+    }
   });
   if (performance.now() - lastDancePanel < 200) return;
   lastDancePanel = performance.now();

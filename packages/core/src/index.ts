@@ -27,6 +27,8 @@ export {
   patternFileText,
   DEFAULT_LIMITS,
   MUSIC_FIELDS,
+  MUSIC_RANGES,
+  musicRange,
   silence,
   type BackgroundResult,
   type PatternOptions,

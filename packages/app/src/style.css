@@ -1052,6 +1052,16 @@ input[type="range"] {
   background: var(--blue);
 }
 
+/* The music's mood: its own colour, set a little apart. */
+.meter.mood > div {
+  background: var(--warning);
+}
+
+.meter.hit + .meter.mood,
+.meter.mood + .meter:not(.mood) {
+  margin-left: 4px;
+}
+
 /* The code and blocks dock. */
 .dock {
   --bg: #0b0e18;

@@ -130,6 +130,11 @@ describe("completions", () => {
       "bass_hit",
       "mid_hit",
       "high_hit",
+      "tempo",
+      "energy",
+      "bright",
+      "rough",
+      "balance",
     ]);
     expect(labels(completionsHere("creature T\nmove turtle.he|\n"))).toContain("heading");
   });

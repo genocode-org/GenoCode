@@ -73,9 +73,23 @@ export const MUSIC_FIELDS = [
   "bass_hit",
   "mid_hit",
   "high_hit",
+  "tempo",
+  "energy",
+  "bright",
+  "rough",
+  "balance",
 ] as const;
 
 export type MusicInputs = Record<(typeof MUSIC_FIELDS)[number], number>;
+
+/** The least and greatest value of the parts of `music` that don't run from 0 to 1. */
+export const MUSIC_RANGES: Readonly<Partial<Record<keyof MusicInputs, readonly [number, number]>>> =
+  { balance: [-1, 1] };
+
+/** The least and greatest value a part of `music` takes. */
+export function musicRange(field: keyof MusicInputs): readonly [number, number] {
+  return MUSIC_RANGES[field] ?? [0, 1];
+}
 
 /** Time and music (section 16). Everything left out is 0: the rest pose. */
 export interface Inputs {
