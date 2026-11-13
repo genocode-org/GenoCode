@@ -2810,7 +2810,8 @@ lay
 music.part
 ```
 
-**Type:** number from 0 to 1, whatever the volume. All are 0 when no music is playing.
+**Type:** number, from 0 to 1 unless the table gives another range, whatever the volume. All are 0
+when no music is playing.
 
 | Part             | Description                                                                                                                      |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -2822,12 +2823,20 @@ music.part
 | `music.bass_hit` | Jumps up on each low onset, such as a kick drum or bass note.                                                                    |
 | `music.mid_hit`  | Jumps up on each onset in the middle, such as a snare or a voice.                                                                |
 | `music.high_hit` | Jumps up on each high onset, such as a hi-hat or cymbal.                                                                         |
+| `music.tempo`    | How fast the beat is: 0 at 60 beats a minute or slower, 1 at 180 or faster. It is 0 until a beat is found.                       |
+| `music.energy`   | How intense the music has been over the last few seconds. It moves slowly, and stays low all through a quiet part of a song.     |
+| `music.bright`   | How bright the sound is: 0 dark and bassy, 1 sparkling.                                                                          |
+| `music.rough`    | How rough the sound is: 0 smooth, pure notes, 1 noise.                                                                           |
+| `music.balance`  | Which side the sound comes from, from −1 to 1: −1 left, 0 the middle, 1 right.                                                   |
 
 **Example**
 
 ```
 gene flap = 30 in 0..70 // how hard the wings beat with the bass
 
+yaw 20 * music.balance // leans to the side the sound comes from
+// Warm colours for bright, intense music; cool ones for dark, calm music.
+colour hsv(220 - 200 * music.bright, 0.5 + 0.5 * music.energy, 1)
 symmetric x {
   roll 10 + flap * music.bass
   yaw 90

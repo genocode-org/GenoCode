@@ -426,7 +426,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
     "music",
     h(
       "music.bass",
-      "The music: `bass`, `mid`, `high`, `level`, `hit`, `bass_hit`, `mid_hit` and `high_hit`, each 0–1.",
+      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`) and its left–right `balance`. All are 0 when no music is playing.",
       "16",
     ),
   ],
@@ -463,6 +463,38 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
         h(
           "music.high_hit",
           "Jumps up on each high hit, such as a hi-hat, then falls back, 0–1.",
+          "16",
+        ),
+      ],
+      [
+        "tempo",
+        h(
+          "music.tempo",
+          "How fast the beat is, 0–1: 0 at 60 beats a minute or slower, 1 at 180 or faster.",
+          "16",
+        ),
+      ],
+      [
+        "energy",
+        h(
+          "music.energy",
+          "How intense the music has been over the last few seconds, 0–1. It moves slowly.",
+          "16",
+        ),
+      ],
+      [
+        "bright",
+        h("music.bright", "How bright the sound is, 0–1: 0 dark and bassy, 1 sparkling.", "16"),
+      ],
+      [
+        "rough",
+        h("music.rough", "How rough the sound is, 0–1: 0 smooth, pure notes, 1 noise.", "16"),
+      ],
+      [
+        "balance",
+        h(
+          "music.balance",
+          "Which side the sound comes from, −1 to 1: −1 left, 0 the middle, 1 right.",
           "16",
         ),
       ],

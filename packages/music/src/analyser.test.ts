@@ -109,4 +109,82 @@ describe("MusicAnalyser", () => {
     expect(a.tempo).toBeGreaterThan(87);
     expect(a.tempo).toBeLessThan(93);
   });
+
+  /** Feeds `seconds` of a signal for each side. */
+  function playSides(
+    a: MusicAnalyser,
+    seconds: number,
+    left: (t: number) => number,
+    right: (t: number) => number,
+  ): void {
+    const l = new Float32Array(128);
+    const r = new Float32Array(128);
+    const total = Math.round(seconds * RATE);
+    for (let start = 0; start < total; start += l.length) {
+      for (let i = 0; i < l.length; i++) {
+        l[i] = left((start + i) / RATE);
+        r[i] = right((start + i) / RATE);
+      }
+      a.push(l, r);
+    }
+  }
+
+  /** Noise that's the same every run. */
+  const noise = (amplitude: number) => {
+    let seed = 12345;
+    return () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return amplitude * (seed / 2 ** 31 - 1);
+    };
+  };
+
+  it("reads the tempo from the beat: 0.5 at 120 beats a minute", () => {
+    const a = new MusicAnalyser(RATE);
+    play(a, 12, kicks(120, 0.8));
+    expect(a.music.tempo).toBeCloseTo(0.5, 1);
+    const slow = new MusicAnalyser(RATE);
+    play(slow, 12, kicks(75, 0.8));
+    expect(slow.music.tempo).toBeCloseTo(0.125, 1);
+  });
+
+  it("reads a low note as dark and a high note as bright", () => {
+    const low = new MusicAnalyser(RATE);
+    play(low, 2, tone(80, 0.5));
+    expect(low.music.bright).toBeLessThan(0.1);
+    const high = new MusicAnalyser(RATE);
+    play(high, 2, tone(6000, 0.5));
+    expect(high.music.bright).toBeGreaterThan(0.9);
+  });
+
+  it("reads a pure note as smooth and noise as rough", () => {
+    const note = new MusicAnalyser(RATE);
+    play(note, 2, tone(440, 0.5));
+    expect(note.music.rough).toBeLessThan(0.1);
+    const hiss = new MusicAnalyser(RATE);
+    play(hiss, 2, noise(0.5));
+    expect(hiss.music.rough).toBeGreaterThan(0.85);
+  });
+
+  it("reads which side the sound comes from", () => {
+    const silent = (): number => 0;
+    const left = new MusicAnalyser(RATE);
+    playSides(left, 2, tone(440, 0.5), silent);
+    expect(left.music.balance).toBeLessThan(-0.95);
+    const right = new MusicAnalyser(RATE);
+    playSides(right, 2, silent, tone(440, 0.5));
+    expect(right.music.balance).toBeGreaterThan(0.95);
+    const middle = new MusicAnalyser(RATE);
+    playSides(middle, 2, tone(440, 0.5), tone(440, 0.5));
+    expect(middle.music.balance).toBeCloseTo(0, 5);
+  });
+
+  it("reads a quiet part after a loud one as low energy, though its level is high", () => {
+    const a = new MusicAnalyser(RATE);
+    play(a, 10, tone(200, 0.8));
+    const loud = a.music.energy;
+    expect(loud).toBeGreaterThan(0.6);
+    play(a, 20, tone(200, 0.04), 10);
+    expect(a.music.level).toBeGreaterThan(0.5);
+    expect(a.music.energy).toBeLessThan(0.15);
+  });
 });

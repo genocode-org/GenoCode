@@ -744,7 +744,7 @@ export function defineBlocks(): void {
       this.appendDummyInput()
         .appendField("music's")
         .appendField(new Blockly.FieldDropdown(options(MUSIC_FIELDS)), "FIELD");
-      value(this, HUES.music, "What the music is doing now, 0 to 1.");
+      value(this, HUES.music, "What the music is doing now. Most run from 0 to 1.");
     },
   });
 
