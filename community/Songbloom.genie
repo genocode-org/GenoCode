@@ -1,0 +1,217 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/113
+// About it: Creature to showcase all music genes and effects
+creature Songbloom
+// A flower that shows what it hears. Its heart takes the colour of the song's key, its arms the
+// colour of the note that's sounding, and round the heart sits a wheel of twelve jewels, one for
+// each note, where the jewel of the note being played swells.
+// It closes up through a quiet part of the song, draws its jewels in while the music builds, and
+// flings itself open when the bass drops in. Rough sound brings out its thorns, a high tune lifts
+// its arms, and it leans to the side the sound comes from.
+// With no music it sways by itself, in its own colours.
+// Its variants are other flowers with the same twelve arms: an urchin, a lily, a star and a bud.
+
+// --- Shape ---
+
+gene size = 1 in 0.5..2 log // how big the whole flower is
+gene arms = 12 in 3..12 // how many of the twelve arms have grown; part of one is an arm growing in
+gene reach = 1 in 0.5..1.8 log // how long the arms are
+gene plump = 1 in 0.5..1.8 log // how thick the arms are
+gene open = 60 in 10..100 // how far the arms open out: 10 a closed bud, 90 a flat disc
+gene curl = 8 in -20..25 // how much each arm curls along its length
+gene thorns = 0.4 in 0..1 // how big the thorns on the arms are
+gene wheel = 1 in 0.6..1.5 log // how wide the wheel of jewels round the heart is
+
+// --- Its own colours, when no music plays ---
+
+gene heart = hsv(335, 0.75, 0.95) in hsv(290, 0.3, 0.5)..hsv(410, 1, 1) // the heart's colour
+gene petal = hsv(205, 0.75, 1) in hsv(160, 0.3, 0.5)..hsv(290, 1, 1) // the colour of the arms' tips
+
+// --- How it feels the music ---
+
+gene pulse = 0.25 in 0..0.5 // how much the heart swells with the bass
+gene sway = 22 in 0..50 // how far the arms wave with the beat
+gene lift = 25 in 0..45 // how far the arms lift when the tune climbs, and sink when it falls
+gene lean = 25 in 0..45 // how far it leans to the side the sound comes from
+gene fold = 0.7 in 0..1 // how far it closes up in a quiet part of the song
+gene gather = 0.45 in 0..0.7 // how far the jewels draw in while the music builds
+gene burst = 0.6 in 0..1 // how hard it flings open when the bass drops in
+gene bristle = 1 in 0..1.5 // how much rough sound brings out the thorns
+gene twirl = 40 in 0..90 // how far the wheel of jewels turns when a new part of the song starts
+gene idle = 0.5 in 0..1 // how much it dances by itself when no music plays
+gene idle_tempo = 0.5 in 0.2..1.5 // its own beats a second, when it dances by itself
+
+// --- What the music is doing ---
+
+let own_beat = frac(time * idle_tempo)
+let listening = clamp(music.level * 4, 0, 1)
+// A fast song ripples the arms more than a slow one.
+let swing = groove(wave(own_beat), wave(beat) * (0.3 + 0.4 * music.mid + 0.5 * music.tempo))
+let pump = groove(0.5 * bump(own_beat), music.bass)
+// The colour of the song's key: light and strong in a major key, darker and greyer in a minor one.
+let key_colour = hsv(music.key, 0.5 + 0.4 * music.major, 0.55 + 0.45 * music.major)
+// The colour of the note sounding now: strong when the note is clear, lighter for a bright sound.
+let note_colour = hsv(music.note, 0.35 + 0.65 * music.clear, 0.7 + 0.3 * music.bright)
+let heart_now = mix(heart, key_colour, listening)
+let tip_now = mix(petal, note_colour, listening)
+// How far the arms are open now: lifted by a high tune, closed by a quiet part, flung wide by a drop.
+let lifted = lift * (2 * music.pitch - 1) * listening
+let open_now = clamp((open - lifted) * (1 - fold * music.quiet) + 50 * burst * music.drop, 5, 125)
+// Intense music stretches the arms.
+let stretch_now = 0.85 + 0.3 * music.energy
+let thorn_now = clamp(thorns * (0.5 + bristle * music.rough * 1.5), 0, 1.5)
+// Songs sit near the middle, so a small pull to one side is made to show.
+let side = clamp(music.balance * 4, -1, 1)
+
+// The order the arms grow in, so a part-grown flower is spread evenly round the heart.
+let order = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11]
+
+// The beat it dances to: the music's when there is some, its own when there isn't. Blending the
+// two by how loud the music is lets it slip from one to the other without a jerk.
+function groove(by_itself, to_music) {
+  return mix(idle * by_itself, to_music, listening)
+}
+
+// A size that has shrunk to nothing is kept a millionth above zero, so every shape stays in place
+// but is far too small to see.
+function shown(amount) {
+  return max(amount, 0.000001)
+}
+
+// --- The flower ---
+
+grow size
+// The camera looks at the heart, the middle of the flower.
+focuspoint
+yaw lean * side
+
+// The heart: the colour of the key, swelling with the bass and on a drop.
+shape ball
+colour heart_now
+shine 0.3 + 0.4 * music.bright
+lay { grow 0.9 * (1 + pulse * pump + 0.4 * burst * music.drop) }
+
+// The wheel of notes: twelve jewels, each in its own note's colour, C at the top and the others
+// round by fifths. The jewel of the note that's sounding swells.
+branch {
+  roll twirl * music.change + 4 * time
+  for n from 0 to 11 {
+    // How near the sounding note is to this jewel's: 1 on it, 0 a quarter of the wheel away.
+    let near = max(cos(music.note - n * 30), 0) ^ 3 * music.clear * listening
+    branch {
+      roll n * 30
+      pitch -90
+      forward 1.25 * wheel * (1 - gather * music.build + 0.6 * burst * music.drop)
+      shape ball
+      colour hsv(n * 30, 0.85, 1)
+      shine 0.6
+      lay { grow 0.16 + 0.3 * near + 0.08 * music.high_hit }
+    }
+  }
+}
+
+// The arms.
+for i from 0 to 11 {
+  // How much of this arm has grown: 1 when it's fully out, 0 when it's gone.
+  let grown = clamp(arms - order[i], 0, 1)
+  branch {
+    roll i * 30 + 15
+    pitch -open_now
+    forward 0.4
+    arm(shown(grown), i)
+  }
+}
+
+part arm(grown, i) {
+  gene thin = 0.84 in 0.7..0.95 // each piece's size compared with the one before
+
+  grow 0.36 * grown
+  for k from 1 to 7 {
+    let along = k / 7
+    // The key's colour at the heart, the note's at the tip.
+    colour mix(heart_now, tip_now, along)
+    pitch curl + sway * swing * along * sin(i * 30 + 90)
+    shape ball
+    shine 0.1
+    sharpness 0
+    lay { grow (plump, 0.45 * plump, 1.5 * reach * stretch_now) }
+    // A thorn on the arm's back: rough sound brings it out.
+    branch {
+      pitch 90
+      forward 0.3 * plump
+      shape cone
+      colour mix(tip_now, white, 0.5)
+      lay { grow (0.3, 0.3, 1.1) * shown(thorn_now) }
+    }
+    forward reach * stretch_now
+    grow thin
+  }
+}
+
+
+dance {
+  gene drive = 0.6 in 0.2..2.5 // how fast the music moves it from variant to variant, in variants a second
+
+  morph follows music.energy speed drive settle 3
+  zoom follows music.drop amount 0.3 settle 3
+  spin follows music.level from 15 to 110 smooth 1
+  turn on music.change rises by 0.5
+  reverse on music.bass drops by 0.5 on 8 off 8
+}
+
+// --- The family ---
+
+// A sea urchin: thin straight arms spread wide and flat, covered in thorns, in violet and sea green.
+variant Urchin {
+  size = 0.8
+  reach = 1.4
+  plump = 0.6
+  open = 92
+  curl = 0
+  thorns = 1
+  wheel = 0.8
+  heart = hsv(300, 0.8, 0.8)
+  petal = hsv(165, 0.9, 1)
+  arm.thin = 0.9
+}
+
+// A lily: six broad arms curling up into a cup, in rose and soft blue.
+variant Lily {
+  size = 1.1
+  arms = 6
+  reach = 1.3
+  plump = 1.7
+  open = 55
+  curl = 11
+  thorns = 0.1
+  heart = hsv(350, 0.5, 1)
+  petal = hsv(230, 0.5, 1)
+}
+
+// A star: five thick arms laid out flat and bent a little back, in gold and deep blue.
+variant Star {
+  arms = 5
+  reach = 1.3
+  plump = 1.3
+  open = 88
+  curl = -8
+  thorns = 0.6
+  wheel = 1.3
+  heart = hsv(405, 0.9, 1)
+  petal = hsv(245, 0.9, 0.9)
+  arm.thin = 0.88
+}
+
+// A bud: short arms closed up tight over the heart, in plum and leaf green.
+variant Bud {
+  size = 1.5
+  arms = 9
+  reach = 0.85
+  plump = 1.2
+  open = 24
+  curl = 16
+  thorns = 0.2
+  wheel = 0.7
+  heart = hsv(310, 0.6, 0.7)
+  petal = hsv(170, 0.7, 0.8)
+  arm.thin = 0.8
+}
