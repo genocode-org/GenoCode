@@ -25,5 +25,5 @@ Its texture generator (the pattern kinds, colour schemes, finishes and mixes) is
   design tools.
 - Mitchell Whitelaw, _Metacreation: Art and Artificial Life_ (MIT Press, 2004), and the works it
   discusses, including Mutagen, Life Spacies, TechnoSphere, Eden and Breed.
-- Daniel Shiffman, _The Nature of Code_ (<https://natureofcode.com>): simulating natural systems
-  in code, such as forces, oscillation and flocking.
+- Daniel Shiffman, _The Nature of Code_ (<https://natureofcode.com>): evolution in code, with genes
+  as data, breeding by crossover and mutation, and selection by the person watching.
