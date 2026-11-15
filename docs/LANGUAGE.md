@@ -1118,6 +1118,8 @@ A creature can react to time and music through these read-only values:
 | `music.build`    | 0–1       | rises while the music builds up: it is getting louder, brighter and busier than a few seconds before                                                                                                                                                                 |
 | `music.drop`     | 0–1       | jumps up when the bass comes in after a quiet part or a build, and falls back over a second or two. Drops come at least 8 seconds apart                                                                                                                              |
 | `music.change`   | 0–1       | jumps up when a new part of the song starts (the sound differs much more than usual from the seconds before) and falls back                                                                                                                                          |
+| `music.words`    | 0–1       | rises while a line of the song is being sung, and falls between lines and in instrumental breaks. It comes from the song's timed words, not from the sound                                                                                                           |
+| `music.chorus`   | 0–1       | rises while a line the song keeps coming back to is being sung: one sung at least three times, or a run of lines sung again in the same order                                                                                                                        |
 
 ```
 gene flap = 30 in 0..70 // how hard the wings beat with the bass
@@ -1134,6 +1136,8 @@ part wing(side) {
   colour hsv(music.note, 0.3 + 0.7 * music.clear, 1)
   // The wing swells when the music drops in, and folds small through a quiet part.
   grow 1 + 0.5 * music.drop - 0.4 * music.quiet
+  // It opens while a line is sung, and opens wider on the chorus.
+  yaw 20 * music.words + 20 * music.chorus
   …
 }
 ```
@@ -1143,6 +1147,9 @@ part wing(side) {
   does in the example. They wrap round from 360 to 0, so averaging or smoothing them as plain
   numbers (a dance block's `smooth`, for one) can swing through the whole wheel.
 - **When no music is playing**, `beat` and every `music` value are 0. `time` keeps running.
+- `music.words` and `music.chorus`, which the wing opens with in the example, come from the song's
+  timed words, which the app looks up for a song file. They stay 0 when it finds none, and for
+  live sound (a microphone or another tab), where there's no song to look up.
 - **The rest pose** is the creature with `time`, `beat` and every `music` value at 0. It is used
   wherever a still picture is wanted, such as thumbnails.
 - The app keeps every `music` value within its range in the table whatever the volume of the

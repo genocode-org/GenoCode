@@ -2813,6 +2813,12 @@ music.part
 **Type:** number, from 0 to 1 unless the table gives another range, whatever the volume. All are 0
 when no music is playing.
 
+**Remarks**
+
+- `music.words` and `music.chorus` come from the song's timed words, which the app looks up online
+  for a song file. They stay 0 when no timed words are found, and for the microphone or another tab.
+  In the example, the wings open while a line is sung and lift higher on the chorus.
+
 | Part             | Description                                                                                                                                                                                                           |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `music.bass`     | Level of the low frequencies.                                                                                                                                                                                         |
@@ -2837,6 +2843,8 @@ when no music is playing.
 | `music.build`    | Rises while the music builds up: it is getting louder, brighter and busier.                                                                                                                                           |
 | `music.drop`     | Jumps up when the bass comes in after a quiet part or a build, then falls back over a second or two.                                                                                                                  |
 | `music.change`   | Jumps up when a new part of the song starts, then falls back.                                                                                                                                                         |
+| `music.words`    | Rises while a line of the song is being sung, and falls between lines and in the breaks.                                                                                                                              |
+| `music.chorus`   | Rises while a line the song keeps coming back to (the chorus) is being sung.                                                                                                                                          |
 
 **Example**
 
@@ -2848,8 +2856,8 @@ yaw 20 * music.balance // leans to the side the sound comes from
 colour hsv(music.note, 0.3 + 0.7 * music.clear, 0.7 + 0.3 * music.pitch)
 grow 1 + 0.5 * music.drop - 0.4 * music.quiet // swells on a drop, small through a quiet part
 symmetric x {
-  roll 10 + flap * music.bass
-  yaw 90
+  roll 10 + flap * music.bass + 20 * music.chorus // higher on the chorus
+  yaw 90 - 30 * music.words // opens while a line is sung
   forward 2
   lay
 }

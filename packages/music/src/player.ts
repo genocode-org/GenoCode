@@ -4,6 +4,7 @@
 
 import { silence, type MusicInputs } from "@genocode/core";
 import { MusicAnalyser } from "./analyser.js";
+import type { SongWords } from "./words.js";
 
 /** The rate DancerDNA analysed at, so the octaves land where they did. */
 const RATE = 44100;
@@ -41,6 +42,11 @@ export class MusicPlayer {
   /** What's playing: the file's name, the address, "Microphone" or "Another tab". */
   name = "";
   source: MusicSource | undefined;
+  /**
+   * The song's timed words, once they're found, for music.words and music.chorus. Set by whoever
+   * looks them up; forgotten when the music stops or changes.
+   */
+  words: SongWords | undefined;
   /** Called when the music stops by itself, as when the user stops sharing a tab. */
   onEnd: (() => void) | undefined;
 
@@ -122,6 +128,7 @@ export class MusicPlayer {
     this.analyser = undefined;
     this.source = undefined;
     this.name = "";
+    this.words = undefined;
   }
 
   /** Whether there's music to listen to. */
@@ -148,7 +155,13 @@ export class MusicPlayer {
   /** The inputs for building a frame now: silence when there's no music or it's paused. */
   inputs(): { beat: number; music: MusicInputs } {
     if (this.analyser === undefined || this.paused) return { beat: 0, music: silence() };
-    return { beat: this.analyser.beat(), music: this.analyser.music };
+    const music = this.analyser.music;
+    // The singing comes from the song's timed words, at the place the song has reached.
+    if (this.words === undefined || this.live) return { beat: this.analyser.beat(), music };
+    return {
+      beat: this.analyser.beat(),
+      music: { ...music, ...this.words.at(this.audio.currentTime) },
+    };
   }
 
   /**

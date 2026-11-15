@@ -426,7 +426,7 @@ export const KEYWORD_HELP: ReadonlyMap<string, Help> = new Map([
     "music",
     h(
       "music.bass",
-      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`), its left–right `balance`, its notes (`note`, `clear`, `key`, `major`, `pitch`) and where the song is going (`quiet`, `build`, `drop`, `change`). All are 0 when no music is playing.",
+      "What the music is doing now: how loud it is (`level`, `bass`, `mid`, `high`), its hits (`hit`, `bass_hit`, `mid_hit`, `high_hit`), its mood (`tempo`, `energy`, `bright`, `rough`), its left–right `balance`, its notes (`note`, `clear`, `key`, `major`, `pitch`) where the song is going (`quiet`, `build`, `drop`, `change`) and its singing (`words`, `chorus`). All are 0 when no music is playing.",
       "16",
     ),
   ],
@@ -567,6 +567,22 @@ export const MEMBER_HELP: ReadonlyMap<string, ReadonlyMap<string, Help>> = new M
         h(
           "music.change",
           "Jumps up when a new part of the song starts, then falls back, 0–1.",
+          "16",
+        ),
+      ],
+      [
+        "words",
+        h(
+          "music.words",
+          "Rises while a line of the song is being sung, 0–1, and falls between lines and in the breaks. 0 when the app can't find the song's timed words.",
+          "16",
+        ),
+      ],
+      [
+        "chorus",
+        h(
+          "music.chorus",
+          "Rises while a line the song keeps coming back to (the chorus) is being sung, 0–1. 0 when the app can't find the song's timed words.",
           "16",
         ),
       ],

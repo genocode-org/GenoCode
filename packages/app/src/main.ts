@@ -40,6 +40,7 @@ import {
 } from "./creature.js";
 import { DanceFloor, type DanceFrame } from "./dance.js";
 import { RecentSongs, songLabel } from "./recent.js";
+import { SongWordsFinder, type WordsState } from "./songwords.js";
 import { ask, askText, choose, tell, type Choice } from "./dialog.js";
 import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
@@ -1098,6 +1099,8 @@ function libraryEntries(): LibraryEntry[] {
 // ---------- dancing ----------
 
 const player = new MusicPlayer();
+// The song's timed words, looked up when a song starts, so creatures can follow the singing.
+const songWords = new SongWordsFinder(player, () => showDanceHint());
 const styleSelect = $<HTMLSelectElement>("dance-style");
 const OWN_STYLE = "own";
 
@@ -1224,7 +1227,8 @@ function meterKind(name: string): string {
   if (name.endsWith("hit")) return " hit";
   if (MOOD_METERS.has(name)) return " mood";
   if (NOTE_METERS.has(name)) return " notes";
-  return SHAPE_METERS.has(name) ? " shape" : "";
+  if (SHAPE_METERS.has(name)) return " shape";
+  return SINGING_METERS.has(name) ? " singing" : "";
 }
 
 // A small bar for each music input, and the beat.
@@ -1235,6 +1239,8 @@ const MOOD_METERS: ReadonlySet<string> = new Set(["tempo", "energy", "bright", "
 const NOTE_METERS: ReadonlySet<string> = new Set(["note", "clear", "key", "major", "pitch"]);
 /** The meters for where the song is going. */
 const SHAPE_METERS: ReadonlySet<string> = new Set(["quiet", "build", "drop", "change"]);
+/** The meters for the singing. */
+const SINGING_METERS: ReadonlySet<string> = new Set(["words", "chorus"]);
 const HUE_METERS: ReadonlySet<string> = new Set(["note", "key"]);
 const meterBars = meterNames.map((name) => {
   const meter = document.createElement("div");
@@ -1302,6 +1308,7 @@ function showDanceHint(styleOk = true): void {
         `${player.name}${player.paused ? " (paused)" : ""}`,
         ...(at ? [`${minutes(at.at)} of ${minutes(at.length)}`] : []),
         ...(tempo ? [`${Math.round(tempo)} beats a minute`] : []),
+        ...(player.live || songWords.state === undefined ? [] : [WORDS_HINT[songWords.state]]),
       ].join(" · ")
     : "Pick some music to dance to";
   $("dance-hint").textContent = styleOk ? music : `${music} · the style has a problem`;
@@ -1313,6 +1320,16 @@ function showDanceHint(styleOk = true): void {
   const label = $("music-button").querySelector(".label")!;
   label.textContent = player.active ? player.name : "Music";
 }
+
+/** What the dance hint says about the song's words. */
+const WORDS_HINT: Record<WordsState, string> = {
+  off: "not following the singing",
+  looking: "looking for the words…",
+  found: "following the singing",
+  none: "no timed words found for this song",
+  failed: "couldn't look up the words",
+  unnamed: "no artist and title to look up the words",
+};
 
 /** Starts some music, reporting what went wrong if it can't. */
 async function playMusic(start: () => Promise<void>): Promise<void> {
@@ -1329,6 +1346,7 @@ async function playMusic(start: () => Promise<void>): Promise<void> {
 function playFile(file: File): Promise<void> {
   return playMusic(async () => {
     await player.playFile(file);
+    void songWords.lookUp(file);
     await recent.played(file);
   });
 }
@@ -1337,6 +1355,7 @@ function playFile(file: File): Promise<void> {
 function playUrl(url: string): Promise<void> {
   return playMusic(async () => {
     await player.playUrl(url);
+    void songWords.lookUp(url);
     await recent.played(url);
   });
 }
@@ -1396,7 +1415,10 @@ $("music-url").addEventListener("click", async () => {
   );
   if (url) void playUrl(url);
 });
-$("music-mic").addEventListener("click", () => void playMusic(() => player.listen()));
+$("music-mic").addEventListener("click", () => {
+  songWords.clear();
+  void playMusic(() => player.listen());
+});
 // Phone browsers can't share another tab, so they don't get the button.
 $("music-tab").hidden = typeof navigator.mediaDevices?.getDisplayMedia !== "function";
 $("music-tab").addEventListener(
@@ -1404,6 +1426,7 @@ $("music-tab").addEventListener(
   () =>
     void playMusic(async () => {
       try {
+        songWords.clear();
         await player.listenToTab();
       } catch (e) {
         // Closing the browser's tab picker isn't a problem worth an alert.
@@ -1411,6 +1434,14 @@ $("music-tab").addEventListener(
       }
     }),
 );
+// Whether songs' words are looked up online, for the creatures that follow the singing.
+const wordsSwitch = $("music-words");
+const showWordsSwitch = (): void => wordsSwitch.setAttribute("aria-checked", String(songWords.on));
+showWordsSwitch();
+wordsSwitch.addEventListener("click", () => {
+  songWords.on = !songWords.on;
+  showWordsSwitch();
+});
 player.onEnd = () => {
   floor.setSong(songName());
   showDanceHint();
