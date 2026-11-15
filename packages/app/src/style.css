@@ -453,6 +453,11 @@ input[type="range"] {
   color: var(--muted);
 }
 
+/* A menu choice that's on or off: its tick shows when it's on. */
+.menu > button[aria-checked="false"] .tick {
+  visibility: hidden;
+}
+
 .menu > button.danger {
   color: #ff9a9a;
 }
@@ -1067,10 +1072,16 @@ input[type="range"] {
   background: var(--text);
 }
 
+/* The singing. */
+.meter.singing > div {
+  background: #b59cff;
+}
+
 .meter.hit + .meter.mood,
 .meter.mood + .meter.notes,
 .meter.notes + .meter.shape,
-.meter.shape + .meter:not(.shape) {
+.meter.shape + .meter.singing,
+.meter.singing + .meter:not(.singing) {
   margin-left: 4px;
 }
 

@@ -264,6 +264,9 @@ export class MusicAnalyser {
       balance: this.balance,
       ...this.notes.inputs,
       ...this.shape.inputs,
+      // The singing comes from the song's timed words, not the sound: the player adds it.
+      words: 0,
+      chorus: 0,
     };
     // Beats are mostly carried by the drums: the low and middle rises.
     this.beats.push(this.bass.rise + 0.5 * this.mid.rise, this.time);

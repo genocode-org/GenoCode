@@ -144,6 +144,8 @@ describe("completions", () => {
       "build",
       "drop",
       "change",
+      "words",
+      "chorus",
     ]);
     expect(labels(completionsHere("creature T\nmove turtle.he|\n"))).toContain("heading");
   });

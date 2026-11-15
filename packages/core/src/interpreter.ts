@@ -87,6 +87,8 @@ export const MUSIC_FIELDS = [
   "build",
   "drop",
   "change",
+  "words",
+  "chorus",
 ] as const;
 
 export type MusicInputs = Record<(typeof MUSIC_FIELDS)[number], number>;
