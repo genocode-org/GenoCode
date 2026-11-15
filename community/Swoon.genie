@@ -1,0 +1,234 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/120
+// About it: This is the first creature created from the lyrics of a song. Dance this creature to Slave to love by Bryan Ferry.
+creature Swoon
+// A slow fan dancer of eight swirling arms, made for a slow, warm song about being bound by love.
+// Each arm is a fan of flat silky ribs that curls round the heart, so the whole creature swirls
+// like a pinwheel. The arms move freely: slow waves run out along them, wider as the music grows,
+// and they take their colours from the music, the colour of the note sounding near the heart and
+// the colour of the song's key at the tips. The beat lives only in the heart, which swells and
+// glows with the bass and the kick drum. Its dance swirls it from shape to shape with the music,
+// spinning, and now and then turning back.
+// When the music turns calm, the ribs can slide back along the arms and gather in at the heart,
+// the tip ones first, then slide out again as the music grows. They wander freely, half in, back
+// out, at the music's mercy; genes decide whether it happens at all, how calm the music must be and
+// how far in they go.
+// Inside the heart are two rings: while a line is sung they slide out on opposite sides of it,
+// off the plane of the arms, and on the chorus they tumble.
+// With no music the arms are at full length, they keep flowing and the heart beats slowly by itself.
+// Its variants are other shapes the same eight arms swirl into: a ring that holds itself in, a
+// star, an open flower and a pinwheel.
+
+// --- The arms ---
+
+gene size = 1 in 0.5..2 log // how big the whole creature is
+gene stem = 0.5 in 0.2..1.2 // how far each arm reaches straight out before it starts to curl
+gene spacing = 0.32 in 0.18..0.5 log // how far apart the ribs along an arm are
+gene curl = 10 in -4..22 // how much each rib turns round from the one before: the swirl
+gene lift = 1.5 in -10..14 // how much each rib tips up from the one before
+gene twist = 10 in -20..30 // how much each rib turns over along the arm
+gene open = 80 in 0..90 // how far the ribs face outwards: 0 edge-on like spikes, 90 flat like fans
+gene rib = 0.55 in 0.2..0.8 log // how wide the ribs are
+gene taper = 0.5 in 0.15..1 // how wide the tip ribs are, against the ones at the heart
+gene swell = 0.6 in 0..1 // how much the ribs swell in the middle of the arm
+gene heart = 0.7 in 0.3..1.2 log // how big the heart is
+
+// --- Colours ---
+
+gene inner = hsv(330, 0.6, 0.85) in hsv(300, 0.3, 0.5)..hsv(360, 0.9, 1) // the colour near the heart
+gene outer = hsv(270, 0.47, 0.902) in hsv(230, 0.3, 0.5)..hsv(300, 0.9, 1) // the colour at the tips
+gene gloss = 0.5 in 0..1 // how silky the ribs shine
+
+// --- How it feels the music ---
+
+gene sway = 1.2 in 0..3 // how far the slow waves bend the arms, in degrees a rib
+gene tint = 0.7 in 0..1 // how much the arms take their colours from the music
+gene pulse = 0.35 in 0..0.7 // how much the heart swells with the bass
+gene idle = 0.6 in 0..1 // how much the heart beats by itself when no music plays
+gene gather = 0.8 in 0..1 // how far in calm music draws the ribs: 0 never, 1 right into the heart
+gene calm = 0.6 in 0.2..0.9 // how calm the music must be to draw them in: higher, the more often it happens
+gene wander = 0.5 in 0..1 // how much darker sound and a lower tune draw them in a little between times
+gene rise = 0.9 in 0..1 // how far out from the heart the two rings float while a line is sung: 0 never
+gene band = 0.66 in 0.25..0.75 // how big the rings are, against the heart
+gene tumble = 90 in 0..90 // how the rings turn on the chorus: 0 not at all, 90 head over heels
+// The same in every variant: speeds that changed during a morph would jerk the arms.
+gene flow = 0.45 in 0.1..1 // how many waves a second run out along the arms
+gene idle_tempo = 0.6 in 0.3..1.2 // the heart's own beats a second, when no music plays
+gene tumble_rate = 0.45 in 0.1..0.8 // how many times a second the rings turn over on the chorus
+
+// --- What the music is doing ---
+
+let own_beat = frac(time * idle_tempo)
+let listening = clamp(music.level * 4, 0, 1)
+// The heart's beat: the bass and the kick drum, or its own slow beat when there's no music.
+let thump = groove(0.5 * bump(own_beat), 0.6 * music.bass + 0.4 * music.bass_hit)
+let heart_now = heart * (1 + pulse * thump)
+// How wide the arms sway: energy moves slowly, so the sway grows and settles gently.
+let sway_now = sway * (0.6 + 0.8 * music.energy * listening)
+// The music's colours: the note sounding now (it glides) and the song's key.
+let note_inner = hsv(music.note, inner.sat, inner.val)
+let key_outer = hsv(music.key, outer.sat, outer.val)
+let inner_now = mix(inner, note_inner, tint * listening)
+let outer_now = mix(outer, key_outer, tint * listening)
+// How far the music draws the ribs in: 0 not at all, 1 as far as `gather` lets them go. Only the
+// music's slow, smooth values steer it, so the arms glide in and out without a jerk. Music calmer
+// than `calm` draws them in, and so does a quiet part; a darker sound and a lower tune draw them in
+// a little; a build pushes them out. It fades away as the music falls silent, so with no music the
+// arms are out.
+let heard = clamp(music.energy / 0.15, 0, 1)
+let pull = heard * clamp((calm - music.energy) / 0.25 + wander * 2 * (0.6 - music.bright) + wander * (0.5 - music.pitch) + 1.2 * music.quiet - 0.6 * music.build, 0, 1)
+// How far out the arms reach: 1 full length, 0 all the ribs gathered at the heart.
+let reach = 1 - gather * pull
+
+// The heart's beat: the music's when there is some, its own when there isn't. Blending the two by
+// how loud the music is lets it slip from one to the other without a jerk.
+function groove(by_itself, to_music) {
+  return mix(idle * by_itself, to_music, listening)
+}
+
+// --- The creature ---
+
+grow size
+focuspoint
+// Lay it facing the viewer, its arms spread across the screen.
+pitch 90
+
+// The heart: it carries the beat, swelling and glowing with the bass.
+branch {
+  shape ball
+  texture mixed(pattern(kaleidoscope, inner_now.hue, 35, dusk, iridescent), mask, lightning, 0.44)
+  shine 0.6
+  lay { grow heart_now }
+}
+
+// Two rings hidden inside the heart. While a line is sung they slide out on opposite sides of it,
+// one towards the viewer and one away, off the plane the arms lie in, and sink back in the gaps.
+// They keep their size and place when the heart swells with the bass: only the singing moves them.
+// On the chorus they spin head over heels. They are always spinning round their own middle, where
+// a ring looks still; the chorus tips the axis they spin on until they turn over, so the spin
+// starts and stops smoothly.
+shape ring
+shine 0.8
+repeat 2 as s {
+  branch {
+    pitch 90 + 180 * s
+    forward heart * (0.1 + 1.2 * rise) * music.words
+    let tip = tumble * music.chorus
+    pitch tip
+    roll 360 * tumble_rate * time + 90 * s
+    pitch -tip
+    texture mixed(pattern(kaleidoscope, inner_now.hue, 35, dusk, iridescent), mask, lightning, 0.44)
+    lay { grow heart * band * mix(0.75, 1, music.words) }
+  }
+}
+
+// Eight arms, each a fan of fourteen ribs curling round the heart. Slow waves run out along each
+// arm, each arm a little behind the one before, so the arms ripple round like a skirt.
+shape ball
+shine gloss
+sharpness 0.4
+repeat 8 as a {
+  branch {
+    yaw 45 * a
+    // The ribs near the heart slide out first, the tip ones last.
+    forward stem * clamp(1.6 * reach, 0, 1)
+    repeat 14 as k {
+      let along = k / 13
+      let out = clamp(1.6 * reach - 0.6 * along, 0, 1)
+      let w = rib * mix(1, taper, along) * (1 + swell * sin(180 * along))
+      let ripple = 360 * (flow * time - 0.6 * along) + 45 * a
+      forward spacing * out
+      yaw curl + sway_now * sin(ripple)
+      pitch -lift + 0.6 * sway_now * cos(ripple)
+      roll twist
+      branch {
+        roll open
+        let lore = mix(inner_now, outer_now, along)
+        colour lore
+        texture pattern(marble, lore.hue, 23, split, iridescent)
+        wear 0.25
+        lay { grow (w, 0.12 * w + 0.03, 1.5 * spacing) }
+      }
+    }
+  }
+}
+
+// --- Its dance ---
+
+dance {
+  gene drive = 0.6 in 0.1..1.5 // how fast the music swirls it from shape to shape, in shapes a second
+
+  morph follows music.mid speed drive settle 1
+  spin follows music.mid from 20 to 100 smooth 2
+  turn on music.bass changes by 0.5
+  reverse on music.bass drops by 0.5 on 2 off 6
+}
+
+// --- The family ---
+
+// A ring: the arms curled right round so that they wind into a ring round the heart, held in.
+variant Ring {
+  size = 1.25
+  stem = 1
+  spacing = 0.3
+  curl = 20
+  lift = 0
+  twist = 0
+  open = 85
+  rib = 0.55
+  taper = 0.9
+  swell = 0.2
+  heart = 0.5
+  inner = hsv(300, 0.55, 0.8)
+  outer = hsv(285, 0.6, 0.85)
+}
+
+// A star: straight spikes of ribs turned edge-on, reaching out.
+variant Star {
+  size = 0.8
+  stem = 0.3
+  spacing = 0.36
+  curl = 0
+  lift = 1
+  twist = 25
+  open = 10
+  rib = 0.5
+  taper = 0.2
+  swell = 0.5
+  heart = 0.9
+  inner = hsv(345, 0.7, 0.9)
+  outer = hsv(250, 0.6, 0.95)
+}
+
+// A flower: short, wide fans laid flat and lifting at the tips like petals.
+variant Flower {
+  size = 1.2
+  stem = 0.25
+  spacing = 0.22
+  curl = 4
+  lift = 9
+  twist = 0
+  open = 90
+  rib = 0.75
+  taper = 0.6
+  swell = 0.8
+  heart = 1.1
+  inner = hsv(355, 0.8, 0.95)
+  outer = hsv(290, 0.45, 0.95)
+}
+
+// A pinwheel: long thin arms swept round hard, their tips fine.
+variant Pinwheel {
+  size = 0.95
+  stem = 0.4
+  spacing = 0.4
+  curl = 14
+  lift = -2
+  twist = -15
+  open = 55
+  rib = 0.35
+  taper = 0.15
+  swell = 0.3
+  heart = 0.6
+  inner = hsv(320, 0.5, 0.9)
+  outer = hsv(235, 0.6, 0.8)
+}
