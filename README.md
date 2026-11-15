@@ -76,7 +76,10 @@ the genes, the code and the blocks:
   loop.
 - **Dance** moves the creature to music (a file, a web address, the microphone or another browser
   tab), by a dance style. Its bar has the music and the style;
-  `[` and `]` step through the creatures and the number keys through the styles.
+  `[` and `]` step through the creatures and the number keys through the styles. For a song file,
+  the app looks up the song's timed words on [lrclib.net](https://lrclib.net), a free library of
+  song words, so creatures can follow the singing (`music.words` and `music.chorus`). Only the
+  song's artist, title and length are sent; **Follow the singing** in the Music menu turns it off.
 - **Video**, in Morph and Dance, records the creature with its music as a video to save or share:
   tall (Shorts, TikTok, Reels), square or wide, up to five minutes, or the whole song from the
   start. It's made in the browser: MP4 where the browser can, otherwise WebM.

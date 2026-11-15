@@ -139,6 +139,11 @@ and back. In **Dance**, music carries it through the same loop. Pick a music fil
 microphone, and a dance style. Songs you've danced to are kept under **Recent** in the Music menu,
 ready to play again.
 
+For a song file, the app also looks up the song's timed words on [lrclib.net](https://lrclib.net),
+a free library of song words, so creatures that use `music.words` and `music.chorus` can follow the
+singing. Only the song's artist, title and length are sent. **Follow the singing** in the Music menu
+turns it off. The microphone and another tab have no song to look up, so those two stay 0 there.
+
 The app can write variants for you too:
 
 - After moving some gene sliders, **Make a variant…** under the genes puts the new values into a
