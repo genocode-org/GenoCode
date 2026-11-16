@@ -12,7 +12,7 @@ gene knot_size = 1.588 in 1.5..4 // how big the knots where the trees fork are
 gene branch_scale = 1.068 in 0.8..3 // how big the smaller branches are, times three
 gene fork = 53.76 in -114.6..114.6 // how far the smaller branches tip out
 
-gene dendrite_length = 10.6 in 0..14 // how many segments each dendrite has; the last is cut short to fit
+gene dendrite_length = 10.6 in 0..14 // how long each dendrite is, in segments, after its first; the last is cut short to fit
 gene stride = 1.088 in 0.9..1.2
 gene wiggle = (21.93, 8.185, 3.105) in (-22.92, -22.92, -22.92)..(22.92, 22.92, 22.92) // how far a dendrite wiggles: up, sideways and round
 gene wiggle_waves = (1.181, 1.006, 1.707) in (1, 1, 1)..(3, 3, 3)
@@ -100,38 +100,23 @@ part blob(size) {
   }
 }
 
+// Fifteen segments, the most a dendrite can have. A segment past the end of the length has no
+// length and doesn't bend, so segments grow in one after the other instead of popping in.
 part dendrite {
-  let rest = dendrite_length % 1
   colour nerve(0)
-  forward stride / 2
-  repeat ceil(dendrite_length) as k {
-    lay
-    if k < dendrite_length - 1 {
-      let along = k / (dendrite_length - 1)
-      forward stride / 2
-      yaw wiggle.y * sin(180 * wiggle_waves.y * along)
-      pitch wiggle.x * sin(180 * wiggle_waves.x * along)
-      roll wiggle.z * sin(180 * wiggle_waves.z * along)
-      grow 1 + swell * sin(180 * swell_waves * along)
-      forward stride / 2
-      colour nerve(1 - abs(1 - 2 * ((k + 1) / dendrite_length)))
+  repeat 15 as k {
+    let present = clamp(dendrite_length + 1 - k, 0, 1)
+    if k > 0 {
+      let along = min(1, (k - 1) / max(dendrite_length - 1, 1))
+      yaw present * wiggle.y * sin(180 * wiggle_waves.y * along)
+      pitch present * wiggle.x * sin(180 * wiggle_waves.x * along)
+      roll present * wiggle.z * sin(180 * wiggle_waves.z * along)
+      grow 1 + present * swell * sin(180 * swell_waves * along)
+      colour nerve(max(0, 1 - abs(1 - 2 * k / max(dendrite_length, 0.01))))
     }
-  }
-  // The last segment is cut short by what's left of the length.
-  if rest > 0 {
-    forward stride / 2
-    yaw wiggle.y * sin(180 * wiggle_waves.y)
-    pitch wiggle.x * sin(180 * wiggle_waves.x)
-    roll wiggle.z * sin(180 * wiggle_waves.z)
-    grow 1 + swell * sin(180 * swell_waves)
-    grow (1, 1, rest)
-    forward stride / 2
-    colour nerve(0)
-    lay
-    forward stride / 2
-    grow (1, 1, 1 / rest)
-  } else {
-    forward stride / 2
+    forward present * stride / 2
+    lay { grow (1, 1, present) }
+    forward present * stride / 2
   }
 }
 
