@@ -18,8 +18,8 @@ Its texture generator (the pattern kinds, colour schemes, finishes and mixes) is
 - William Latham and Stephen Todd, FormGrow and Mutator: forms built from a fixed grammar whose
   parameters are genes, and animation by interpolating genes.
 - Karl Sims, _Genetic Images_ and _Galápagos_: genomes that can grow.
-- Scott Draves, _Electric Sheep_: an open-source, music-reactive, community-driven evolutionary
-  artwork.
+- Scott Draves, _Electric Sheep_: an open-source, community-driven evolutionary artwork, in which
+  the votes of its users decide which animations breed.
 - Steven Rooke: seeding new work with genomes that have already been evolved.
 - Matthew Lewis, _Evolutionary Visual Art and Design_: practical techniques for evolutionary
   design tools.
