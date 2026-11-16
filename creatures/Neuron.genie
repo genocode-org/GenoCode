@@ -100,12 +100,12 @@ part blob(size) {
   }
 }
 
-// Fifteen segments, the most a dendrite can have. A segment past the end of the length has no
-// length and doesn't bend, so segments grow in one after the other instead of popping in.
+// Fifteen segments, the most a dendrite can have. A segment past the end of the length has almost
+// no length and hardly bends, so segments grow in one after the other instead of popping in.
 part dendrite {
   colour nerve(0)
   repeat 15 as k {
-    let present = clamp(dendrite_length + 1 - k, 0, 1)
+    let present = clamp(dendrite_length + 1 - k, 0.001, 1)
     if k > 0 {
       let along = min(1, (k - 1) / max(dendrite_length - 1, 1))
       yaw present * wiggle.y * sin(180 * wiggle_waves.y * along)
