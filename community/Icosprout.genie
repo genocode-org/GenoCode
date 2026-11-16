@@ -1,0 +1,206 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/126
+// About it: Ode to Galápagos. Inspired by the "icos" image in Karl Sims' Galápagos
+creature Icosprout
+// A pale faceted gem with a curling sprout growing from each of its twelve corners. Each sprout
+// puts out a side shoot and forks at its end, and each fork does the same again, down to twigs.
+// Inspired by the "icos" image in Karl Sims' Galápagos (1997): https://karlsims.com/galapagos/
+
+gene gem_size = 2 in 1.2..3 // how big the faceted body is
+gene facets = 36 in 0..72 // how far each of the five cubes the gem is built from is turned round its own corner
+gene gem_colour = hsv(200, 0.2, 0.82) in hsv(150, 0, 0.6)..hsv(260, 0.45, 1)
+
+gene reach = 1 in 0.5..1.8 // how long each sprout is
+gene thickness = 0.4 in 0.15..0.5 // how thick a sprout is where it starts
+gene taper = 0.93 in 0.85..1 // how much a sprout thins at each step
+gene curl = 18 in -40..40 // how far a sprout curls at each step
+gene twist = 25 in -60..60 // how far it twists round at each step, which turns its curl into a spiral
+gene fork = 40 in 10..80 // how far the two forks at a sprout's end spread
+gene fork_size = 0.65 in 0.45..0.85 // how big each fork is, compared with the sprout it grows from
+gene shoot = 0.6 in 0.35..0.9 // how big the side shoot halfway along a sprout is
+gene base_colour = hsv(150, 0.15, 1) in hsv(60, 0, 0.7)..hsv(200, 0.6, 1) // the sprouts' colour at the gem
+gene tip_colour = hsv(130, 0.8, 0.85) in hsv(60, 0.3, 0.5)..hsv(200, 1, 1) // and at the twigs
+gene tube_shine = 0.7 in 0..1
+
+// What the music can do, and how far: 0 turns each one off.
+// They follow only the slow-moving music values, so nothing snaps from one moment to the next.
+gene energy_curl = 8 in 0..30 // how much tighter the sprouts curl as the music grows intense
+gene flick = 20 in 0..60 // how far the forks open while the music builds up
+gene throb = 0.08 in 0..0.3 // how much the gem breathes in time with the beat, more as the music grows intense
+gene sway = 5 in 0..20 // how far the sprouts sway, music or not
+gene sway_speed = 0.15 in 0.05..0.5 // how many sways a second; the same in every variant
+
+let phi = (1 + sqrt(5)) / 2
+let corners = [(0, 1, phi), (0, -1, phi), (0, 1, -phi), (0, -1, -phi), (1, phi, 0), (-1, phi, 0), (1, -phi, 0), (-1, -phi, 0), (phi, 0, 1), (-phi, 0, 1), (phi, 0, -1), (-phi, 0, -1)]
+
+focuspoint
+gem
+shine tube_shine
+sharpness 0.5
+repeat 12 as k {
+  let c = corners[k]
+  branch {
+    yaw atan2(c.x, c.z)
+    pitch -asin(c.y / length(c))
+    forward gem_size * 0.42
+    sprout(3, 1, k)
+  }
+}
+
+// Five cubes, each leaning towards a different corner, make one faceted gem.
+part gem {
+  branch {
+    shape cube
+    colour gem_colour
+    texture mixed(pattern(kaleidoscope, 350, 35, jewel, satin), blend, lightning, 0.49)
+    wear 0.35
+    shine 0.35
+    sharpness 0
+    grow gem_size * (1 + throb * music.energy * (0.5 - 0.5 * cos(360 * beat)))
+    repeat 5 as k {
+      let c = corners[[0, 4, 8, 1, 5][k]]
+      branch {
+        yaw atan2(c.x, c.z)
+        pitch -asin(c.y / length(c))
+        roll facets * k
+        lay
+      }
+    }
+  }
+}
+
+// One curling sprout. Unless it is a twig (depth 1), it puts out a smaller side shoot halfway and
+// forks into two smaller sprouts at its end.
+part sprout(depth, size, k) {
+  grow size
+  stroke {
+    repeat 9 as i {
+      let along = i / 8
+      colour mix(base_colour, tip_colour, clamp((3 - depth + along) / 3, 0, 1))
+      lay { grow thickness }
+      if i == 4 and depth > 1 {
+        branch {
+          roll 90 + 40 * k
+          yaw fork
+          sprout(depth - 1, shoot * fork_size, k + 1)
+        }
+      }
+      if i < 8 {
+        forward reach * 0.5
+        pitch curl + energy_curl * music.energy + sway * wave(time * sway_speed + k / 12 + depth / 5)
+        roll twist
+        grow taper
+      }
+    }
+  }
+  if depth > 1 {
+    let spread = fork + flick * music.build
+    branch {
+      yaw spread
+      sprout(depth - 1, fork_size, k + 1)
+    }
+    branch {
+      yaw -spread
+      sprout(depth - 1, fork_size, k + 2)
+    }
+  }
+}
+
+background {
+  fill gradient(hsv(220, 0.6, 0.03), hsv(210, 0.5, 0.16))
+}
+
+// Its own dance: the music carries it through its variants, it comes nearer and turns faster as
+// the music grows intense, and it swings round to a new way only when a new part of the song starts.
+dance {
+  gene drift = 0.3 in 0.05..1 // how many variants a second the music carries it through
+
+  morph follows music.level speed drift settle 6
+  zoom follows music.energy amount 0.3 settle 8
+  spin follows music.energy from 6 to 30 smooth 4
+  turn on music.change rises by 0.8
+}
+
+variant Frost {
+  curl = 34
+  twist = 48
+  reach = 0.75
+  base_colour = hsv(190, 0.08, 1)
+  tip_colour = hsv(190, 0.6, 0.95)
+  gem_colour = hsv(215, 0.3, 0.85)
+  facets = 20
+}
+
+variant Antler {
+  curl = 6
+  twist = 10
+  reach = 1.05
+  taper = 0.96
+  fork = 70
+  fork_size = 0.6
+  thickness = 0.3
+  base_colour = hsv(70, 0.15, 0.95)
+  tip_colour = hsv(75, 0.75, 0.8)
+  gem_colour = hsv(160, 0.1, 0.75)
+}
+
+variant Fern {
+  curl = -24
+  twist = 8
+  reach = 1.35
+  shoot = 0.85
+  fork = 25
+  base_colour = hsv(120, 0.25, 0.95)
+  tip_colour = hsv(105, 0.9, 0.7)
+  facets = 60
+}
+
+variant Coral {
+  thickness = 0.5
+  reach = 0.85
+  taper = 0.9
+  fork_size = 0.8
+  curl = 12
+  twist = -30
+  fork = 55
+  gem_size = 2.6
+  base_colour = hsv(62, 0.2, 1)
+  tip_colour = hsv(62, 0.9, 1)
+  gem_colour = hsv(250, 0.35, 0.8)
+}
+
+variant Corkscrew {
+  curl = 14
+  twist = 60
+  reach = 0.8
+  taper = 0.95
+  fork = 30
+  base_colour = hsv(165, 0.2, 1)
+  tip_colour = hsv(175, 1, 0.8)
+  facets = 10
+}
+
+variant Wisp {
+  thickness = 0.18
+  reach = 1.6
+  taper = 0.88
+  curl = 22
+  twist = 15
+  fork = 50
+  gem_size = 1.5
+  base_colour = hsv(200, 0.1, 1)
+  tip_colour = hsv(140, 0.55, 1)
+  gem_colour = hsv(180, 0.05, 0.95)
+}
+
+variant Bramble {
+  curl = 38
+  twist = -45
+  reach = 0.9
+  fork = 18
+  fork_size = 0.75
+  shoot = 0.45
+  base_colour = hsv(95, 0.3, 0.85)
+  tip_colour = hsv(85, 0.85, 0.6)
+  gem_colour = hsv(170, 0.25, 0.7)
+  facets = 50
+}
