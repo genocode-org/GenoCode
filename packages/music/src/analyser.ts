@@ -29,6 +29,13 @@ const LEVEL_RANGE = 24;
 const BAND_REFERENCE = 9;
 /** The quietest amplitude (of full scale) taken as music rather than silence. */
 const FLOOR = 1e-4;
+/** How strongly onsets squash loudness: larger counts quiet sounds more. */
+const ONSET_SQUASH = 100;
+/** Octaves that count towards onsets, from 22 Hz up, and the ones where the kick drum sits (below 86 Hz). */
+const ONSET_FROM = 1;
+const KICK_TO = 2;
+/** How much the kick's onsets count against the bass and middle rises when placing the beats. */
+const KICK_ONSET = 5;
 /** Seconds of the slow average that rises are measured against. */
 const RISE_AVERAGE = 0.15;
 /**
@@ -142,6 +149,9 @@ export class MusicAnalyser {
   private readonly notes: Notes;
   private readonly shape = new SongShape();
   private readonly both = new Float64Array(OCTAVES);
+  /** Each octave's level in decibels, this time and the two times before, for the beat's onsets. */
+  private readonly db = [0, 1, 2].map(() => new Float64Array(OCTAVES));
+  private dbNow = 0;
   // The last SPECTRUM_BLOCK samples of both sides mixed, for the spectrum.
   private readonly mono = new Float32Array(SPECTRUM_BLOCK);
   private monoNext = 0;
@@ -268,8 +278,31 @@ export class MusicAnalyser {
       words: 0,
       chorus: 0,
     };
-    // Beats are mostly carried by the drums: the low and middle rises.
-    this.beats.push(this.bass.rise + 0.5 * this.mid.rise, this.time);
+    this.onsets(this.all.peak.value);
+  }
+
+  /**
+   * Feeds the beat tracker. An onset is how much each octave got louder since two times before,
+   * added over the octaves: a drum, a plucked note or a new chord all count. They give the tempo.
+   */
+  private onsets(reference: number): void {
+    const now = (this.dbNow + 1) % 3;
+    const before = this.db[(now + 1) % 3]!;
+    const db = this.db[now]!;
+    this.dbNow = now;
+    let all = 0;
+    let low = 0;
+    for (let j = 0; j < OCTAVES; j++) {
+      // Loudness on a squashed scale: a quiet hi-hat counts for less than a kick, but a soft
+      // note still counts. Measured against the music's recent peak, so any volume reads the same.
+      db[j] = Math.log1p((ONSET_SQUASH * Math.sqrt(this.both[j]!)) / reference);
+      const step = Math.max(0, db[j]! - before[j]!);
+      if (j >= ONSET_FROM) all += step;
+      if (j <= KICK_TO) low += step;
+    }
+    // Where the beats fall is judged by the kick's onsets and, more gently, by how the bass and
+    // middle rise above their recent level, which follows a song's main pulse more steadily.
+    this.beats.push(all, this.time, KICK_ONSET * low + this.bass.rise + 0.5 * this.mid.rise);
   }
 
   /** Moves energy, bright, rough and balance towards what the latest octaves say. */

@@ -22,6 +22,15 @@ const kicks = (bpm: number, amplitude: number) => (t: number) => {
   return amplitude * Math.exp(-since * 25) * Math.sin(2 * Math.PI * 60 * since);
 };
 
+/** Noise from −1 to 1 that is the same on every run. */
+function seeded(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return (s / 2 ** 32) * 2 - 1;
+  };
+}
+
 describe("MusicAnalyser", () => {
   it("reads silence as all zeros, with no beat", () => {
     const a = new MusicAnalyser(RATE);
@@ -108,6 +117,52 @@ describe("MusicAnalyser", () => {
     play(a, 8, kicks(90, 0.8));
     expect(a.tempo).toBeGreaterThan(87);
     expect(a.tempo).toBeLessThan(93);
+  });
+
+  it("follows a fast rock beat at its own tempo, not at half", () => {
+    // Kick on beats 1 and 3, snare on 2 and 4, at 150 beats a minute.
+    const period = 60 / 150;
+    const noise = seeded(3);
+    const rock = (t: number) => {
+      const beat = Math.floor(t / period);
+      const since = t - beat * period;
+      return beat % 2 === 0
+        ? 0.8 * Math.exp(-since * 25) * Math.sin(2 * Math.PI * 60 * since)
+        : 0.4 * Math.exp(-since * 30) * noise();
+    };
+    const a = new MusicAnalyser(RATE);
+    play(a, 12, rock);
+    expect(a.tempo).toBeGreaterThan(145);
+    expect(a.tempo).toBeLessThan(155);
+  });
+
+  it("puts the beat on the kick, not on the off-beat hi-hats", () => {
+    // A kick on every beat and a loud open hi-hat halfway between.
+    const period = 60 / 124;
+    const noise = seeded(7);
+    const house = (t: number) => {
+      const since = t % period;
+      const off = (t + period / 2) % period;
+      return (
+        0.6 * Math.exp(-since * 25) * Math.sin(2 * Math.PI * 60 * since) +
+        0.4 * Math.exp(-off * 30) * noise()
+      );
+    };
+    const a = new MusicAnalyser(RATE);
+    play(a, 12, house);
+    expect(a.tempo).toBeGreaterThan(120);
+    expect(a.tempo).toBeLessThan(128);
+    // Just after the next kick, the beat should be near 0.
+    const b = a.beat(Math.ceil(12 / period) * period + 0.02);
+    expect(Math.min(b, 1 - b)).toBeLessThan(0.15);
+  });
+
+  it("finds no beat in plain noise", () => {
+    const noise = seeded(5);
+    const a = new MusicAnalyser(RATE);
+    play(a, 12, () => 0.2 * noise());
+    expect(a.tempo).toBeUndefined();
+    expect(a.beat()).toBe(0);
   });
 
   /** Feeds `seconds` of a signal for each side. */
