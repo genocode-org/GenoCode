@@ -1,0 +1,317 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/129
+// About it: Salute to Voyager 1
+creature Orbiter
+// A sleek satellite that listens to the music. Its dish nods and scans the sky, the receiver in
+// front of it flashes on the bass, its antennas sway and blink their tips on the high notes, and its
+// solar fins turn with the beat.
+
+gene overall = 1 in 0.4..2.5 log // the size of the whole satellite
+gene facing = 45 in -180..180 // how far it is turned from facing you
+gene hull_len = 3.2 in 1.5..6 // how long the body is
+gene hull_w = 1.6 in 0.8..3 // how thick the body is
+gene hull_hue = 210 in 0..360 // the colour of the body
+gene hull_wear = 0.55 in 0..1 // how much metal sheen the body shows
+gene glow_hue = 185 in 0..360 // the colour of every light
+gene glow = 0.8 in 0..1 // how brightly the lights flare with the music
+
+grow overall
+focuspoint
+pitch 15 // tipped towards the viewer, as if seen from a little above
+yaw facing
+
+hull
+branch {
+  forward hull_len * 0.42
+  dish
+}
+branch {
+  back hull_len * 0.15
+  antennas
+}
+wings
+thruster
+
+// The colour of a light, from dim (0) to blazing (1).
+function light(amount) {
+  return hsv(glow_hue, 0.75 - 0.35 * amount, 0.55 + 0.45 * amount)
+}
+
+// Parts a variant doesn't show shrink to almost nothing, so they grow back smoothly while it
+// morphs: every Orbiter lays all six antennas and both fins.
+function shown(amount) {
+  return max(amount, 0.000001)
+}
+
+part hull {
+  shape ball
+  colour hsv(hull_hue, 0.25, 0.9)
+  shine 0.9
+  sharpness 0.8
+  texture pattern(aurora, hull_hue, 4, dusk, metallic)
+  wear hull_wear
+  lay { grow (hull_w, hull_w * 0.8, hull_len) }
+  texture none
+
+  // A glowing band round the middle, and a thinner one nearer the back.
+  shape ring
+  colour light(glow * music.level)
+  shine 1
+  lay { grow (hull_w * 1.2, hull_w * 0.96, 0.5) }
+  branch {
+    back hull_len * 0.28
+    lay { grow (hull_w * 1.02, hull_w * 0.82, 0.35) }
+  }
+}
+
+part dish {
+  gene size = 2.6 in 1..5 // how wide the dish is
+  gene depth = 0.5 in 0.15..1.5 // how deep the dish is
+  gene tilt = 35 in -10..80 // how far the dish looks up
+  gene neck = 0.6 in 0.2..2 // how far the dish stands off the body
+  gene feed = 1.4 in 0.5..3 // how far the receiver sits in front of the dish
+  gene nod = 15 in 0..40 // how far the dish nods with the middle of the music
+  gene scan = 25 in 0..90 // how far the dish sweeps from side to side as it listens
+  gene pulse = 0.6 in 0..1.5 // how much the receiver swells on the bass
+
+  pitch -(tilt + nod * music.mid)
+  yaw scan * wave(time / 9)
+
+  // The neck.
+  shape tube
+  colour hsv(hull_hue, 0.2, 0.75)
+  shine 0.8
+  forward neck / 2
+  lay { grow (0.35, 0.35, neck) }
+  forward neck / 2
+
+  // The bowl: a shallow cone with its point towards the body.
+  shape cone
+  colour hsv(hull_hue, 0.15, 0.95)
+  shine 1
+  sharpness 0.9
+  forward depth / 2
+  lay { grow (size, size, depth); yaw 180 }
+  forward depth / 2
+
+  // A glowing rim round its face.
+  shape ring
+  colour light(glow * music.level)
+  lay { grow (size * 1.05, size * 1.05, 0.6) }
+
+  // The receiver on its stalk, held by three struts from the rim.
+  shape tube
+  colour hsv(hull_hue, 0.2, 0.8)
+  branch {
+    forward feed / 2
+    lay { grow (0.08, 0.08, feed) }
+  }
+  let r = size * 0.42
+  let strut = sqrt(r * r + feed * feed)
+  repeat 3 as k {
+    branch {
+      roll 120 * k + 90
+      move (r, 0, 0)
+      yaw -atan2(r, feed)
+      forward strut / 2
+      lay { grow (0.045, 0.045, strut) }
+    }
+  }
+  forward feed
+  shape ball
+  colour light(glow * music.bass_hit)
+  shine 1
+  lay { grow 0.4 * (1 + pulse * music.bass_hit) }
+}
+
+part antennas {
+  gene count = 3 in 2..6 step 1 // how many antennas
+  gene fan = 80 in 20..300 // how wide the antennas spread round the top
+  gene sweep = 20 in -20..80 // how far the antennas lean back
+  gene reach = 3 in 1..6 // how long the antennas are
+  gene curl = -35 in -90..90 // how far the antennas curve along their length
+  gene width = 0.12 in 0.04..0.3 // how thick the antennas are at the root
+  gene sway = 12 in 0..40 // how far the antennas sway, music or not
+  gene wiggle = 25 in 0..60 // how far the antennas whip on the high notes
+
+  let segs = 10
+  repeat 6 as i {
+    let grown = shown(clamp(count - i, 0, 1)) // how much of this antenna has grown
+    let t = clamp(i / max(count - 1, 1), 0, 1) // where it sits across the fan
+    let phase = i * 0.17
+    branch {
+      roll fan * (t - 0.5)
+      move (0, hull_w * 0.36, 0)
+      pitch -(90 + sweep)
+
+      // A collar where it leaves the body.
+      shape ball
+      colour hsv(hull_hue, 0.2, 0.8)
+      shine 0.9
+      lay { grow width * grown * 1.8 }
+
+      // The antenna: tapering tubes joined by small balls so it bends smoothly, fading from the
+      // body's colour to the lights' colour.
+      let piece = reach * grown / segs
+      repeat segs as j {
+        let f = j / segs
+        let w = width * grown * (1 - 0.75 * f)
+        colour hsv(mix(hull_hue, glow_hue, f), mix(0.2, 0.7, f), mix(0.85, 1, f))
+        shape ball
+        lay { grow w }
+        shape tube
+        forward piece / 2
+        lay { grow (w * 0.97, w * 0.97, piece * 1.02) }
+        forward piece / 2
+        pitch (curl + sway * wave(time / 3 + phase) + wiggle * music.high_hit * wave(time * 2 + phase)) / segs
+      }
+      shape ball
+
+      // The tip, which blinks on the high notes.
+      colour light(glow * music.high_hit)
+      shine 1
+      lay { grow (0.28 + 0.2 * music.high_hit) * grown }
+    }
+  }
+}
+
+part wings {
+  gene open = 1 in 0..1 // how far the solar fins have grown out
+  gene span = 2.6 in 1..5 // how long each fin is
+  gene chord = 1 in 0.4..2 // how wide each fin is
+  gene boom = 0.8 in 0.2..2 // how far the fins stand off the body
+  gene tilt = 20 in -60..60 // how far the fins are turned to the sun
+  gene flap = 20 in 0..60 // how far the fins turn with the bass
+  gene hue = 45 in 0..360 // the colour of the fins
+
+  symmetric x {
+    branch {
+      back hull_len * 0.05
+      yaw 90
+      forward hull_w * 0.4
+      grow shown(open)
+
+      shape tube
+      colour hsv(hull_hue, 0.2, 0.75)
+      shine 0.8
+      forward boom / 2
+      lay { grow (0.1, 0.1, boom) }
+      forward boom / 2
+
+      roll tilt + flap * music.bass
+      shape cube
+      colour hsv(hue, 0.6, 0.9)
+      texture pattern(cells, hue, 9, electric, iridescent)
+      wear 0.7
+      shine 1
+      sharpness 0.9
+      forward span / 2
+      lay { grow (chord, 0.05, span) }
+
+      // A glowing edge along the fin's tip.
+      forward span / 2
+      texture none
+      shape tube
+      colour light(glow * music.level)
+      lay { grow (0.08, 0.08, chord); yaw 90 }
+    }
+  }
+}
+
+part thruster {
+  gene thrust = 0.6 in 0..1.5 // how far the engine flares on the bass
+
+  branch {
+    back hull_len * 0.5
+    shape cone
+    colour hsv(hull_hue, 0.2, 0.7)
+    shine 0.9
+    lay { grow (hull_w * 0.45, hull_w * 0.45, 0.5) }
+
+    let flame = 0.25 + thrust * music.bass
+    back 0.25 + flame / 2
+    shape ball
+    colour light(glow * music.bass)
+    shine 1
+    lay { grow (hull_w * 0.35, hull_w * 0.35, flame) }
+  }
+}
+
+dance {
+  gene drive = 0.8 in 0.2..3 // how fast the music moves it through its family
+
+  morph follows music.mid speed drive settle 3
+  zoom follows music.bass_hit amount 0.3 settle 8
+  spin follows music.level from 15 to 70 smooth 1.5 upright
+  turn on music.mid changes by 0.8
+}
+
+// A big, deep dish on a short body, with two long antennas in a V and no fins.
+variant Relay {
+  hull_len = 2.6
+  hull_w = 1.9
+  hull_hue = 40
+  glow_hue = 30
+  dish.size = 3.8
+  dish.depth = 0.8
+  dish.tilt = 55
+  antennas.count = 2
+  antennas.fan = 70
+  antennas.reach = 4.5
+  antennas.sweep = 45
+  antennas.curl = -50
+  wings.open = 0
+}
+
+// A long, slim watcher with a small dish on a long stalk, four antennas and wide fins.
+variant Sentinel {
+  hull_len = 4.6
+  hull_w = 1.3
+  hull_hue = 280
+  glow_hue = 330
+  dish.size = 1.8
+  dish.feed = 2.2
+  antennas.count = 4
+  antennas.fan = 150
+  antennas.reach = 2.4
+  antennas.sweep = 0
+  antennas.curl = 30
+  wings.span = 3.6
+  wings.chord = 0.7
+  wings.tilt = -30
+  wings.hue = 300
+}
+
+// A round body crowned by six thin antennas all the way round, with its fins half grown.
+variant Pulsar {
+  hull_len = 2.4
+  hull_w = 2.2
+  hull_hue = 320
+  glow_hue = 200
+  dish.size = 2.2
+  antennas.count = 6
+  antennas.fan = 300
+  antennas.reach = 3.4
+  antennas.sweep = -10
+  antennas.curl = -20
+  antennas.width = 0.08
+  wings.open = 0.5
+  wings.hue = 180
+}
+
+// A deep-space probe: a huge dish looking ahead, two very long antennas swept back, short fins.
+variant Voyager {
+  hull_hue = 200
+  glow_hue = 40
+  dish.size = 4.2
+  dish.depth = 1
+  dish.tilt = 10
+  antennas.count = 2
+  antennas.fan = 160
+  antennas.reach = 5.5
+  antennas.sweep = 70
+  antennas.curl = -10
+  antennas.width = 0.06
+  wings.span = 1.4
+  wings.chord = 1.6
+  wings.hue = 20
+}
