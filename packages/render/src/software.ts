@@ -203,6 +203,8 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     .sort((p, q) => q.d - p.d)
     .map((p) => p.s);
 
+  // The sign of a front face's area on screen.
+  const FRONT = -1;
   const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   for (const shape of [...opaque, ...seeThrough]) {
     // A stroke's tube is already in world space, with a colour and look at each corner.
@@ -223,6 +225,13 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
     const count = pos.length / 3;
     const base: Rgb = toRgb(shape.colour);
     const alpha = alphaOf(shape);
+    // A see-through shape shows only its front faces, as in the app: its back faces would show
+    // through it. A mirroring matrix turns the corners' order round.
+    const det =
+      m[0]! * (m[5]! * m[10]! - m[6]! * m[9]!) -
+      m[4]! * (m[1]! * m[10]! - m[2]! * m[9]!) +
+      m[8]! * (m[1]! * m[6]! - m[2]! * m[5]!);
+    const backSign = alpha < 0.999 ? (det < 0 ? -1 : 1) * FRONT : 0;
 
     // Per corner: screen x, screen y, 1/distance, how much light falls on it (which the colour
     // and texture multiply), and the light it gives off whatever its colour (highlights and sheen).
@@ -282,6 +291,7 @@ export function rasterize(shapes: readonly LaidShape[], options: RasterOptions):
       if (iz[a] === 0 || iz[b] === 0 || iz[c] === 0) continue; // behind the camera
       const area = (sx[b]! - sx[a]!) * (sy[c]! - sy[a]!) - (sy[b]! - sy[a]!) * (sx[c]! - sx[a]!);
       if (area === 0 || !Number.isFinite(area)) continue;
+      if (backSign !== 0 && Math.sign(area) === -backSign) continue;
       const x0 = Math.max(0, Math.floor(Math.min(sx[a]!, sx[b]!, sx[c]!)));
       const x1 = Math.min(W - 1, Math.ceil(Math.max(sx[a]!, sx[b]!, sx[c]!)));
       const y0 = Math.max(0, Math.floor(Math.min(sy[a]!, sy[b]!, sy[c]!)));
