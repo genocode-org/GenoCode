@@ -94,6 +94,8 @@ creature Name
 
 **Example**
 
+<!-- picture: creature -->
+
 ```
 creature Snowball
 // One white ball.
@@ -101,6 +103,8 @@ creature Snowball
 shape ball
 lay
 ```
+
+![One white ball](images/creature.png)
 
 **See also:** [Files](LANGUAGE.md#3-files)
 
@@ -160,6 +164,8 @@ variant Name { gene = value; … }
 
 **Example**
 
+<!-- picture: variant variants=all view=top -->
+
 ```
 creature Cobra
 
@@ -180,6 +186,8 @@ variant Wide {
   seed = 42 // bends its coils other ways
 }
 ```
+
+![Seen from above, side by side: the creature (3 balls), Coiled (6 balls) and Wide (3 balls bending other ways)](images/variant.png)
 
 | Gene    | The creature | `Coiled` | `Wide`                        |
 | ------- | ------------ | -------- | ----------------------------- |
@@ -237,6 +245,8 @@ or `pattern` body. Not inside `if`, loops, `branch`, `symmetric`, `lay { }` or `
 
 **Example**
 
+<!-- picture: gene -->
+
 ```
 creature Critter
 
@@ -278,6 +288,8 @@ part fin(reach) {
 }
 ```
 
+![An orange-and-green flower: a cone body with seven orange limbs around it](images/gene.png)
+
 **See also:** [variant](#variant), [Genes](LANGUAGE.md#6-genes), [Genetics](LANGUAGE.md#19-genetics)
 
 ### let
@@ -304,14 +316,19 @@ let name = value
 
 **Example**
 
+<!-- picture: let view=right -->
+
 ```
 let size = 1
 repeat 5 {
   grow size
   lay
+  forward 1
   size *= 0.8
 }
 ```
+
+![Seen from the side: a row of five balls, each smaller than the one before](images/let.png)
 
 **See also:** [assignment](#assignment), [Variables](LANGUAGE.md#7-variables)
 
@@ -387,6 +404,8 @@ name
 
 **Example**
 
+<!-- picture: part view=top -->
+
 ```
 part leg(reach, bend) {
   if reach <= 0 {
@@ -410,6 +429,8 @@ symmetric x {
 }
 tail
 ```
+
+![Seen from above: a leg out to each side and a tail behind](images/part.png)
 
 **See also:** [function](#function), [Parts and functions](LANGUAGE.md#10-parts-and-functions)
 
@@ -442,6 +463,8 @@ creature code.
 
 **Example**
 
+<!-- picture: function view=right -->
+
 ```
 function taper(i, n) {
   return 1 - i / n * 0.8
@@ -455,6 +478,8 @@ repeat 6 as i {
   forward 1
 }
 ```
+
+![Seen from the side: a row of six balls getting smaller](images/function.png)
 
 **See also:** [part](#part), [return](#return)
 
@@ -539,15 +564,19 @@ repeat count as i { … }
 
 **Example**
 
+<!-- picture: repeat view=top -->
+
 ```
 repeat 8 as i {
   branch {
-    roll 45 * i
+    yaw 45 * i
     forward 2
     lay
   }
 }
 ```
+
+![Seen from above: eight balls in a ring](images/repeat.png)
 
 **See also:** [for](#for), [while](#while)
 
@@ -577,6 +606,8 @@ for v from start to end by step { … }
 
 **Example**
 
+<!-- picture: for view=top -->
+
 ```
 for a from 0 to 315 by 45 {
   branch {
@@ -594,6 +625,8 @@ for size from 1 to 0.25 by -0.25 {
   forward 1
 }
 ```
+
+![Seen from above: eight balls in a ring, and a row of four balls getting smaller, starting from the middle](images/for.png)
 
 **See also:** [repeat](#repeat), [while](#while)
 
@@ -619,6 +652,8 @@ while condition { … }
 
 **Example**
 
+<!-- picture: while view=right -->
+
 ```
 let size = 1
 while size > 0.1 {
@@ -628,6 +663,8 @@ while size > 0.1 {
   size *= 0.7
 }
 ```
+
+![Seen from the side: a row of balls, each smaller than the one before, stopping when they get tiny](images/while.png)
 
 **See also:** [repeat](#repeat), [for](#for)
 
@@ -655,12 +692,16 @@ forward distance
 
 **Example**
 
+<!-- picture: forward view=right -->
+
 ```
 repeat 5 {
   lay
   forward 1
 }
 ```
+
+![Five white balls in a row, seen from the side: each lay, then a step forward](images/forward.png)
 
 **See also:** [back](#back), [move](#move), [Moving](LANGUAGE.md#112-moving)
 
@@ -680,10 +721,17 @@ back distance
 
 **Example**
 
+<!-- picture: back view=right -->
+
 ```
+colour grey
+lay // where the turtle starts
 back 2
+colour orange
 lay
 ```
+
+![Seen from the side: a grey ball where the turtle starts, and an orange ball two steps behind it](images/back.png)
 
 **See also:** [forward](#forward)
 
@@ -703,10 +751,17 @@ move offset
 
 **Example**
 
+<!-- picture: move -->
+
 ```
+colour grey
+lay // where the turtle starts
 move (1, 2, 0) // one to the side, two up
+colour orange
 lay
 ```
+
+![A grey ball where the turtle starts, and an orange ball one to the side and two up](images/move.png)
 
 **See also:** [forward](#forward)
 
@@ -731,11 +786,20 @@ pitch angle
 
 **Example**
 
+<!-- picture: pitch -->
+
 ```
+colour grey
+lay // where the turtle starts
 pitch -90 // now heading up
-forward 3
-lay
+colour orange
+repeat 3 {
+  forward 1
+  lay
+}
 ```
+
+![A grey ball where the turtle starts, and a column of orange balls going up from it](images/pitch.png)
 
 **See also:** [yaw](#yaw), [roll](#roll), [rotate](#rotate), [Turning](LANGUAGE.md#113-turning)
 
@@ -755,11 +819,20 @@ yaw angle
 
 **Example**
 
+<!-- picture: yaw -->
+
 ```
-yaw 90
-forward 2
-lay
+colour grey
+lay // where the turtle starts
+yaw 90 // now heading sideways
+colour orange
+repeat 3 {
+  forward 1
+  lay
+}
 ```
+
+![A grey ball where the turtle starts, and a row of orange balls going off to one side](images/yaw.png)
 
 **See also:** [pitch](#pitch), [roll](#roll)
 
@@ -779,6 +852,8 @@ roll angle
 
 **Example**
 
+<!-- picture: roll -->
+
 ```
 repeat 6 as i {
   branch {
@@ -789,6 +864,8 @@ repeat 6 as i {
   }
 }
 ```
+
+![Six balls in a ring, like the spokes of a wheel](images/roll.png)
 
 **See also:** [pitch](#pitch), [yaw](#yaw)
 
@@ -814,10 +891,20 @@ rotate angle around axis
 
 **Example**
 
+<!-- picture: rotate view=three-quarter -->
+
 ```
+colour grey
+lay // where the turtle starts
 rotate 45 around (1, 1, 0)
-lay
+colour orange
+repeat 3 {
+  forward 1
+  lay
+}
 ```
+
+![A grey ball where the turtle starts, and a line of orange balls going off at a slant](images/rotate.png)
 
 **See also:** [pitch](#pitch), [yaw](#yaw), [roll](#roll)
 
@@ -844,11 +931,18 @@ grow factors
 
 **Example**
 
+<!-- picture: grow view=three-quarter -->
+
 ```
-grow 2
 lay
+forward 2
+grow 2
+lay // twice the size
+forward 2
 lay { grow (1, 0.2, 3) } // a flat slab, this shape only
 ```
+
+![Seen from the side: a small ball, a ball twice its size, then a long flat slab](images/grow.png)
 
 **See also:** [mirror](#mirror), [Growing and mirroring](LANGUAGE.md#114-growing-and-mirroring)
 
@@ -875,12 +969,23 @@ mirror z
 
 **Example**
 
+<!-- picture: mirror view=top -->
+
 ```
+branch {
+  colour grey
+  yaw 30
+  forward 2
+  lay
+}
 mirror x
 yaw 30 // turns the other way now
 forward 2
+colour orange
 lay
 ```
+
+![Seen from above: a grey ball turned off to one side, and an orange ball turned the same amount to the other side](images/mirror.png)
 
 **See also:** [symmetric](#symmetric), [grow](#grow)
 
@@ -902,6 +1007,8 @@ branch { … }
 
 **Example**
 
+<!-- picture: branch view=top -->
+
 ```
 repeat 5 as i {
   branch {
@@ -911,6 +1018,8 @@ repeat 5 as i {
   }
 }
 ```
+
+![Seen from above: five balls in a star, all starting from the same middle](images/branch.png)
 
 **See also:** [symmetric](#symmetric), [Branches](LANGUAGE.md#115-branches)
 
@@ -938,6 +1047,8 @@ symmetric z { … }
 
 **Example**
 
+<!-- picture: symmetric -->
+
 ```
 symmetric x {
   colour mix(blue, red, side * 0.5 + 0.5)
@@ -946,6 +1057,8 @@ symmetric x {
   lay
 }
 ```
+
+![A blue ball on one side and a red ball on the other](images/symmetric.png)
 
 **See also:** [mirror](#mirror), [branch](#branch), [Symmetry](LANGUAGE.md#116-symmetry)
 
@@ -970,12 +1083,16 @@ reshape { … }
 
 **Example**
 
+<!-- picture: reshape view=three-quarter -->
+
 ```
 reshape { grow (1, 0.3, 4) }
 lay
 forward 2
 lay // both shapes long and flat
 ```
+
+![Two long, flat shapes one after the other](images/reshape.png)
 
 **See also:** [lay](#lay), [The shape transform](LANGUAGE.md#117-the-shape-transform)
 
@@ -997,6 +1114,8 @@ focuspoint
 
 **Example**
 
+<!-- picture: focuspoint view=right -->
+
 ```
 lay { grow 4 } // a round body
 branch {
@@ -1006,6 +1125,8 @@ branch {
 }
 focuspoint // the last one counts: the camera looks at the body, not between body and head
 ```
+
+![A big round body in the middle of the picture, with a small head beside it](images/focuspoint.png)
 
 **See also:** [The focus point](LANGUAGE.md#118-the-focus-point)
 
@@ -1033,10 +1154,18 @@ shape s
 
 **Example**
 
+<!-- picture: shape view=20,25 -->
+
 ```
-shape cone
-lay
+let shapes = [tube, cube, cone, ball, ring, donut]
+repeat 6 as i {
+  shape shapes[i]
+  lay
+  move (1.5, 0, 0)
+}
 ```
+
+![The six shapes in a row: tube, cube, cone, ball, ring and donut](images/shape.png)
 
 **See also:** [lay](#lay), [Shapes](LANGUAGE.md#12-shapes)
 
@@ -1062,10 +1191,14 @@ lay { … }
 
 **Example**
 
+<!-- picture: lay view=three-quarter -->
+
 ```
 shape tube
 lay { grow (0.3, 0.3, 4) } // a long thin tube
 ```
+
+![A long thin tube](images/lay.png)
 
 **See also:** [shape](#shape), [reshape](#reshape), [stroke](#stroke)
 
@@ -1093,6 +1226,8 @@ stroke { … }
 
 **Example**
 
+<!-- picture: stroke view=top -->
+
 ```
 stroke {
   repeat 16 as i {
@@ -1103,6 +1238,8 @@ stroke {
   }
 }
 ```
+
+![Seen from above: one smooth tube curling round, orange at the thick end and purple at the thin end](images/stroke.png)
 
 **See also:** [lay](#lay), [branch](#branch)
 
@@ -1130,6 +1267,8 @@ color c
 
 **Example**
 
+<!-- picture: colour view=right -->
+
 ```
 let skin = gradient(green, yellow)
 
@@ -1142,6 +1281,8 @@ forward 1
 colour hsv(200, 1, 1, 0.4)
 lay
 ```
+
+![Seen from the side: an orange ball, a green-yellow ball and a see-through blue ball](images/colour.png)
 
 **See also:** [hsv](#hsv), [Colours](LANGUAGE.md#131-colours)
 
@@ -1161,11 +1302,19 @@ shine amount
 
 **Example**
 
+<!-- picture: shine -->
+
 ```
-shine 0.8
+colour hsv(210, 0.7, 0.8)
 sharpness 0.9
-lay
+repeat 3 as i {
+  shine i * 0.5 // 0, 0.5 and 1
+  lay
+  move (1.5, 0, 0)
+}
 ```
+
+![Three blue balls: no highlight, a soft highlight and a strong one](images/shine.png)
 
 **See also:** [sharpness](#sharpness), [Material](LANGUAGE.md#132-material)
 
@@ -1185,11 +1334,19 @@ sharpness amount
 
 **Example**
 
+<!-- picture: sharpness -->
+
 ```
+colour hsv(210, 0.7, 0.8)
 shine 1
-sharpness 0.2
-lay
+repeat 3 as i {
+  sharpness i * 0.5 // 0, 0.5 and 1
+  lay
+  move (1.5, 0, 0)
+}
 ```
+
+![Three blue balls with strong highlights: broad and soft, smaller, and a small sharp spot](images/sharpness.png)
 
 **See also:** [shine](#shine)
 
@@ -1215,11 +1372,15 @@ texture p
 
 **Example**
 
+<!-- picture: texture -->
+
 ```
 texture pattern(marble, 200, 7, dusk, pearl)
 lay
 texture none
 ```
+
+![A ball with a swirly marble texture](images/texture.png)
 
 **See also:** [pattern](#pattern), [wear](#wear), [Textures](LANGUAGE.md#14-textures)
 
@@ -1243,6 +1404,8 @@ wear amount
 
 **Example**
 
+<!-- picture: wear -->
+
 ```
 gene coat = 0.6 in 0..1
 
@@ -1250,6 +1413,8 @@ texture pattern(cells, 40, 3)
 wear coat
 lay
 ```
+
+![A ball showing a green cell texture mixed with its white colour](images/wear.png)
 
 **See also:** [texture](#texture)
 
@@ -1282,6 +1447,8 @@ background Name
 
 **Example**
 
+<!-- picture: background -->
+
 ```
 background {
   gene hue = 260 in 0..360
@@ -1290,6 +1457,8 @@ background {
   fill pattern(aurora, hue + pulse * music.bass, 12)
 }
 ```
+
+![A purple aurora background](images/background.png)
 
 **See also:** [fill](#fill), [Backgrounds](LANGUAGE.md#15-backgrounds)
 
@@ -1309,11 +1478,15 @@ fill p
 
 **Example**
 
+<!-- picture: fill -->
+
 ```
 background {
   fill gradient(black, hsv(230, 0.8, 0.3))
 }
 ```
+
+![A background fading from black at the bottom to dark blue at the top](images/fill.png)
 
 **See also:** [background](#background)
 
@@ -1597,6 +1770,8 @@ pattern Name
 
 **Example**
 
+<!-- picture: pattern-blocks -->
+
 ```
 pattern Ripples
 // Rings that wobble.
@@ -1613,6 +1788,8 @@ value picture {
   value ripple * 0.5 + 0.5
 }
 ```
+
+![Purple rings round the middle, wobbling a little](images/pattern-blocks.png)
 
 **See also:** [Your own patterns](LANGUAGE.md#141-your-own-patterns)
 
@@ -1641,6 +1818,8 @@ picture { … }
 
 **Example**
 
+<!-- picture: picture -->
+
 ```
 pattern Rings
 
@@ -1651,6 +1830,8 @@ value picture {
   value rings * 0.6 + (lumps + lumps(x * 2, y)) * 0.2
 }
 ```
+
+![Purple rings round the middle, with soft cloudy patches over them](images/picture.png)
 
 **See also:** [value](#value), [clouds](#clouds)
 
@@ -1670,11 +1851,15 @@ value v
 
 **Example**
 
+<!-- picture: value -->
+
 ```
 pattern Soft
 
 value blur(clouds(), 12)
 ```
+
+![Soft, blurred purple and blue clouds](images/value.png)
 
 **See also:** [picture](#picture)
 
@@ -1693,6 +1878,8 @@ Where the pixel is, inside `picture { }`.
 
 **Example**
 
+<!-- picture: xyra -->
+
 ```
 pattern Fan
 
@@ -1700,6 +1887,8 @@ value picture {
   value wave(a / 30) * 0.5 + 0.5
 }
 ```
+
+![Purple and dark stripes fanning out from the middle, like the spokes of a wheel](images/xyra.png)
 
 ## 9. Debugging
 
@@ -1987,6 +2176,8 @@ sin(angle)
 
 **Example**
 
+<!-- picture: sin -->
+
 ```
 repeat 36 as i {
   branch {
@@ -1995,6 +2186,8 @@ repeat 36 as i {
   }
 }
 ```
+
+![A row of balls going up and down in a smooth wave](images/sin.png)
 
 **See also:** [cos](#cos), [wave](#wave)
 
@@ -2147,6 +2340,8 @@ for things that are thickest in the middle.
 
 **Example**
 
+<!-- picture: bump view=right -->
+
 ```
 repeat 10 as i {
   branch {
@@ -2156,6 +2351,8 @@ repeat 10 as i {
   forward 1
 }
 ```
+
+![Seen from the side: a row of balls, small at the ends and biggest in the middle](images/bump.png)
 
 **See also:** [wave](#wave)
 
@@ -2391,6 +2588,8 @@ calling it: `skin(0.5)`.
 
 **Example**
 
+<!-- picture: gradient view=right -->
+
 ```
 let skin = gradient(black, red at 0.2, yellow, white at 1)
 repeat 20 as i {
@@ -2407,6 +2606,8 @@ background {
   fill gradient(black, hsv(230, 0.8, 0.3))
 }
 ```
+
+![Seen from the side: a row of balls fading from black through red and yellow to white, against a background fading from black to dark blue](images/gradient.png)
 
 **See also:** [spectrum](#spectrum), [Gradients](LANGUAGE.md#133-gradients)
 
@@ -2432,6 +2633,8 @@ spectrum(stop, stop, …)
 
 **Example**
 
+<!-- picture: spectrum view=right -->
+
 ```
 let rainbow = spectrum(hsv(0, 1, 1), hsv(300, 1, 1))
 repeat 12 as i {
@@ -2440,6 +2643,8 @@ repeat 12 as i {
   lay
 }
 ```
+
+![Seen from the side: a row of balls in rainbow colours, from red through yellow, green and blue to purple](images/spectrum.png)
 
 ## 13. Noise and randomness
 
@@ -2468,6 +2673,8 @@ noise(v)
 
 **Example**
 
+<!-- picture: noise view=three-quarter -->
+
 ```
 repeat 30 as i {
   pitch 15 * noise(i * 0.3)
@@ -2476,6 +2683,8 @@ repeat 30 as i {
   lay
 }
 ```
+
+![A row of balls wandering smoothly up, down and sideways](images/noise.png)
 
 **See also:** [fbm](#fbm), [random](#random), [Noise and randomness](LANGUAGE.md#185-noise-and-randomness)
 
@@ -2498,10 +2707,23 @@ strength of the last.
 
 **Example**
 
+<!-- picture: fbm -->
+
 ```
-grow 1 + 0.3 * fbm(turtle.position)
-lay
+repeat 40 as i {
+  branch {
+    move (i * 0.2, 2 * noise(i * 0.1), 0)
+    lay { grow 0.2 } // white: noise
+  }
+  branch {
+    move (i * 0.2, 2 * fbm(i * 0.1) - 2, 0)
+    colour orange
+    lay { grow 0.2 } // orange: fbm, the same line with finer wiggles
+  }
+}
 ```
+
+![Two wavy lines of balls: the white noise line is smooth, the orange fbm line below it follows the same waves with finer wiggles](images/fbm.png)
 
 ### random
 
@@ -2530,6 +2752,8 @@ random(lo, hi)
 
 **Example**
 
+<!-- picture: random -->
+
 ```
 repeat 10 {
   branch {
@@ -2539,6 +2763,8 @@ repeat 10 {
   }
 }
 ```
+
+![Ten balls of different sizes scattered at random](images/random.png)
 
 **See also:** [noise](#noise)
 
@@ -2574,6 +2800,8 @@ pattern(kind, hue, seed, scheme, finish)
 
 **Example**
 
+<!-- picture: pattern -->
+
 ```
 gene coat_hue = 200 in 0..360
 gene coat_kind = marble from [marble, cells, aurora]
@@ -2581,6 +2809,8 @@ gene coat_kind = marble from [marble, cells, aurora]
 texture pattern(coat_kind, coat_hue, 7, dusk, pearl)
 lay
 ```
+
+![A ball with a swirly marble texture in soft pastel colours](images/pattern.png)
 
 **See also:** [mixed](#mixed), [texture](#texture), [fill](#fill), [Textures](LANGUAGE.md#14-textures)
 
@@ -2609,10 +2839,14 @@ mixed(p, way, kind, amount)
 
 **Example**
 
+<!-- picture: mixed -->
+
 ```
 texture mixed(pattern(cells, 40, 3), warp, vortex, 0.6)
 lay
 ```
+
+![A ball with a green cell texture, twisted into a swirl](images/mixed.png)
 
 **See also:** [pattern](#pattern)
 
@@ -2644,11 +2878,15 @@ clouds(layers, grid)
 
 **Example**
 
+<!-- picture: clouds -->
+
 ```
 pattern Fog
 
 value clouds(4, 2)
 ```
+
+![Purple and blue clouds](images/clouds.png)
 
 **See also:** [blur](#blur), [How they work](LANGUAGE.md#187-pictures)
 
@@ -2677,11 +2915,15 @@ blur(p, across, down)
 
 **Example**
 
+<!-- picture: blur -->
+
 ```
 pattern Streaks
 
 value blur(clouds(), 40, 2)
 ```
+
+![Purple and blue clouds smeared sideways into streaks](images/blur.png)
 
 **See also:** [zoom_blur](#zoom_blur), [Your own patterns](LANGUAGE.md#141-your-own-patterns)
 
@@ -2708,11 +2950,15 @@ zoom_blur(p, s)
 
 **Example**
 
+<!-- picture: zoom_blur -->
+
 ```
 pattern Rush
 
 value zoom_blur(clouds(), 0.5)
 ```
+
+![Purple and blue clouds smeared outward from the middle, like rushing forward](images/zoom_blur.png)
 
 **See also:** [blur](#blur), [Your own patterns](LANGUAGE.md#141-your-own-patterns)
 
@@ -2732,11 +2978,15 @@ stretch(p)
 
 **Example**
 
+<!-- picture: stretch -->
+
 ```
 pattern Bright
 
 value stretch(blur(clouds(), 30))
 ```
+
+![Blurred clouds with their darkest and lightest parts pushed to full dark and full light](images/stretch.png)
 
 ### power
 
@@ -2755,11 +3005,15 @@ power(p, e)
 
 **Example**
 
+<!-- picture: power -->
+
 ```
 pattern Dark
 
 value power(clouds(), 3)
 ```
+
+![Mostly dark blue with a few bright purple clouds](images/power.png)
 
 ## 16. Inputs
 

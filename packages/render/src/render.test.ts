@@ -233,6 +233,19 @@ describe("software renderer", () => {
     }
   });
 
+  it("shows only the front of a see-through shape, as the app does, mirrored or not", () => {
+    // A red ball at half alpha lets half the background's blue through, not a quarter: its back
+    // isn't drawn as a second layer.
+    const background = pixel(rasterize([], { width: 48, height: 48 }), 24, 24)[2]!;
+    for (const body of [
+      "colour hsv(0, 1, 1, 0.5)\nlay",
+      "mirror x\ncolour hsv(0, 1, 1, 0.5)\nlay",
+    ]) {
+      const img = rasterize(shapes(body), { width: 48, height: 48 });
+      expect(Math.abs(pixel(img, 24, 24)[2]! - background / 2)).toBeLessThanOrEqual(2);
+    }
+  });
+
   it("draws mirror images for symmetric creatures", () => {
     const img = rasterize(
       shapes("symmetric x {\n  yaw 40\n  forward 2\n  lay { grow (0.4, 0.4, 2) }\n}"),

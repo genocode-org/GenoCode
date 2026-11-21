@@ -1,7 +1,8 @@
 // Keeps the examples in docs/LANGUAGE.md and docs/REFERENCE.md valid: complete files must check (and
 // the Flower must build), and fragments must at least parse. The reference must cover every built-in.
 
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BUILTIN_CONSTANTS, BUILTIN_FUNCTIONS, PICTURE_FUNCTIONS } from "./builtins.js";
 import { check } from "./checker.js";
@@ -106,6 +107,47 @@ describe("docs/REFERENCE.md", () => {
   });
 
   checkExamples(examples(reference));
+});
+
+describe("pictures in the docs", () => {
+  // Each marked example's picture is drawn by docs/pictures.mjs, which keeps a fingerprint of the
+  // code it drew in docs/images/pictures.json.
+  const images = new URL("../../../docs/images/", import.meta.url);
+  const drawn = JSON.parse(readFileSync(new URL("pictures.json", images), "utf8")) as Record<
+    string,
+    string
+  >;
+  const marked = [spec, reference].flatMap((markdown) =>
+    [
+      ...markdown.matchAll(
+        /^<!-- picture: (\S+)((?: [\w-]+=\S+)*) -->\n\n?```\n([\s\S]*?)^```\n\n!\[[^\]\n]+\]\(images\/(\S+)\.png\)$/gm,
+      ),
+    ].map((m) => ({
+      name: m[1]!,
+      shown: m[4]!,
+      fingerprint: createHash("sha256")
+        .update(JSON.stringify([m[2]!.trim(), m[3]!]))
+        .digest("hex")
+        .slice(0, 16),
+    })),
+  );
+
+  it("every marker is followed by its code and its picture, with a description", () => {
+    const markers = [spec, reference].flatMap((m) => m.match(/^<!-- picture:/gm) ?? []);
+    expect(marked.length).toBe(markers.length);
+    expect(marked.filter((m) => m.shown !== m.name)).toEqual([]);
+  });
+
+  it("every picture was drawn from the code above it: run `node docs/pictures.mjs` if not", () => {
+    const stale = marked.filter((m) => drawn[m.name] !== m.fingerprint).map((m) => m.name);
+    expect(stale).toEqual([]);
+    expect(Object.keys(drawn).sort()).toEqual(marked.map((m) => m.name).sort());
+  });
+
+  it("has every picture file, and no others", () => {
+    const files = readdirSync(images).filter((f) => f.endsWith(".png"));
+    expect(files.sort()).toEqual(marked.map((m) => `${m.name}.png`).sort());
+  });
 });
 
 describe("docs/GETTING_STARTED.md examples", () => {

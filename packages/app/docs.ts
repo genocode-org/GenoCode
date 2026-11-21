@@ -1,10 +1,11 @@
 // The pages of the website made from the repository's documents: the getting-started guide, the
-// language, the reference and the credits from Markdown, and GenoCode's licence as it is.
+// language, the reference and the credits from Markdown, their pictures, and GenoCode's licence as
+// it is.
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { posix } from "node:path";
 import { Marked, type Tokens } from "marked";
-import { shell, type SiteFile } from "./site.js";
+import { escape, shell, type SiteFile } from "./site.js";
 import { withTree, type Heading } from "./tree.js";
 
 const repo = new URL("../../", import.meta.url);
@@ -88,6 +89,12 @@ function render(
           : href;
         return `<a href="${to}">${this.parser.parseInline(tokens)}</a>`;
       },
+      image({ href, text }) {
+        // A PNG's width and height are in its header, so the page doesn't jump as pictures load.
+        const png = readFileSync(new URL(posix.join(posix.dirname(from.source), href), repo));
+        const size = `width="${png.readUInt32BE(16)}" height="${png.readUInt32BE(20)}"`;
+        return `<img src="${href}" alt="${escape(text)}" ${size} loading="lazy">`;
+      },
     },
   });
   const tokens = marked.lexer(markdown);
@@ -135,5 +142,12 @@ export function docs(): SiteFile[] {
         wide: Boolean(p.tree),
       }),
   }));
-  return [...pages, licence];
+  const pictures = readdirSync(new URL("docs/images/", repo))
+    .filter((f) => f.endsWith(".png"))
+    .map((f) => ({
+      path: `docs/images/${f}`,
+      type: "image/png",
+      make: () => new Uint8Array(readFileSync(new URL(`docs/images/${f}`, repo))),
+    }));
+  return [...pages, ...pictures, licence];
 }

@@ -64,6 +64,8 @@ every construct in the language corresponds to exactly one block.
 
 ## 2. A first creature
 
+<!-- picture: flower -->
+
 ```
 creature Flower
 // Petals laid round the centre, each a squashed cone, in rings that shrink and turn.
@@ -107,6 +109,8 @@ part whorl(scale) {
   }
 }
 ```
+
+![A pink flower: rings of pointed petals round a yellow ball, each ring smaller and turned a little from the one outside it](images/flower.png)
 
 - The top-level statements run first, from the top. They lay a ball for the heart, then draw
   `rings` rings of petals, rolling and shrinking between rings.
@@ -325,6 +329,8 @@ A creature can keep other sets of gene values alongside its own: its **variants*
 the creature itself, they form a family of related creatures that share one program, such as the
 members of an evolved population.
 
+<!-- picture: variants variants=all view=right -->
+
 ```
 creature Cobra
 
@@ -346,6 +352,8 @@ variant Striker {
   skin = hsv(70, 0.9, 1) // bright, to warn others off
 }
 ```
+
+![Seen from the side, three green snakes: the creature itself (3 coils), Coiled (6 coils) and Striker (bright yellow-green)](images/variants.png)
 
 - `variant Name { … }` sets genes by their **full names** ([6.3](#63-full-names)), one per line
   (or separated by `;`): `petals = 9`, `whorl.petals = 9`, `background.hue = 200`, `seed = 42`.
@@ -636,14 +644,19 @@ needs turning to match it. At the start the heading is the world's z, towards th
 cone laid straight away points at you. In the example, the `pitch -90` turns the heading up first,
 so the cone stands upright like a party hat:
 
+<!-- picture: surprise-heading view=three-quarter -->
+
 ```
 shape cone
 branch {
   pitch -90 // heading now up
   lay // tip at the top
 }
+move (2, 0, 0)
 lay // tip towards the viewer
 ```
+
+![Two cones side by side: one standing upright like a party hat, one pointing towards the viewer](images/surprise-heading.png)
 
 **Growing makes later moves longer.** `forward d` moves `d` times the turtle's size along the
 heading ([11.2](#112-moving)), so after a `grow` the turtle steps further as well as laying bigger
@@ -651,12 +664,19 @@ shapes. In the example, both `forward 1` lines are the same, but the second move
 of the `grow 3` before it. To make one shape bigger without changing the steps after it, grow the
 shape alone with `lay { grow 3 }`:
 
+<!-- picture: surprise-grow view=right -->
+
 ```
+colour grey
+lay // where the turtle starts
+colour white
 forward 1 // moves 1
 grow 3
 forward 1 // moves 3
 lay
 ```
+
+![Seen from the side: a small grey ball where the turtle starts, and a big ball four steps away](images/surprise-grow.png)
 
 **The turtle and the shape transform are different things.** Commands at the top level move, turn
 and grow the turtle, and everything after them is affected. The same commands inside `lay { }` or
@@ -665,11 +685,15 @@ and grow the turtle, and everything after them is affected. The same commands in
 ball is round. Had `grow (1, 0.2, 1)` been written outside the braces, every later ball would be
 flat too:
 
+<!-- picture: surprise-transform view=three-quarter -->
+
 ```
 lay { grow (1, 0.2, 1) } // a flat ball
 forward 2
 lay // a round ball
 ```
+
+![A flat ball and, two steps on, a round ball](images/surprise-transform.png)
 
 **Positive pitch tips the nose down.** `pitch 30` turns the heading towards the turtle's down, and
 `pitch -30` towards its up ([11.3](#113-turning)). In the example, the neck leans up and forward
@@ -681,7 +705,10 @@ halves match: write one side, and the other side is its reflection. In the examp
 `yaw 40` turns both ears outwards, each to its own side. Use `side` only when the two runs really
 should differ, not to undo the mirror.
 
+<!-- picture: surprise-mirror view=0,60 -->
+
 ```
+lay { grow 2 } // the body
 pitch -40 // the neck leans up
 forward 2
 symmetric x {
@@ -693,10 +720,14 @@ symmetric x {
 }
 ```
 
+![Seen from above and in front: a body, and in front of it two ears turned outwards, one to each side](images/surprise-mirror.png)
+
 **A part leaves the turtle where it ended.** A part call doesn't restore the turtle
 ([section 10](#10-parts-and-functions)), so everything after it starts where the part finished.
 Put the call inside a `branch` when it should start from the same place as what comes next. In
 the example, the `branch` keeps the turtle where it was, so `tail` starts from the body:
+
+<!-- picture: surprise-part view=right -->
 
 ```
 part leg {
@@ -710,11 +741,14 @@ part tail {
   lay
 }
 
+lay // the body
 branch {
   leg
 }
 tail
 ```
+
+![Seen from the side: a body, a leg reaching down and forward from it, and a tail behind it](images/surprise-part.png)
 
 ## 12. Shapes
 
@@ -745,6 +779,8 @@ A **stroke** is one smooth tube instead of separate shapes, for tentacles, hair,
 like. Inside `stroke { … }`, each `lay` adds a point that the tube passes through instead of laying
 a shape:
 
+<!-- picture: strokes view=right -->
+
 ```
 stroke {
   repeat 12 as i {
@@ -755,6 +791,8 @@ stroke {
   }
 }
 ```
+
+![Seen from the side: one smooth tube curving downwards, blue at its thick end and purple at its thin end](images/strokes.png)
 
 - The block runs as usual. The turtle isn't put back at its end (wrap it in `branch` for that).
 - Each `lay` inside, directly or in a part it calls, adds a point to the innermost stroke. A
@@ -844,6 +882,8 @@ The named colours are:
 
 ### 13.3 Gradients
 
+<!-- picture: gradients view=right -->
+
 ```
 let skin = gradient(black, red at 0.2, yellow, white at 1)
 repeat 20 as i {
@@ -852,6 +892,8 @@ repeat 20 as i {
   lay
 }
 ```
+
+![Seen from the side: a row of balls fading from black through red and yellow to white](images/gradients.png)
 
 - `gradient(…)` takes two or more **stops**. Each stop is a colour, optionally followed by
   `at p`, its position from 0 to 1.
@@ -879,6 +921,8 @@ let flame = spectrum(hsv(60, 1, 1), hsv(0, 1, 1), hsv(280, 1, 0.5)) // yellow, r
 Textures are generated from a recipe of a few values, so they can be genes and evolve with the
 creature.
 
+<!-- picture: textures -->
+
 ```
 gene skin_kind = marble from [marble, cells, aurora, plasma]
 gene skin_hue = 200 in 0..360
@@ -891,10 +935,13 @@ gene skin = 1 in 0..1 // how much of its texture it wears
 texture pattern(skin_kind, skin_hue, skin_seed, skin_scheme, skin_finish)
 wear skin
 lay
+move (1.5, 0, 0)
 texture mixed(pattern(cells, 40, 3), warp, vortex, 0.6)
 lay
 texture none
 ```
+
+![Two balls: one with a swirly marble texture, one with a green cell texture twisted into a swirl](images/textures.png)
 
 - `pattern(kind, hue, seed)` makes a texture. The **kind** is one of `sunburst`, `vortex`,
   `plasma`, `cells`, `kaleidoscope`, `interference`, `starburst`, `marble`, `lightning`,
@@ -953,6 +1000,8 @@ A creature can bring its own pattern kinds, written in GenoCode. A `pattern` blo
 and draws its grey picture; `pattern(…)` then uses it like any built-in kind, coloured by a hue, a
 scheme and a finish:
 
+<!-- picture: shell -->
+
 ```
 creature Shell
 
@@ -974,6 +1023,8 @@ shape ball
 texture pattern(Ripples, 30, 4, dusk, pearl)
 lay
 ```
+
+![A ball with a texture of soft rings that wobble](images/shell.png)
 
 - **A pattern's code runs once for each picture it draws**, and ends with `value p`, where `p` is
   the picture. The picture is grey, from 0 (dark) to 1 (light). Values outside are cut off, and
