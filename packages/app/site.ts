@@ -166,6 +166,7 @@ ${page.body}
 </main>
 <footer>
 <p>GenoCode is inspired by <a href="${up}credits.html">DancerDNA (1999) and other work in evolutionary art</a>.</p>
+<p>Read the <a href="https://doi.org/10.5281/zenodo.24413753">research paper</a> on the language.</p>
 <p>${copyright(up)}</p>
 </footer>
 </body>
