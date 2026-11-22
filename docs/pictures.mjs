@@ -8,7 +8,8 @@
 // and, after the block, the picture itself: ![What it shows](images/forward.png). The marker can
 // also say how to draw it: `view=three-quarter` (or `view=30,10`, yaw and pitch in degrees),
 // `views=front,top` (side by side), `time=2` (seconds), `variant=Name` and `variants=all` (the
-// creature and then each of its variants, side by side). A pattern file is drawn flat, filling
+// creature and then each of its variants, side by side) and `morph=A,B` (variant A, halfway
+// through the morph from A to B, and B, side by side). A pattern file is drawn flat, filling
 // the picture. Code that isn't a whole
 // file is drawn inside a creature, as the docs tests check it.
 //
@@ -92,8 +93,13 @@ function draw({ name, options, code }) {
     if (!found) throw new Error(`${name}: no variant \`${variant}\``);
     return found.values;
   };
-  const geneSets =
-    options.variants === "all"
+  const halfway = (a, b) =>
+    core.morph({ genes: program.genes, values: a }, { genes: program.genes, values: b }, 0.5)
+      .values;
+  const [from, to] = (options.morph ?? "").split(",");
+  const geneSets = options.morph
+    ? [pick(from), halfway(pick(from), pick(to)), pick(to)]
+    : options.variants === "all"
       ? [new Map(), ...program.variants.map((v) => v.values)]
       : [options.variant ? pick(options.variant) : new Map()];
   const inputs = { time: Number(options.time ?? 0), beat: 0, music: {} };
