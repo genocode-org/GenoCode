@@ -155,45 +155,42 @@ variant Name { gene = value; … }
 - Each setting is on its own line, or separated by `;`. A gene can be set at most once in a variant.
 - A variant only lists the genes it changes. Every other gene keeps the value on its own `gene`
   line, and follows that line if you change it later. In the example below, `Wide` doesn't mention
-  `coils`, so it has 3 coils, like the creature itself.
-- A creature that uses [random](#random) has a hidden gene, `seed`, which picks its random
-  numbers. It has no `gene` line, but a variant can still set it: in the example, `seed = 42` gives
-  `Wide` its own wiggle, while `Coiled` keeps the creature's seed, 0.
+  `stem`, so its stem is 2, like the creature's own.
 - Variants don't change what the program does. The app uses them where it wants a family of
   related creatures: a creature's morph loops through itself and then each variant in order.
 
 **Example**
 
-<!-- picture: variant variants=all view=top -->
+<!-- picture: variant variants=all view=0,20 -->
 
 ```
-creature Cobra
+creature Mushroom
 
-gene hood = 1.2 in 0.5..2
-gene coils = 3 in 1..6 step 1
+gene stem = 2 in 0.5..4
+gene cap = 1.6 in 0.8..3
 
-grow hood
-repeat coils {
-  yaw random(-20, 20) // each coil bends a random way
-  forward 1
-  lay
-}
+pitch -90 // grow upwards
+colour grey
+lay { grow (4.5, 4.5, 0.1) } // the ground
+forward stem / 2
+colour white
+lay { grow (0.6, 0.6, stem) } // the stem
+forward stem / 2
+lay { grow (cap, cap, 0.7) } // the cap
 
-variant Coiled { coils = 6; hood = 0.8 }
+variant Tall { stem = 3.5; cap = 1 }
 
 variant Wide {
-  hood = 2
-  seed = 42 // bends its coils other ways
+  cap = 2.6
 }
 ```
 
-![Seen from above, side by side: the creature (3 balls), Coiled (6 balls) and Wide (3 balls bending other ways)](images/variant.png)
+![Seen from the front, side by side, three mushrooms on grey ground: the creature, Tall (a longer stem and a smaller cap) and Wide (the same stem and a wide cap)](images/variant.png)
 
-| Gene    | The creature | `Coiled` | `Wide`                        |
-| ------- | ------------ | -------- | ----------------------------- |
-| `hood`  | 1.2          | 0.8      | 2                             |
-| `coils` | 3            | 6        | 3, from the `gene coils` line |
-| `seed`  | 0            | 0        | 42                            |
+| Gene   | The creature | `Tall` | `Wide`                       |
+| ------ | ------------ | ------ | ---------------------------- |
+| `stem` | 2            | 3.5    | 2, from the `gene stem` line |
+| `cap`  | 1.6          | 1      | 2.6                          |
 
 **See also:** [gene](#gene), [Variants](LANGUAGE.md#66-variants)
 
