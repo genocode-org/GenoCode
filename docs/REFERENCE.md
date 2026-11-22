@@ -1145,7 +1145,8 @@ shape s
 
 **Remarks**
 
-- The turtle starts with `ball`.
+- The turtle starts with `ball`: in the example, the first `lay` comes before any `shape`, so it
+  lays a ball.
 - The checker warns about a `shape` with no `lay` after it, which usually belongs before the `lay`
   it was meant for.
 
@@ -1154,15 +1155,16 @@ shape s
 <!-- picture: shape view=20,25 -->
 
 ```
-let shapes = [tube, cube, cone, ball, ring, donut]
-repeat 6 as i {
+lay // no `shape` yet, so a ball
+let shapes = [tube, cube, cone, ring, donut]
+repeat 5 as i {
+  move (1.5, 0, 0)
   shape shapes[i]
   lay
-  move (1.5, 0, 0)
 }
 ```
 
-![The six shapes in a row: tube, cube, cone, ball, ring and donut](images/shape.png)
+![The six shapes in a row: ball (the shape the turtle starts with), tube, cube, cone, ring and donut](images/shape.png)
 
 **See also:** [lay](#lay), [Shapes](LANGUAGE.md#12-shapes)
 
