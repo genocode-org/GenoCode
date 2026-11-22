@@ -367,43 +367,37 @@ part wing(reach, side) { … }
 
 A creature can keep other sets of gene values alongside its own: its **variants**. Together with
 the creature itself, they form a family of related creatures that share one program, such as the
-members of an evolved population. In the example, each snake is drawn from the front, to show its
-hood, and from above, to show its bends. `Coiled` has twice as many bends as the creature and a
-narrower hood, and `Striker` has a wider hood and brighter skin:
+members of an evolved population. In the example, `Tall` has a longer stem and a smaller cap than
+the creature, and `Toadstool` a wider, bright red cap:
 
-<!-- picture: variants variants=all views=front,top -->
+<!-- picture: variants variants=all view=0,20 -->
 
 ```
-creature Cobra
+creature Mushroom
 
-gene hood = 1.2 in 0.5..2 // how wide the hood spreads
-gene coils = 3 in 1..6 step 1 // how many bends the body makes
-gene skin = hsv(120, 0.7, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
+gene stem = 2 in 0.5..4 // how tall the stem grows
+gene cap = 1.6 in 0.8..3 // how wide the cap spreads
+gene skin = hsv(30, 0.6, 0.7) in hsv(0, 0.3, 0.4)..hsv(60, 1, 1)
 
+pitch -90 // grow upwards
+colour hsv(100, 0.5, 0.5)
+lay { grow (4.5, 4.5, 0.1) } // the ground
+forward stem / 2
+colour white
+lay { grow (0.6, 0.6, stem) } // the stem
+forward stem / 2
 colour skin
-for k from 1 to coils * 8 {
-  yaw 70 * cos(k * 45 - 22.5) // the body bends left and right
-  forward 0.8
-  lay { grow 0.8 }
-}
-pitch -80 // the neck rises
-repeat 3 {
-  forward 0.6
-  lay
-}
-lay { grow (2 * hood, 0.3, 3) } // the hood
-forward 1.4
-lay { grow 1.2 } // the head
+lay { grow (cap, cap, 0.7) } // the cap
 
-variant Coiled { coils = 6; hood = 0.8 }
+variant Tall { stem = 3.5; cap = 1 }
 
-variant Striker {
-  hood = 2
-  skin = hsv(70, 0.9, 1) // bright, to warn others off
+variant Toadstool {
+  cap = 2.6
+  skin = hsv(0, 0.9, 0.9) // bright red, to warn others off
 }
 ```
 
-![Each snake twice, from the front and from above: the creature itself (a green snake with a medium hood and 3 bends), Coiled (a narrow hood and 6 bends) and Striker (a bright yellow snake with a wide hood)](images/variants.png)
+![Seen from the front, three mushrooms on patches of grass: the creature itself (a brown cap on a white stem), Tall (a longer stem and a smaller cap) and Toadstool (a wide bright red cap)](images/variants.png)
 
 - `variant Name { … }` sets genes by their **full names** ([6.3](#63-full-names)), one per line
   (or separated by `;`): `petals = 9`, `whorl.petals = 9`, `background.hue = 200`, `seed = 42`.
