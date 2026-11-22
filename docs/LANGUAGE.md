@@ -263,6 +263,46 @@ and shape names, and arithmetic and built-in maths functions applied to constant
 `360 / 7` and `hsv(30, 1, 1)` are constant; another gene, a variable, `noise`, `random`, `time` and
 `music` are not.
 
+**A `log` gene works by ratios.** A plain number gene changes by adding: mutation, breeding and
+morphing move it by steps of the same length all along its range. A `log` gene changes by
+multiplying instead: it takes as long to go from 0.1 to 1 as from 1 to 10, because both are ten
+times bigger, so it shrinks as easily as it grows. That suits sizes, lengths and speeds, where
+twice as big looks the same step whatever the size; it doesn't suit angles or positions, which can
+be 0 or below. In the example, `plain` and `ratio` both go from 0.5 in `Small` to 6 in `Big`.
+Halfway through the morph, the orange `plain` ball is 3.25, already more than half of `Big`, while
+the blue `log` ball is about 1.7: about 3.5 times `Small`, and 3.5 times smaller than `Big`. The grey stick is always the same
+length, to measure by:
+
+<!-- picture: log-gene morph=Small,Big view=front -->
+
+```
+creature Measure
+
+gene plain = 1 in 0.1..10 // changes by adding
+gene ratio = 1 in 0.1..10 log // changes by multiplying
+
+colour grey
+lay { grow (18, 0.1, 0.1) } // the stick
+colour orange
+move (-4, 0, 0)
+lay { grow plain }
+colour blue
+move (8, 0, 0)
+lay { grow ratio }
+
+variant Small {
+  plain = 0.5
+  ratio = 0.5
+}
+
+variant Big {
+  plain = 6
+  ratio = 6
+}
+```
+
+![Three pictures side by side: Small, halfway through the morph and Big. Halfway, the orange plain ball is already more than half its size in Big, while the blue log ball is still much smaller](images/log-gene.png)
+
 ### 6.2 Where genes can go
 
 A gene can be declared at the top level of a file, or directly inside a `part`, `function`,
