@@ -830,6 +830,24 @@ tail
 | `lay`       | lay the current shape                                                                                                                                                        |
 | `lay { … }` | lay it with extra shape transform commands ([11.7](#117-the-shape-transform))                                                                                                |
 
+**The turtle starts with `ball`** ([11.1](#111-state-and-directions)), so code that never says
+`shape` lays balls, as many examples in this document do. A `shape` lasts until the next one. In
+the example, the first `lay` comes before any `shape`, so it lays a ball, and both `lay`s after
+`shape cube` lay cubes:
+
+<!-- picture: default-shape view=20,25 -->
+
+```
+lay // a ball: no `shape` yet
+move (1.5, 0, 0)
+shape cube
+lay // a cube
+move (1.5, 0, 0)
+lay // still a cube
+```
+
+![A ball and then two cubes, in a row](images/default-shape.png)
+
 Each laid shape records its placement, shape, colour, shine, sharpness, texture and wear at the moment
 it's laid.
 
