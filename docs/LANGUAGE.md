@@ -987,6 +987,47 @@ texture none
 | `dusk`      | cool shadows and warm lights                                               |
 | `electric`  | near-black to a blazing colour and white, like neon                        |
 
+In the example, each variant wears the same marble pattern with the same hue and a different
+scheme, so the balls show the schemes from left to right in the table's order:
+
+<!-- picture: schemes variants=all -->
+
+```
+creature Schemes
+
+gene scheme = jewel from [jewel, duotone, split, analogous, pastel, dusk, electric]
+
+texture pattern(marble, 200, 7, scheme)
+grow 2
+lay
+
+variant Duotone {
+  scheme = duotone
+}
+
+variant Split {
+  scheme = split
+}
+
+variant Analogous {
+  scheme = analogous
+}
+
+variant Pastel {
+  scheme = pastel
+}
+
+variant Dusk {
+  scheme = dusk
+}
+
+variant Electric {
+  scheme = electric
+}
+```
+
+![Seven marble balls side by side, all built round the same blue hue, one for each scheme in the table's order: jewel, duotone, split, analogous, pastel, dusk and electric](images/schemes.png)
+
 | Finish       | Surface                                                    |
 | ------------ | ---------------------------------------------------------- |
 | `matte`      | plain colours (the default)                                |
@@ -994,6 +1035,39 @@ texture none
 | `iridescent` | the hue slides along, like oil on water or a beetle's back |
 | `pearl`      | pale, with a soft pink-green-blue play of colour           |
 | `satin`      | a soft band of highlight                                   |
+
+In the example, each variant wears the same marble pattern, hue and scheme with a different
+finish, so the balls show the finishes from left to right in the table's order:
+
+<!-- picture: finishes variants=all -->
+
+```
+creature Finishes
+
+gene finish = matte from [matte, metallic, iridescent, pearl, satin]
+
+texture pattern(marble, 200, 7, jewel, finish)
+grow 2
+lay
+
+variant Metallic {
+  finish = metallic
+}
+
+variant Iridescent {
+  finish = iridescent
+}
+
+variant Pearl {
+  finish = pearl
+}
+
+variant Satin {
+  finish = satin
+}
+```
+
+![Five marble balls side by side, the same pattern and colours, one for each finish in the table's order: matte, metallic, iridescent, pearl and satin](images/finishes.png)
 
 - `mixed(p, way, kind, amount)` mixes a second pattern of the given kind into the pattern `p`.
   The **amount** runs from 0 to 1 (values outside are clamped). The second pattern takes its own
