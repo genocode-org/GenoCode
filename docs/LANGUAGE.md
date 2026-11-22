@@ -726,22 +726,25 @@ halves match: write one side, and the other side is its reflection. In the examp
 `yaw 40` turns both ears outwards, each to its own side. Use `side` only when the two runs really
 should differ, not to undo the mirror.
 
-<!-- picture: surprise-mirror view=0,60 -->
+<!-- picture: surprise-mirror view=top -->
 
 ```
 lay { grow 2 } // the body
-pitch -40 // the neck leans up
 forward 2
 symmetric x {
   branch {
     yaw 40 // each ear turns outwards
     forward 1
     lay
+    forward 1
+    lay
+    forward 1
+    lay
   }
 }
 ```
 
-![Seen from above and in front: a body, and in front of it two ears turned outwards, one to each side](images/surprise-mirror.png)
+![Seen from above: a body, and two rows of three balls leaving it in a V, each row turned outwards to its own side](images/surprise-mirror.png)
 
 **A part leaves the turtle where it ended.** A part call doesn't restore the turtle
 ([section 10](#10-parts-and-functions)), so everything after it starts where the part finished.
