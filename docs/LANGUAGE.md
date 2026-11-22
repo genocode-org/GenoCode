@@ -696,8 +696,29 @@ lay // a round ball
 ![A flat ball and, two steps on, a round ball](images/surprise-transform.png)
 
 **Positive pitch tips the nose down.** `pitch 30` turns the heading towards the turtle's down, and
-`pitch -30` towards its up ([11.3](#113-turning)). In the example, the neck leans up and forward
-from the body because its pitch is negative.
+`pitch -30` towards its up ([11.3](#113-turning)). In the example, seen from the side, the white
+ball sits above the body because its pitch is negative, and the grey one sits below it because its
+pitch is positive:
+
+<!-- picture: surprise-pitch view=right -->
+
+```
+lay { grow 2 } // the body
+branch {
+  pitch -30 // the heading turns up
+  forward 2
+  colour white
+  lay
+}
+branch {
+  pitch 30 // the heading turns down
+  forward 2
+  colour grey
+  lay
+}
+```
+
+![Seen from the side: a big body with a white ball up and in front of it, and a grey ball down and in front of it](images/surprise-pitch.png)
 
 **Turns are mirrored on the mirrored side.** Inside `symmetric x { }`, the second run is mirrored,
 so each `yaw` and `roll` there turns the other way ([11.3](#113-turning)). That's what makes the two
@@ -705,27 +726,31 @@ halves match: write one side, and the other side is its reflection. In the examp
 `yaw 40` turns both ears outwards, each to its own side. Use `side` only when the two runs really
 should differ, not to undo the mirror.
 
-<!-- picture: surprise-mirror view=0,60 -->
+<!-- picture: surprise-mirror view=top -->
 
 ```
 lay { grow 2 } // the body
-pitch -40 // the neck leans up
 forward 2
 symmetric x {
   branch {
     yaw 40 // each ear turns outwards
     forward 1
     lay
+    forward 1
+    lay
+    forward 1
+    lay
   }
 }
 ```
 
-![Seen from above and in front: a body, and in front of it two ears turned outwards, one to each side](images/surprise-mirror.png)
+![Seen from above: a body, and two rows of three balls leaving it in a V, each row turned outwards to its own side](images/surprise-mirror.png)
 
 **A part leaves the turtle where it ended.** A part call doesn't restore the turtle
 ([section 10](#10-parts-and-functions)), so everything after it starts where the part finished.
 Put the call inside a `branch` when it should start from the same place as what comes next. In
-the example, the `branch` keeps the turtle where it was, so `tail` starts from the body:
+the example, the `branch` keeps the turtle where it was, so the blue `tail` starts from the white
+body, not from the orange leg:
 
 <!-- picture: surprise-part view=right -->
 
@@ -733,14 +758,17 @@ the example, the `branch` keeps the turtle where it was, so `tail` starts from t
 part leg {
   pitch 60
   forward 2
+  colour orange
   lay
 }
 
 part tail {
   back 2
+  colour blue
   lay
 }
 
+colour white
 lay // the body
 branch {
   leg
@@ -748,7 +776,7 @@ branch {
 tail
 ```
 
-![Seen from the side: a body, a leg reaching down and forward from it, and a tail behind it](images/surprise-part.png)
+![Seen from the side: a white body, an orange leg reaching down and forward from it, and a blue tail behind it](images/surprise-part.png)
 
 ## 12. Shapes
 
