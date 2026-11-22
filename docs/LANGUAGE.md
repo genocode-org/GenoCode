@@ -1202,6 +1202,8 @@ examples to read and change.
 
 A creature can carry the background it's shown against:
 
+<!-- picture: background-block -->
+
 ```
 background {
   gene kind = aurora from [aurora, plasma, marble, cells]
@@ -1213,6 +1215,8 @@ background {
 }
 ```
 
+![A purple and pink aurora filling the whole view](images/background-block.png)
+
 - `fill p` sets what the background shows: a pattern, a colour (flat), or a gradient (0 at the
   bottom of the view, 1 at the top). It must be the last statement in the block, and there must be
   exactly one.
@@ -1222,6 +1226,20 @@ background {
   or read the creature's genes or variables.
 - Its genes have full names starting with `background.`.
 - Without a background block, the app shows its own default background.
+
+In the example, the background is a gradient, so it runs from the first colour at the bottom of
+the view to the last at the top:
+
+<!-- picture: background-gradient -->
+
+```
+background {
+  fill gradient(orange, pink at 0.4, blue) // a sunset sky
+}
+lay
+```
+
+![A ball against a sky that runs from orange at the bottom through pink to blue at the top](images/background-gradient.png)
 
 **Background files.** The contents of a background block, with the header `background <Name>` in
 place of the braces, form a background file:
