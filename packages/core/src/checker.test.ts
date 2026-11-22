@@ -156,6 +156,13 @@ describe("checker: genes", () => {
     expect(genes("let r = random(0, 1)").map((g) => g.fullName)).toEqual(["seed"]);
     rejects("gene seed = 1 in 0..2\nlet r = random(0, 1)", "kept for `random`");
   });
+
+  it("says that `seed` is only set in a variant", () => {
+    rejects("let r = random(0, 1)\nseed = 42", "only be set inside a `variant { }`");
+    rejects("let seed = 42\nlet r = random(seed, 1)", "only be set inside a `variant { }`");
+    rejects("lay\n\nvariant V {\n  seed = 42\n}", "when it uses `random`");
+    expect(errors("let r = random(0, 1)\n\nvariant V {\n  seed = 42\n}")).toEqual([]);
+  });
 });
 
 describe("checker: breed", () => {
