@@ -696,8 +696,29 @@ lay // a round ball
 ![A flat ball and, two steps on, a round ball](images/surprise-transform.png)
 
 **Positive pitch tips the nose down.** `pitch 30` turns the heading towards the turtle's down, and
-`pitch -30` towards its up ([11.3](#113-turning)). In the example, the neck leans up and forward
-from the body because its pitch is negative.
+`pitch -30` towards its up ([11.3](#113-turning)). In the example, seen from the side, the white
+ball sits above the body because its pitch is negative, and the grey one sits below it because its
+pitch is positive:
+
+<!-- picture: surprise-pitch view=right -->
+
+```
+lay { grow 2 } // the body
+branch {
+  pitch -30 // the heading turns up
+  forward 2
+  colour white
+  lay
+}
+branch {
+  pitch 30 // the heading turns down
+  forward 2
+  colour grey
+  lay
+}
+```
+
+![Seen from the side: a big body with a white ball up and in front of it, and a grey ball down and in front of it](images/surprise-pitch.png)
 
 **Turns are mirrored on the mirrored side.** Inside `symmetric x { }`, the second run is mirrored,
 so each `yaw` and `roll` there turns the other way ([11.3](#113-turning)). That's what makes the two
