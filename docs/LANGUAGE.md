@@ -367,23 +367,33 @@ part wing(reach, side) { … }
 
 A creature can keep other sets of gene values alongside its own: its **variants**. Together with
 the creature itself, they form a family of related creatures that share one program, such as the
-members of an evolved population.
+members of an evolved population. In the example, each snake is drawn from the front, to show its
+hood, and from above, to show its bends. `Coiled` has twice as many bends as the creature and a
+narrower hood, and `Striker` has a wider hood and brighter skin:
 
-<!-- picture: variants variants=all view=right -->
+<!-- picture: variants variants=all views=front,top -->
 
 ```
 creature Cobra
 
 gene hood = 1.2 in 0.5..2 // how wide the hood spreads
-gene coils = 3 in 1..6 step 1
+gene coils = 3 in 1..6 step 1 // how many bends the body makes
 gene skin = hsv(120, 0.7, 0.8) in hsv(60, 0.3, 0.5)..hsv(180, 1, 1)
 
-grow hood
-repeat coils {
-  colour skin
-  forward 1
+colour skin
+for k from 1 to coils * 8 {
+  yaw 70 * cos(k * 45 - 22.5) // the body bends left and right
+  forward 0.8
+  lay { grow 0.8 }
+}
+pitch -80 // the neck rises
+repeat 3 {
+  forward 0.6
   lay
 }
+lay { grow (2 * hood, 0.3, 3) } // the hood
+forward 1.4
+lay { grow 1.2 } // the head
 
 variant Coiled { coils = 6; hood = 0.8 }
 
@@ -393,7 +403,7 @@ variant Striker {
 }
 ```
 
-![Seen from the side, three green snakes: the creature itself (3 coils), Coiled (6 coils) and Striker (bright yellow-green)](images/variants.png)
+![Each snake twice, from the front and from above: the creature itself (a green snake with a medium hood and 3 bends), Coiled (a narrow hood and 6 bends) and Striker (a bright yellow snake with a wide hood)](images/variants.png)
 
 - `variant Name { … }` sets genes by their **full names** ([6.3](#63-full-names)), one per line
   (or separated by `;`): `petals = 9`, `whorl.petals = 9`, `background.hue = 200`, `seed = 42`.
