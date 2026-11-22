@@ -143,6 +143,10 @@ class Scope {
   }
 }
 
+/** What `seed = …` or `let seed` in a creature's code is told. */
+const SEED_ONLY_IN_VARIANTS =
+  "`seed` picks the creature's random numbers. It can only be set inside a `variant { }`.";
+
 interface Ctx {
   scope: Scope;
   section: GeneSection;
@@ -393,7 +397,12 @@ class Checker {
         if (s.kind !== "GeneSetting") continue;
         const gene = this.genes.find((g) => g.fullName === s.gene);
         if (!gene) {
-          this.error(s.geneSpan, `There's no gene called \`${s.gene}\`.`);
+          this.error(
+            s.geneSpan,
+            s.gene === "seed"
+              ? "There's no `seed` here: a creature only has one when it uses `random`."
+              : `There's no gene called \`${s.gene}\`.`,
+          );
           continue;
         }
         this.referToGene(gene, s.geneSpan);
@@ -1254,6 +1263,10 @@ class Checker {
         return;
       case "Let": {
         this.checkExpr(stmt.value, ctx);
+        // A variable called `seed` would look like the seed that `random` uses, but change nothing.
+        // It is still declared, so the lines that use it aren't errors as well.
+        if (stmt.name === "seed" && ctx.section === "creature")
+          this.error(stmt.nameSpan, SEED_ONLY_IN_VARIANTS);
         const kind: SymbolKind = creatureTop ? "global" : "local";
         this.declareVariable({ name: stmt.name, span: stmt.nameSpan }, ctx.scope, kind, "unknown");
         return;
@@ -1265,6 +1278,8 @@ class Checker {
         if (sym === undefined) {
           if (BUILTIN_CONSTANTS.has(stmt.name) || BUILTIN_FUNCTIONS.has(stmt.name)) {
             this.error(stmt.nameSpan, `\`${stmt.name}\` is built in and can't be changed.`);
+          } else if (stmt.name === "seed" && ctx.section === "creature") {
+            this.error(stmt.nameSpan, SEED_ONLY_IN_VARIANTS);
           } else {
             this.error(
               stmt.nameSpan,
