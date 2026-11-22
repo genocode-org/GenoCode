@@ -109,7 +109,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 The language, its genetics and how music drives the dance are described in a research paper:
 
 Piorek, J. _GenoCode: A Language for Evolvable Creatures_. Preprint, Zenodo, 2026.
-[doi:10.5281/zenodo.24413753](https://doi.org/10.5281/zenodo.24413753)
+[doi:10.5281/zenodo.24413752](https://doi.org/10.5281/zenodo.24413752)
 
 ## Related repositories
 
