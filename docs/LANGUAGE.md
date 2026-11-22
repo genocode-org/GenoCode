@@ -749,7 +749,8 @@ symmetric x {
 **A part leaves the turtle where it ended.** A part call doesn't restore the turtle
 ([section 10](#10-parts-and-functions)), so everything after it starts where the part finished.
 Put the call inside a `branch` when it should start from the same place as what comes next. In
-the example, the `branch` keeps the turtle where it was, so `tail` starts from the body:
+the example, the `branch` keeps the turtle where it was, so the blue `tail` starts from the white
+body, not from the orange leg:
 
 <!-- picture: surprise-part view=right -->
 
@@ -757,14 +758,17 @@ the example, the `branch` keeps the turtle where it was, so `tail` starts from t
 part leg {
   pitch 60
   forward 2
+  colour orange
   lay
 }
 
 part tail {
   back 2
+  colour blue
   lay
 }
 
+colour white
 lay // the body
 branch {
   leg
@@ -772,7 +776,7 @@ branch {
 tail
 ```
 
-![Seen from the side: a body, a leg reaching down and forward from it, and a tail behind it](images/surprise-part.png)
+![Seen from the side: a white body, an orange leg reaching down and forward from it, and a blue tail behind it](images/surprise-part.png)
 
 ## 12. Shapes
 
