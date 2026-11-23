@@ -9,9 +9,9 @@
 // also say how to draw it: `view=three-quarter` (or `view=30,10`, yaw and pitch in degrees),
 // `views=front,top` (side by side), `time=2` (seconds), `variant=Name` and `variants=all` (the
 // creature and then each of its variants, side by side) and `morph=A,B` (variant A, halfway
-// through the morph from A to B, and B, side by side). A pattern file is drawn flat, filling
-// the picture. Code that isn't a whole
-// file is drawn inside a creature, as the docs tests check it.
+// through the morph from A to B, and B, side by side). `columns=N` puts the pictures in rows of
+// N instead of one long row. A pattern file is drawn flat, filling the picture. Code that isn't a
+// whole file is drawn inside a creature, as the docs tests check it.
 //
 //   npm run build && node docs/pictures.mjs   draws every picture again
 //
@@ -120,17 +120,22 @@ function draw({ name, options, code }) {
     );
   });
   const gap = 6;
-  const width = SIZE * images.length + gap * (images.length - 1);
-  const data = new Uint8ClampedArray(width * SIZE * 4);
+  const columns = Math.min(Number(options.columns ?? images.length), images.length);
+  const rows = Math.ceil(images.length / columns);
+  const width = SIZE * columns + gap * (columns - 1);
+  const height = SIZE * rows + gap * (rows - 1);
+  const data = new Uint8ClampedArray(width * height * 4);
   images.forEach((image, k) => {
+    const left = (k % columns) * (SIZE + gap);
+    const top = Math.floor(k / columns) * (SIZE + gap);
     for (let y = 0; y < SIZE; y++) {
       data.set(
         image.data.subarray(y * SIZE * 4, (y + 1) * SIZE * 4),
-        (y * width + k * (SIZE + gap)) * 4,
+        ((top + y) * width + left) * 4,
       );
     }
   });
-  return png(width, SIZE, data);
+  return png(width, height, data);
 }
 
 /** RGBA pixels as a PNG, each row stored as its difference from the row above. */

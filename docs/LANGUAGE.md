@@ -1037,6 +1037,64 @@ texture none
   `plasma`, `cells`, `kaleidoscope`, `interference`, `starburst`, `marble`, `lightning`,
   `aurora` and `bloom`. The **hue** (degrees, as in `hsv`) is the colour the palette is built
   round. The **seed** (rounded to a whole number) picks the layout and the pattern's own details.
+
+In the example, the creature and each of its variants wear a different kind on a flat square card,
+all with the same hue and seed, so the pictures show the kinds in the list's order:
+
+<!-- picture: pattern-kinds variants=all columns=4 -->
+
+```
+creature Kinds
+
+gene kind = sunburst from [sunburst, vortex, plasma, cells, kaleidoscope, interference, starburst, marble, lightning, aurora, bloom]
+
+texture pattern(kind, 200, 7)
+shape cube
+lay { grow (2, 2, 0.05) } // a thin square card, facing you
+
+variant Vortex {
+  kind = vortex
+}
+
+variant Plasma {
+  kind = plasma
+}
+
+variant Cells {
+  kind = cells
+}
+
+variant Kaleidoscope {
+  kind = kaleidoscope
+}
+
+variant Interference {
+  kind = interference
+}
+
+variant Starburst {
+  kind = starburst
+}
+
+variant Marble {
+  kind = marble
+}
+
+variant Lightning {
+  kind = lightning
+}
+
+variant Aurora {
+  kind = aurora
+}
+
+variant Bloom {
+  kind = bloom
+}
+```
+
+![Eleven square cards in rows of four, one for each pattern kind in the list's order, all built round the same blue hue: sunburst, vortex, plasma, cells, kaleidoscope, interference, starburst, marble, lightning, aurora and bloom](images/pattern-kinds.png)
+
 - Two more arguments may follow: the **colour scheme** and the **finish**.
 
 | Scheme      | Colours                                                                    |
