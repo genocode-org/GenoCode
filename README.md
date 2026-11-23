@@ -20,8 +20,9 @@ gene shrink = 0.7 in 0.4..0.95 // each ring's size compared with the ring outsid
 gene twist = 29 in 0..180 // how far each ring turns from the last
 ```
 
-**Status:** early development, heading for a first public release. The web app works: write,
-view, breed, morph and dance creatures, as code or as blocks.
+**Status:** released and in active development. The web app works: write, view, breed, morph
+and dance creatures, as code or as blocks, make them react to music, record and share videos of
+them, and send them to the community gallery.
 
 New to GenoCode? Start with [Getting started](https://genocode.piorek.co.za/docs/). The
 language is defined in [the language reference](https://genocode.piorek.co.za/docs/language.html).
