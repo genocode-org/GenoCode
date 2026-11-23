@@ -3226,6 +3226,10 @@ The first argument of [pattern](#pattern), and the third of [mixed](#mixed): `su
 `bloom`. Each is also written in GenoCode, in the `patterns` folder, as an example to read. A
 creature's own [pattern blocks](#pattern-blocks-and-files) add more.
 
+Here they are in that order, each on a flat square card with the same hue (200) and seed (7):
+
+![Eleven square cards in rows of four, one for each pattern kind in the list's order, all built round the same blue hue: sunburst, vortex, plasma, cells, kaleidoscope, interference, starburst, marble, lightning, aurora and bloom](images/pattern-kinds.png)
+
 ### schemes
 
 The colours of a [pattern](#pattern).
