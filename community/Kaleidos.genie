@@ -1,0 +1,231 @@
+// Shared by Jan under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/): https://github.com/genocode-org/GenoCode/issues/145
+// About it: Created with GenoCode-agent
+creature Kaleidos
+// A kaleidoscope you can walk round: one curling tendril of rings and beads, reflected in the nine
+// mirror planes of a cube into 48 copies round a glowing core, so it makes a pattern from every
+// side: four-fold face on, three-fold from a corner, two-fold from an edge.
+
+gene overall = 1 in 0.3..3 log // how big the whole creature is
+gene core = 1.6 in 0.3..4 log // how big the ball in the middle is
+
+gene aim = (0.62, 0.38, 0.22) in (0.05, 0.05, 0.05)..(1, 1, 1) // which way the tendril sets out: across, up and forward
+gene start = 0.9 in 0..3 // how far from the middle it starts
+gene stride = 0.55 in 0.25..1.2 // how far apart its links are
+gene taper = 0.94 in 0.85..1.02 // each link's size compared with the last
+gene thickness = 0.7 in 0.3..1.5 // how big the first link is
+
+gene curl = (14, -9, 24) in (-40, -40, -60)..(40, 40, 60) // how far each link turns from the last: up, sideways and round
+gene curl_waves = (0.6, 0.35, 0.8) in (0, 0, 0)..(1.5, 1.5, 1.5) // how many waves the turning makes along the tendril
+gene curl_start = (0.1, 0.3, 0.6) in (0, 0, 0)..(1, 1, 1) // where along the tendril the waves start
+
+gene ring_size = (1.6, 1.6, 1) in (0.6, 0.6, 0.5)..(2.5, 2.5, 3) // the rings' size: across, up and along
+gene bead_size = (0.8, 0.8, 1.2) in (0.3, 0.3, 0.3)..(1.5, 1.5, 2.5) // the beads' size: across, up and along
+
+gene hue = 200 in 0..330 // the hue near the middle
+gene hue_spread = 90 in -150..150 // how far the hue moves from the middle to the tips
+gene ring_saturation = 0.75 in 0.3..1
+gene bead_saturation = 0.9 in 0.3..1
+gene glow = 1 in 0.6..1 // how bright the tips are
+gene core_colour = hsv(50, 0.3, 1) in hsv(0, 0, 0.6)..hsv(330, 1, 1)
+gene gloss = 0.8 in 0..1 // how strong the highlights are
+gene focus = 0.8 in 0..1 // how tight the highlights are
+
+let ring_skin = spectrum(hsv(hue, ring_saturation, 0.75), hsv(hue + hue_spread / 2, ring_saturation, 0.9), hsv(hue + hue_spread, ring_saturation * 0.7, glow))
+let bead_skin = spectrum(hsv(hue + hue_spread, bead_saturation, 0.9), hsv(hue + hue_spread / 2, bead_saturation, 1), hsv(hue, bead_saturation, glow))
+
+focuspoint
+grow overall
+shine gloss
+sharpness focus
+colour core_colour
+lay { grow core }
+mirrors48
+
+// The 48 symmetries of a cube: three turns round the corner-to-corner axis, each with and
+// without a reflection across a diagonal plane, each copied into all eight corners.
+part mirrors48 {
+  repeat 3 {
+    branch {
+      branch {
+        corners
+      }
+      branch {
+        roll 90
+        mirror x
+        corners
+      }
+    }
+    rotate 120 around (1, 1, 1)
+  }
+}
+
+part corners {
+  symmetric x {
+    symmetric y {
+      symmetric z {
+        tendril
+      }
+    }
+  }
+}
+
+part tendril {
+  yaw atan2(aim.x, aim.z)
+  pitch -atan2(aim.y, sqrt(aim.x * aim.x + aim.z * aim.z))
+  forward start
+  grow thickness
+  repeat 16 as k {
+    let along = k / 15
+    if k % 2 == 0 {
+      shape ring
+      colour ring_skin(along)
+      lay { grow ring_size }
+    } else {
+      shape ball
+      colour bead_skin(along)
+      lay { grow bead_size }
+    }
+    forward stride
+    pitch curl.x * wave(curl_waves.x * along + curl_start.x)
+    yaw curl.y * wave(curl_waves.y * along + curl_start.y)
+    roll curl.z * wave(curl_waves.z * along + curl_start.z)
+    grow taper
+  }
+}
+
+
+// Groove, with a gentler zoom: Kaleidos fills its frame on every side, so Groove's full zoom cut
+// its tips off on the snares.
+dance {
+  gene nearer = 0.12 in 0..0.3 // how much nearer the snares bring it
+
+  morph follows music.bass speed 0.88 settle 0.08
+  zoom follows music.mid_hit amount nearer settle 50
+  spin follows music.bass_hit from 45.8 to 172 smooth 0.4
+  turn on music.bass changes by 1
+  reverse on music.bass drops by 1 on 4 off 4
+}
+
+variant Frost {
+  aim = (0.3, 0.85, 0.45)
+  start = 1.4
+  stride = 0.5
+  taper = 0.9
+  curl = (-20, 18, 40)
+  curl_waves = (0.9, 0.5, 0.4)
+  ring_size = (2.2, 2.2, 0.6)
+  bead_size = (0.5, 0.5, 1.8)
+  hue = 190
+  hue_spread = 50
+  ring_saturation = 0.45
+  bead_saturation = 0.6
+  core_colour = hsv(200, 0.15, 1)
+  gloss = 1
+  focus = 0.95
+  overall = 1.13
+}
+
+variant Ember {
+  core = 2.4
+  aim = (0.9, 0.2, 0.3)
+  start = 1.1
+  stride = 0.7
+  taper = 0.93
+  curl = (30, 12, -20)
+  curl_waves = (0.4, 1.1, 0.7)
+  curl_start = (0.4, 0.1, 0.2)
+  thickness = 0.9
+  ring_size = (1.4, 1.4, 1.8)
+  bead_size = (1.1, 1.1, 1.1)
+  hue = 10
+  hue_spread = 45
+  ring_saturation = 0.95
+  bead_saturation = 0.85
+  core_colour = hsv(40, 0.8, 1)
+  overall = 0.72
+}
+
+variant Lagoon {
+  aim = (0.5, 0.5, 0.7)
+  start = 0.4
+  stride = 0.8
+  taper = 0.97
+  thickness = 0.5
+  curl = (8, -30, 10)
+  curl_waves = (1.2, 0.3, 1)
+  curl_start = (0.7, 0.5, 0.1)
+  ring_size = (1.8, 1.8, 1.2)
+  bead_size = (0.6, 0.6, 0.6)
+  hue = 160
+  hue_spread = -70
+  ring_saturation = 0.8
+  bead_saturation = 0.7
+  core_colour = hsv(170, 0.5, 0.9)
+  overall = 1.17
+}
+
+variant Orchid {
+  core = 1
+  aim = (0.7, 0.6, 0.1)
+  start = 1.8
+  stride = 0.45
+  taper = 0.95
+  thickness = 1
+  curl = (-30, -12, -45)
+  curl_waves = (0.5, 0.8, 1.3)
+  curl_start = (0.9, 0.2, 0.4)
+  ring_size = (1.2, 1.2, 2.4)
+  bead_size = (1.3, 1.3, 0.8)
+  hue = 290
+  hue_spread = 40
+  ring_saturation = 0.6
+  bead_saturation = 0.9
+  core_colour = hsv(320, 0.4, 1)
+  gloss = 0.6
+  overall = 0.76
+}
+
+variant Moss {
+  core = 2
+  aim = (0.25, 0.3, 0.95)
+  start = 1
+  stride = 0.6
+  taper = 0.91
+  thickness = 0.8
+  curl = (36, 25, 5)
+  curl_waves = (0.3, 0.6, 0.2)
+  curl_start = (0.25, 0.8, 0.5)
+  ring_size = (1, 1, 0.8)
+  bead_size = (0.6, 0.6, 1.3)
+  hue = 95
+  hue_spread = 40
+  ring_saturation = 0.7
+  bead_saturation = 0.8
+  glow = 0.8
+  core_colour = hsv(60, 0.6, 0.9)
+  gloss = 0.5
+  focus = 0.5
+  overall = 1.47
+}
+
+variant Gold {
+  core = 1.3
+  aim = (0.85, 0.85, 0.85)
+  start = 0.6
+  stride = 0.65
+  taper = 0.96
+  thickness = 0.6
+  curl = (-12, 35, -30)
+  curl_waves = (1, 0.9, 0.6)
+  curl_start = (0.5, 0.0, 0.9)
+  ring_size = (2, 2, 1.4)
+  bead_size = (0.7, 0.7, 1.4)
+  hue = 40
+  hue_spread = 25
+  ring_saturation = 0.85
+  bead_saturation = 0.5
+  core_colour = hsv(45, 0.9, 1)
+  gloss = 1
+  focus = 0.9
+  overall = 1.43
+}
