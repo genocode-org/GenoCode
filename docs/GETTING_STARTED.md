@@ -187,9 +187,10 @@ finishes, breed the ones you like, and **Copy code** or **Use as background**.
 
 ## Saving and sharing
 
-- **Save** keeps a creature in this browser; it then appears in the Library under "Yours".
-- **Download** saves the `.genie` file, and **Open a .genie file** opens one (all three are in the
-  **File** menu). Opening a background or dance file while a creature is on show offers to put it
+- **Save in this browser** keeps a creature in this browser; it then appears in the Library under
+  "Yours".
+- **Download .genie…** saves the `.genie` file, and **Open a .genie file…** opens one (all three
+  are in the **File** menu). Opening a background or dance file while a creature is on show offers to put it
   into the creature.
 - **Picture** in View (or **File › Save a picture…**) saves a picture of the creature as it's shown.
 - **Video** in Morph and Dance records a video of the creature, with the music while it dances.
