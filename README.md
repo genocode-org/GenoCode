@@ -29,19 +29,20 @@ language is defined in [the language reference](https://genocode.piorek.co.za/do
 
 ## Repository layout
 
-| Folder              | Contents                                                           |
-| ------------------- | ------------------------------------------------------------------ |
-| `packages/core`     | the language: parser, checker, formatter, interpreter and genetics |
-| `packages/render`   | draws creatures, textures and backgrounds (three.js)               |
-| `packages/music`    | turns music into the inputs creatures react to                     |
-| `packages/dance`    | the dance effects: morph, zoom, spin, turn, reverse and flat       |
-| `packages/blocks`   | the block editor                                                   |
-| `packages/controls` | gene, time and music controls for trying creatures in a web page   |
-| `packages/app`      | the web app                                                        |
-| `creatures`         | the starter library of `.genie` creatures                          |
-| `dances`            | the starter dance styles                                           |
-| `patterns`          | the starter texture and background recipes                         |
-| `docs`              | documentation                                                      |
+| Folder               | Contents                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| `packages/core`      | the language: parser, checker, formatter, interpreter and genetics                       |
+| `packages/render`    | draws creatures, textures and backgrounds (three.js)                                     |
+| `packages/music`     | turns music into the inputs creatures react to                                           |
+| `packages/dance`     | the dance effects: morph, zoom, spin, turn, reverse and flat                             |
+| `packages/blocks`    | the block editor                                                                         |
+| `packages/controls`  | gene, time and music controls for trying creatures in a web page                         |
+| `packages/community` | sharing creatures with the community gallery: the share format, the relay and the checks |
+| `packages/app`       | the web app                                                                              |
+| `creatures`          | the starter library of `.genie` creatures                                                |
+| `dances`             | the starter dance styles                                                                 |
+| `patterns`           | the starter texture and background recipes                                               |
+| `docs`               | documentation                                                                            |
 
 ## Development
 
@@ -58,8 +59,8 @@ npm run check     # build, type-check, test and check formatting, as CI does
 from the creature menu at the top or the **Library**, start a new one from the **File** menu, or
 open or drop any `.genie` file. In Chromium-based
 browsers, a file opened from disk is watched too, so you can edit it in any editor and see the
-changes (until you edit it in the app). **Save** keeps a creature in the browser, and
-**Download…** writes it as a `.genie` file.
+changes (until you edit it in the app). **Save in this browser** keeps a creature in the
+browser, and **Download .genie…** writes it as a file.
 
 The creature fills the window. The six modes sit in a rail on the left (tabs along the bottom on a
 phone), each mode's tools float in a bar under the creature, and on a phone a sheet slides up with
@@ -73,6 +74,7 @@ the genes, the code and the blocks:
   (🔓) to keep it fixed while breeding. **Picture** saves the view as a PNG.
 - **Breed** shows a grid of variations. Click creatures to choose them as parents, then **Mutate**
   or **Breed**; **Back** returns to the previous generation, and double-clicking one opens it.
+  **Add as variant** puts the creature you picked into the open creature as a new variant.
 - **Morph** blends the creature through its variants, or the creatures chosen in the grid, in a
   loop.
 - **Dance** moves the creature to music (a file, a web address, the microphone or another browser
@@ -114,18 +116,20 @@ Piorek, J. _GenoCode: A Language for Evolvable Creatures_. Preprint, Zenodo, 202
 
 ## Related repositories
 
-`core` and `render` are published to npm as
-[`@genocode/core`](https://www.npmjs.com/package/@genocode/core) and
-[`@genocode/render`](https://www.npmjs.com/package/@genocode/render), so tools can live in
+`core`, `render` and `controls` are published to npm as
+[`@genocode/core`](https://www.npmjs.com/package/@genocode/core),
+[`@genocode/render`](https://www.npmjs.com/package/@genocode/render) and
+[`@genocode/controls`](https://www.npmjs.com/package/@genocode/controls), so tools can live in
 repositories of their own:
 
-| Repository                                                         | Contents                                                           |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures      |
-| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                          |
-| [GenoCode-agent](https://github.com/genocode-org/GenoCode-agent)   | an AI agent that designs creatures from a description, with Claude |
+| Repository                                                         | Contents                                                             |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| [GenoCode-cli](https://github.com/genocode-org/GenoCode-cli)       | `genie`, the command line: check, format and render creatures        |
+| [GenoCode-vscode](https://github.com/genocode-org/GenoCode-vscode) | the VS Code extension and language server                            |
+| [GenoCode-agent](https://github.com/genocode-org/GenoCode-agent)   | an AI agent that designs creatures from a description, with Claude   |
+| [GenoCode-sample](https://github.com/genocode-org/GenoCode-sample) | a small React site showing how to put creatures in your own web page |
 
-A version tag (such as `v0.2.0`) publishes `core` and `render` to npm.
+A version tag (such as `v0.2.0`) publishes `core`, `render` and `controls` to npm.
 
 ## Credits and license
 
