@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#07060d" />
+    <title>GenoCode Player</title>
+    <meta name="description" content="GenoCode creatures that morph and dance to your music." />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div class="phone" id="phone">
+      <div class="stage" id="stage">
+        <canvas id="view" aria-label="The creature, dancing"></canvas>
+        <div class="glow" id="glow"></div>
+        <div id="rings"></div>
+        <div class="vignette"></div>
+      </div>
+
+      <div class="chrome" id="chrome">
+        <div class="top">
+          <button class="who glass" id="who" type="button" aria-label="Show all creatures">
+            <b id="who-name"></b>
+            <span id="who-line">morphing to <i id="who-variant"></i></span>
+          </button>
+          <div class="spacer"></div>
+          <button
+            class="chip glass"
+            id="style-chip"
+            type="button"
+            aria-label="Choose how the creature dances"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="8" />
+              <path d="M12 4v4M12 16v4M4 12h4M16 12h4" />
+            </svg>
+            <span id="style-name"></span>
+          </button>
+          <button class="chip glass round" id="gear" type="button" aria-label="Settings">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="8" cy="17" r="2" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="hint glass gone" id="hint">
+          Swipe <b>← →</b> creatures · <b>↑</b> all creatures · <b>↓</b> dance styles
+        </div>
+
+        <div class="bottom">
+          <div class="loop" id="loop" aria-hidden="true"></div>
+          <div class="pill glass">
+            <button class="song" id="song-button" type="button" aria-label="Choose music">
+              <b id="song-name">Choose music</b>
+              <span>
+                <span class="meter" id="meter"><i></i><i></i><i></i><i></i><i></i></span>
+                <span id="song-meta">Tap play for a demo track</span>
+              </span>
+            </button>
+            <button class="play" id="play" type="button" aria-label="Play">
+              <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7 4.5v15l13-7.5z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+
+      <section class="sheet" id="drawer" aria-label="All creatures">
+        <div class="grab"></div>
+        <h2>Creatures</h2>
+        <p class="sub">Tap one to make it dance. Each card shows the shapes it morphs through.</p>
+        <div class="scroll" id="drawer-list"></div>
+      </section>
+
+      <section class="sheet" id="music" aria-label="Music">
+        <div class="grab"></div>
+        <h2>Music</h2>
+        <p class="sub">The creature listens and dances to whatever plays.</p>
+        <div class="scroll">
+          <div class="group">Demo tracks</div>
+          <div id="demo-list"></div>
+          <div class="group">Your music</div>
+          <label class="source" for="song-file">
+            <span class="ico">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M9 18V5l11-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="17" cy="16" r="3" />
+              </svg>
+            </span>
+            <div>
+              <b>A song on this phone</b>
+              <span>Pick an MP3 or other music file from your phone.</span>
+            </div>
+          </label>
+          <input type="file" id="song-file" accept="audio/*" hidden />
+          <button class="source" id="mic" type="button">
+            <span class="ico">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+              </svg>
+            </span>
+            <div>
+              <b>Listen with the microphone</b>
+              <span>Dance to music playing nearby, from a speaker, a radio or another app.</span>
+            </div>
+          </button>
+          <p class="note">
+            Songs from Spotify, Apple Music and YouTube are locked by those apps, so the player
+            can't open them. Play them out loud and use the microphone instead.
+          </p>
+        </div>
+      </section>
+
+      <section class="sheet" id="settings" aria-label="Settings">
+        <div class="grab"></div>
+        <h2>Settings</h2>
+        <div class="scroll">
+          <div class="row">
+            <div>
+              <b>Buzz on strong beats</b>
+              <span>The phone gives a small tap on each big beat.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="buzz" checked /><i></i></label>
+          </div>
+          <div class="row">
+            <div>
+              <b>Hide controls while dancing</b>
+              <span>After a few seconds only the creature is left. Tap to bring them back.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="autohide" checked /><i></i></label>
+          </div>
+          <div class="row">
+            <div>
+              <b>Keep the screen on</b>
+              <span>The screen stays on while the music plays.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="awake" checked /><i></i></label>
+          </div>
+          <div class="row">
+            <div>
+              <b>Save battery</b>
+              <span>Draws the creature a little less sharply, so the phone works less hard.</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="saver" /><i></i></label>
+          </div>
+          <div class="row">
+            <div>
+              <b>Open a creature file</b>
+              <span>A .genie file someone sent you. It's kept under "Opened".</span>
+            </div>
+            <label class="btn" for="genie-file">Open</label>
+            <input type="file" id="genie-file" accept=".genie,text/plain" hidden />
+          </div>
+        </div>
+      </section>
+
+      <section class="wheel" id="wheel" aria-label="Dance styles">
+        <header>
+          <small>Dance style</small>
+          <h2 id="wheel-name"></h2>
+          <p id="wheel-text"></p>
+        </header>
+        <div class="dial" id="dial"><div class="spin" id="spin"></div></div>
+        <div class="notch"></div>
+        <button class="btn solid done" id="wheel-done" type="button">Dance like this</button>
+      </section>
+
+      <div class="toast glass" id="toast" role="status"></div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

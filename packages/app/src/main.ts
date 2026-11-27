@@ -33,6 +33,7 @@ import {
   buildCreature,
   checkText,
   DanceFloor,
+  drawFieldsInWorkers,
   familyOf,
   fromProgram,
   Morpher,
@@ -45,7 +46,6 @@ import { RecentSongs, songLabel } from "./recent.js";
 import { SongWordsFinder, type WordsState } from "./songwords.js";
 import { ask, askText, choose, tell, type Choice } from "./dialog.js";
 import { CodeEditor } from "./editor.js";
-import { drawFieldsInWorkers } from "./fields.js";
 import { kindOf, LibraryView, type LibraryEntry } from "./libraryview.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
 import {
