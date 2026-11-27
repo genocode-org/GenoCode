@@ -1,0 +1,65 @@
+name: Player apps
+
+# Builds the phone player (packages/player) as an Android app and as an iPhone app, so a change
+# that breaks either shows up in its pull request. The Android app (a debug build, not signed for
+# the Play Store) is kept as a download on the run's page for a few days, to install on a phone.
+# The iPhone app is built for the simulator without signing: no Apple account is needed for that.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/player/**"
+      - "packages/stage/**"
+      - ".github/workflows/player.yml"
+  pull_request:
+    paths:
+      - "packages/player/**"
+      - "packages/stage/**"
+      - ".github/workflows/player.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm ci
+      - run: npm run prepare -w @genocode/core
+      - run: npm run sync -w @genocode/player
+      - run: ./gradlew assembleDebug --console=plain
+        working-directory: packages/player/android
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: GenoCodePlayer-android
+          path: packages/player/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run prepare -w @genocode/core
+      - run: npm run sync -w @genocode/player
+      - name: Build for the simulator, unsigned
+        working-directory: packages/player/ios/App
+        run: >
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug
+          -sdk iphonesimulator -destination "generic/platform=iOS Simulator"
+          CODE_SIGNING_ALLOWED=NO build
