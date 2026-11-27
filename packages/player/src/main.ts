@@ -22,6 +22,7 @@ import {
 } from "@genocode/stage";
 import { DEMOS, demoFile, type Demo } from "./demo.js";
 import { entries, find, label, open, styles, type Entry } from "./library.js";
+import { buzz, onBack, onLink, stayAwake } from "./native.js";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -234,13 +235,7 @@ function strongBeat(): void {
     $("rings").append(ring);
     setTimeout(() => ring.remove(), 1150);
   }
-  if (settings.buzz.checked && "vibrate" in navigator) {
-    try {
-      navigator.vibrate(12);
-    } catch {
-      // No buzz on this phone.
-    }
-  }
+  if (settings.buzz.checked) buzz();
 }
 
 // ---------- music ----------
@@ -343,22 +338,9 @@ async function playOrPause(): Promise<void> {
 }
 player.onEnd = showPlaying;
 
-let wake: WakeLockSentinel | undefined;
 /** Keeps the screen on while music plays, if that's wanted. */
 function keepAwake(): void {
-  const want = settings.awake.checked && player.active && !player.paused;
-  if (want && wake === undefined && "wakeLock" in navigator) {
-    navigator.wakeLock
-      .request("screen")
-      .then((w) => {
-        wake = w;
-        w.addEventListener("release", () => (wake = undefined));
-      })
-      .catch(() => {});
-  } else if (!want && wake !== undefined) {
-    void wake.release().catch(() => {});
-    wake = undefined;
-  }
+  stayAwake(settings.awake.checked && player.active && !player.paused);
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") keepAwake();
@@ -778,13 +760,18 @@ function toast(message: string): void {
 // ---------- start ----------
 
 /** The creature to start with: one a link names, else the last one shown, else Medusa. */
-function firstEntry(): Entry {
-  const params = new URLSearchParams(location.search);
+/** The creature a link names, as in `?example=Medusa` or `?community=Pesky`. */
+function linked(params: URLSearchParams): Entry | undefined {
   const example = params.get("example");
   const shared = params.get("community");
-  const linked =
-    (example && find("starter", example)) || (shared && find("community", shared)) || undefined;
-  if (linked) return linked;
+  return (
+    (example && find("starter", example)) || (shared && find("community", shared)) || undefined
+  );
+}
+
+function firstEntry(): Entry {
+  const link = linked(new URLSearchParams(location.search));
+  if (link) return link;
   const last = store.get<{ shelf: Entry["shelf"]; name: string } | undefined>(
     "creature",
     undefined,
@@ -793,6 +780,20 @@ function firstEntry(): Entry {
 }
 
 show(firstEntry());
+onLink((params) => {
+  const e = linked(params);
+  if (!e) return toast("That creature isn't in the player yet. Update the app to get it.");
+  closeSheet();
+  closeWheel();
+  change(e);
+});
+// The back button closes the wheel or a sheet first.
+onBack(() => {
+  if (wheelOpen) closeWheel();
+  else if (sheet) closeSheet();
+  else return false;
+  return true;
+});
 showPlaying();
 if (!store.get("hinted", false)) {
   $("hint").classList.remove("gone");

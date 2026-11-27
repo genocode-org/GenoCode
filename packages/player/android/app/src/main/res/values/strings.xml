@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GenoCode Player</string>
+    <string name="title_activity_main">GenoCode Player</string>
+    <string name="package_name">za.co.piorek.genocode.player</string>
+    <string name="custom_url_scheme">za.co.piorek.genocode.player</string>
+</resources>
