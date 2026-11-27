@@ -20,9 +20,9 @@ import {
   type Creature,
   type DanceFrame,
 } from "@genocode/stage";
-import { DEMOS, demoFile, type Demo } from "./demo.js";
+import { DEMOS, demoFile, demoName, type Demo } from "./demos.js";
 import { entries, find, label, open, styles, type Entry } from "./library.js";
-import { buzz, onBack, onLink, stayAwake } from "./native.js";
+import { buzz, onBack, onHide, onLink, stayAwake } from "./native.js";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -260,7 +260,7 @@ function showPlaying(): void {
     name = "Microphone";
     meta = player.tempo ? `Listening · ${Math.round(player.tempo)} beats a minute` : "Listening";
   } else if (player.active) {
-    const isDemo = demo !== undefined && player.name === `${demo.name}.wav`;
+    const isDemo = demo !== undefined && player.name === demoName(demo);
     name = isDemo ? demo!.name : player.name.replace(/\.[^.]+$/, "");
     const at = player.position;
     meta = `${isDemo ? "Demo track" : "Your song"} · ${player.paused ? "paused" : at ? minutes(at.at) : ""}`;
@@ -342,14 +342,27 @@ player.onEnd = showPlaying;
 function keepAwake(): void {
   stayAwake(settings.awake.checked && player.active && !player.paused);
 }
+// The music stops when the player goes out of sight (the back or home button, or another app),
+// since nobody is watching the creature dance; Play carries on from there.
+function stopInBackground(): void {
+  if (player.live) {
+    player.stop();
+    floor.setSong(undefined);
+  } else if (player.active && !player.paused) {
+    void player.togglePause();
+  }
+  showPlaying();
+}
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") keepAwake();
+  else stopInBackground();
 });
+onHide(stopInBackground);
 
 function fillDemos(): void {
   $("demo-list").replaceChildren(
     ...DEMOS.map((d) => {
-      const on = demo === d && player.active && !player.paused && player.name === `${d.name}.wav`;
+      const on = demo === d && player.active && !player.paused && player.name === demoName(d);
       const b = document.createElement("button");
       b.type = "button";
       b.className = `source${on ? " on" : ""}`;
@@ -802,5 +815,5 @@ if (!store.get("hinted", false)) {
     store.set("hinted", true);
   }, 7000);
 }
-// The first demo track is made ahead, so the first tap on play starts at once.
+// The first demo track is loaded ahead, so the first tap on play starts at once.
 void demoFile(DEMOS[0]!);

@@ -1,23 +1,9 @@
-// The demo tracks: short dance grooves made on the phone itself (drums, bass and chords from Web
-// Audio oscillators and noise), written into a WAV file and played like any song, so the creature
-// can dance straight away without shipping anyone's music. They're stand-ins until the player
-// ships tracks of its own.
+// Makes the demo tracks: short dance grooves of drums, bass and chords from Web Audio oscillators
+// and noise, so the creature can dance straight away without shipping anyone's music. They're
+// made once on a computer (see demos.html beside this file) and shipped as files in public/demos/,
+// since a phone takes many seconds to make one.
 
-export interface Demo {
-  name: string;
-  /** Beats a minute. */
-  bpm: number;
-  /** The lowest bass note, as a MIDI note number. */
-  root: number;
-  feel: "four" | "half" | "drive";
-  about: string;
-}
-
-export const DEMOS: readonly Demo[] = [
-  { name: "Afterglow", bpm: 122, root: 45, feel: "four", about: "Steady dance beat" },
-  { name: "Tidepool", bpm: 96, root: 50, feel: "half", about: "Slow and deep" },
-  { name: "Neon Run", bpm: 132, root: 40, feel: "drive", about: "Fast, rolling bass" },
-];
+import type { Demo } from "../src/demos.js";
 
 const RATE = 44100;
 /** Ten bars of the groove, then two broken down to drums and chords, twice over. */
@@ -25,19 +11,8 @@ const BARS = 24;
 /** The chord under each bar, in semitones from the root. */
 const PROGRESSION = [0, -4, 3, -2];
 
-const made = new Map<string, Promise<File>>();
-
-/** The demo as a WAV file, made the first time it's asked for. */
-export function demoFile(d: Demo): Promise<File> {
-  let file = made.get(d.name);
-  if (file === undefined) {
-    file = render(d);
-    made.set(d.name, file);
-  }
-  return file;
-}
-
-async function render(d: Demo): Promise<File> {
+/** The demo as a WAV file. */
+export async function render(d: Demo): Promise<File> {
   const sixteenth = 60 / d.bpm / 4;
   const length = BARS * 16 * sixteenth;
   const ctx = new OfflineAudioContext(2, Math.ceil(length * RATE), RATE);

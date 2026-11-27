@@ -4,7 +4,8 @@ A phone app that only morphs creatures and makes them dance to music. One creatu
 screen: swipe sideways for the next one, up for all of them and down for the dance styles. The
 dance is the web app's own (`@genocode/stage`), so a creature dances the same in both.
 
-Music comes from three demo tracks the phone makes itself, a song file on the phone, or the
+Music comes from three demo tracks (grooves GenoCode made itself, in `public/demos/`; see
+`scripts/demos.html` to make them again), a song file on the phone, or the
 microphone.
 
 ## In a browser
