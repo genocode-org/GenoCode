@@ -77,3 +77,9 @@ export function onBack(back: () => boolean): void {
     if (!back()) void App.minimizeApp();
   });
 }
+
+/** Calls `hide` when the app goes into the background. */
+export function onHide(hide: () => void): void {
+  if (!native) return;
+  void App.addListener("pause", hide);
+}
