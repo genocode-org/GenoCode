@@ -2,3 +2,6 @@ dist
 node_modules
 package-lock.json
 packages/core/reference
+# The phone app projects Capacitor makes and copies the built player into
+packages/player/android
+packages/player/ios
