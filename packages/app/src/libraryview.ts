@@ -3,7 +3,7 @@
 // a dance style dances the creature on show to it. A background or dance can also be put into the
 // creature, a style opened to edit it, and your own deleted.
 
-import { checkText } from "./creature.js";
+import { checkText } from "@genocode/stage";
 import { drawPicturesWhenSeen, onPicturesStale } from "./pictures.js";
 
 export type EntryKind = "creature" | "background" | "dance" | "pattern";

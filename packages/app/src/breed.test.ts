@@ -1,7 +1,7 @@
 import { check, mutate, type Value } from "@genocode/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { pinned } from "./breed.js";
-import { familyOf, fromProgram } from "./creature.js";
+import { familyOf, fromProgram } from "@genocode/stage";
 import { locked } from "./panel.js";
 
 const shape = (name: "cube" | "ring" | "cone"): Value => ({ type: "shape", name });

@@ -1,0 +1,25 @@
+{
+  "name": "@genocode/stage",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plays a creature's morph and dance in a web page: the dance floor, the morpher and the background frame builder.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@genocode/core": "^0.11.0",
+    "@genocode/dance": "^0.0.0",
+    "@genocode/music": "^0.0.0",
+    "@genocode/render": "^0.13.0"
+  }
+}

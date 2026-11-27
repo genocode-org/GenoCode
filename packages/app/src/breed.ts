@@ -13,7 +13,7 @@ import {
   type Value,
 } from "@genocode/core";
 import { creatureBounds, onFieldReady, Thumbnails } from "@genocode/render";
-import { buildCreature, type Creature } from "./creature.js";
+import { buildCreature, type Creature } from "@genocode/stage";
 import { locked } from "./panel.js";
 
 const GRID_SIZE = 12;

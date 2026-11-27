@@ -2,7 +2,7 @@
 // creature menu. Each is drawn once and kept, by its text.
 
 import { onFieldReady, Thumbnails } from "@genocode/render";
-import { buildCreature, checkText, fromProgram } from "./creature.js";
+import { buildCreature, checkText, fromProgram } from "@genocode/stage";
 
 const thumbnails = new Thumbnails();
 const pictures = new Map<string, string>();

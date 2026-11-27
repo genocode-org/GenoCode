@@ -38,6 +38,7 @@ language is defined in [the language reference](https://genocode.piorek.co.za/do
 | `packages/blocks`    | the block editor                                                                         |
 | `packages/controls`  | gene, time and music controls for trying creatures in a web page                         |
 | `packages/community` | sharing creatures with the community gallery: the share format, the relay and the checks |
+| `packages/stage`     | plays a creature's morph and dance in a web page (used by the app)                       |
 | `packages/app`       | the web app                                                                              |
 | `creatures`          | the starter library of `.genie` creatures                                                |
 | `dances`             | the starter dance styles                                                                 |

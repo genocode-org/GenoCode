@@ -40,7 +40,7 @@ import {
   type Token,
 } from "@genocode/core";
 import { basicSetup } from "codemirror";
-import { checkText } from "./creature.js";
+import { checkText } from "@genocode/stage";
 import { askText, tell } from "./dialog.js";
 
 /** Marks changes made by the app rather than typed, such as opening a file. */
