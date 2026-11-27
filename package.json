@@ -11,15 +11,16 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run prepare -w @genocode/core && tsc -b && npm run build -w @genocode/app",
+    "build": "npm run prepare -w @genocode/core && tsc -b && npm run build -w @genocode/app && npm run build -w @genocode/player",
     "clean": "tsc -b --clean",
-    "typecheck": "tsc -p tsconfig.tests.json && tsc -p packages/app",
+    "typecheck": "tsc -p tsconfig.tests.json && tsc -p packages/app && tsc -p packages/player",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run build && npm run typecheck && npm run test && npm run format:check",
-    "dev": "npm run dev -w @genocode/app"
+    "dev": "npm run dev -w @genocode/app",
+    "player": "npm run dev -w @genocode/player"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

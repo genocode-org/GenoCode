@@ -12,5 +12,6 @@ export {
   type Creature,
 } from "./creature.js";
 export { DanceFloor, type DanceFrame } from "./dance.js";
+export { drawFieldsInWorkers } from "./fields.js";
 export { Morpher, morphAt, type MorphFrame } from "./morph.js";
 export { songLook } from "./songlook.js";

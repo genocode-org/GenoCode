@@ -40,6 +40,7 @@ language is defined in [the language reference](https://genocode.piorek.co.za/do
 | `packages/community` | sharing creatures with the community gallery: the share format, the relay and the checks |
 | `packages/stage`     | plays a creature's morph and dance in a web page (used by the app)                       |
 | `packages/app`       | the web app                                                                              |
+| `packages/player`    | the phone player: creatures morph and dance to music, nothing else                       |
 | `creatures`          | the starter library of `.genie` creatures                                                |
 | `dances`             | the starter dance styles                                                                 |
 | `patterns`           | the starter texture and background recipes                                               |
