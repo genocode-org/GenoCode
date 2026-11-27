@@ -21,6 +21,9 @@
     },
     {
       "path": "packages/community"
+    },
+    {
+      "path": "packages/stage"
     }
   ]
 }

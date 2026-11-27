@@ -28,17 +28,19 @@ import { hooks } from "@genocode/blocks";
 import { InputControls, type GeneEditing } from "@genocode/controls";
 import { MusicPlayer } from "@genocode/music";
 import { CreatureView, type Side } from "@genocode/render";
-import { BlocksView } from "./blocksview.js";
-import { Breeder } from "./breed.js";
 import {
   breedable,
   buildCreature,
   checkText,
+  DanceFloor,
   familyOf,
   fromProgram,
+  Morpher,
   type Creature,
-} from "./creature.js";
-import { DanceFloor, type DanceFrame } from "./dance.js";
+  type DanceFrame,
+} from "@genocode/stage";
+import { BlocksView } from "./blocksview.js";
+import { Breeder } from "./breed.js";
 import { RecentSongs, songLabel } from "./recent.js";
 import { SongWordsFinder, type WordsState } from "./songwords.js";
 import { ask, askText, choose, tell, type Choice } from "./dialog.js";
@@ -46,7 +48,6 @@ import { CodeEditor } from "./editor.js";
 import { drawFieldsInWorkers } from "./fields.js";
 import { kindOf, LibraryView, type LibraryEntry } from "./libraryview.js";
 import { deleteCreature, saveCreature, savedNames, savedText } from "./library.js";
-import { Morpher } from "./morph.js";
 import {
   definitionLines,
   PatternDesigner,

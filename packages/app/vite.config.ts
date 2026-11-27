@@ -102,7 +102,9 @@ function modified(...sources: string[]): string | undefined {
 const APP_SOURCES = [
   "packages/app/app",
   "packages/app/src",
-  ...["blocks", "controls", "core", "dance", "music", "render"].map((p) => `packages/${p}/src`),
+  ...["blocks", "controls", "core", "dance", "music", "render", "stage"].map(
+    (p) => `packages/${p}/src`,
+  ),
   "creatures",
   "dances",
   "patterns",
@@ -189,6 +191,7 @@ export default defineConfig({
       "@genocode/music": src("music"),
       "@genocode/dance": src("dance"),
       "@genocode/blocks": src("blocks"),
+      "@genocode/stage": src("stage"),
     },
   },
   server: { fs: { allow: [repo] } },

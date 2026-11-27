@@ -19,6 +19,7 @@
     "@genocode/dance": "^0.0.0",
     "@genocode/music": "^0.0.0",
     "@genocode/render": "^0.13.0",
+    "@genocode/stage": "^0.0.0",
     "@lezer/highlight": "1.2.5",
     "@mediabunny/aac-encoder": "^1.65.2",
     "blockly": "12.5.1",
