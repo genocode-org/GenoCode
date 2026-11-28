@@ -105,7 +105,8 @@ on a line of code, that line's steps light up too.
 
 **Help** in the app opens the documentation: the getting-started guide and the language reference,
 made from `docs/` when the app is built. `npm run build` puts the whole website in
-`packages/app/dist`; on every push to main, the Site workflow publishes it on GitHub Pages.
+`packages/app/dist`; the Site workflow publishes it on GitHub Pages when a push to main changes
+something the website is built from (see [packages/app](packages/app/README.md)).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
