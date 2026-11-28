@@ -28,6 +28,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "sync": "vite build && cap sync",
-    "android:apk": "npm run sync && cd android && ./gradlew assembleDebug"
+    "android:apk": "npm run sync && cd android && ./gradlew assembleDebug",
+    "android:aab": "npm run sync && cd android && ./gradlew bundleRelease"
   }
 }
