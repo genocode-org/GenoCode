@@ -31,6 +31,11 @@ npm run android:apk -w @genocode/player
 adb install -r packages/player/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+To skip the `export` line, tell Gradle once where both are: `sdk.dir=/home/<you>/Android/Sdk` in
+`packages/player/android/local.properties` (git ignores it), and
+`org.gradle.java.home=/usr/lib/jvm/java-21-openjdk-amd64` in `~/.gradle/gradle.properties` (only
+Gradle uses it, so your default Java stays as it is).
+
 ## For Google Play
 
 Google Play takes an Android App Bundle (`.aab`) signed with your upload key, not the debug APK.
@@ -40,7 +45,7 @@ somewhere safe:
 
 ```
 mkdir -p ~/keys
-$JAVA_HOME/bin/keytool -genkeypair -v -keystore ~/keys/genocode-upload.jks -alias upload \
+keytool -genkeypair -v -keystore ~/keys/genocode-upload.jks -alias upload \
   -keyalg RSA -keysize 2048 -validity 10000
 ```
 
@@ -56,7 +61,7 @@ keyPassword=<the key's password>
 
 **Each upload:** raise `versionCode` (by 1) in `android/app/build.gradle`, because Google Play
 refuses a bundle whose number it already has, and change `versionName` (the version people see,
-such as `1.1`). Then, with the same `JAVA_HOME` and `ANDROID_HOME` as above:
+such as `1.1`). Then, with Java and the SDK found as above:
 
 ```
 npm run android:aab -w @genocode/player
