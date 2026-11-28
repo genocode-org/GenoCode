@@ -1,24 +1,20 @@
-// The demo tracks, so the creature can dance straight away. They're grooves GenoCode made itself
-// (scripts/synth.ts), shipped as files in public/demos/, and stand-ins until the player ships
-// tracks of its own.
+// The demo tracks, so the creature can dance straight away. They're instrumentals made with the
+// ACE-Step music model and shipped as files in public/demos/ (scripts/demos.md says how).
 
 export interface Demo {
   name: string;
-  /** Beats a minute. */
+  /** Beats a minute, as measured in the track. */
   bpm: number;
-  /** The lowest bass note, as a MIDI note number, for making it. */
-  root: number;
-  feel: "four" | "half" | "drive";
   about: string;
 }
 
 export const DEMOS: readonly Demo[] = [
-  { name: "Afterglow", bpm: 122, root: 45, feel: "four", about: "Steady dance beat" },
-  { name: "Tidepool", bpm: 96, root: 50, feel: "half", about: "Slow and deep" },
-  { name: "Neon Run", bpm: 132, root: 40, feel: "drive", about: "Fast, rolling bass" },
+  { name: "Afterglow", bpm: 122, about: "Steady dance beat" },
+  { name: "Disco Glow", bpm: 118, about: "Funky dance groove" },
+  { name: "Log Drum", bpm: 112, about: "Bouncy and jazzy" },
 ];
 
-/** The demo's file name, as in `Neon_Run.m4a`. */
+/** The demo's file name, as in `Disco_Glow.m4a`. */
 export const demoName = (d: Demo) => `${d.name.replace(/ /g, "_")}.m4a`;
 
 const loaded = new Map<string, Promise<File>>();
